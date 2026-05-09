@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.so
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Environment variables (NUNCA subir al repo)
+.env
+.env.local
+.env.production
+
+# Database local
+*.sqlite
+*.db
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Migrations (opcional, depende del workflow)
+# alembic/versions/
+
+# Scripts de migración temporal
+migrate_to_supabase.py
+inspect_db.py
