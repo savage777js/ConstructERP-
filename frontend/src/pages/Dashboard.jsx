@@ -1,0 +1,224 @@
+import { useState, useEffect } from 'react';
+import api from '../api';
+import { 
+  Users, Briefcase, Package, Bell, 
+  TrendingUp, AlertTriangle, ArrowRight,
+  ClipboardList, HardHat, Box, LayoutDashboard,
+  Loader2, RefreshCw
+} from 'lucide-react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell, Legend
+} from 'recharts';
+import { useNavigate } from 'react-router-dom';
+import KPICard from '../components/KPICard';
+
+const Dashboard = () => {
+  const [summary, setSummary] = useState(null);
+  const [chartData, setChartData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [summaryRes, chartRes] = await Promise.all([
+        api.get('/dashboard/summary'),
+        api.get('/dashboard/charts')
+      ]);
+      setSummary(summaryRes.data);
+      setChartData(chartRes.data);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const COLORS = ['#f59e0b', '#0ea5e9', '#6366f1', '#ef4444', '#10b981'];
+
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center text-slate-400">
+      <Loader2 size={40} className="animate-spin mr-3 text-blue-500" />
+      <span>Consolidando indicadores ejecutivos...</span>
+    </div>
+  );
+
+  if (!summary || !chartData) return (
+    <div className="flex h-screen items-center justify-center flex-col text-slate-400 p-8">
+      <AlertTriangle size={60} className="text-red-500 mb-4" />
+      <h2 className="text-2xl font-bold text-white mb-2">Error de conexión</h2>
+      <p className="text-center mb-6">No se pudieron obtener los datos. Verifica que el backend esté corriendo y disponible.</p>
+      <button 
+        onClick={fetchDashboardData}
+        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
+      >
+        <RefreshCw size={18} /> Reintentar
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="p-8 max-w-[1600px] mx-auto pb-20">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+        <div className="relative">
+          <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-[var(--primary)] rounded-full blur-[2px]" />
+          <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4">
+            CENTRAL <span className="gradient-text">OPERATIVA</span>
+          </h1>
+          <p className="text-[var(--text-muted)] text-sm font-bold tracking-[0.2em] uppercase mt-1 opacity-70">
+            Control de Gestión · Serconind Ltda.
+          </p>
+        </div>
+        <button 
+          onClick={fetchDashboardData}
+          className="group flex items-center gap-3 px-6 py-3 bg-[var(--primary-glow)] border border-[var(--primary-glow)] rounded-2xl text-[var(--primary)] hover:bg-[var(--primary)] hover:text-black transition-all duration-500 font-black text-sm tracking-widest uppercase"
+        >
+          <RefreshCw size={16} className="group-hover:rotate-180 transition-transform duration-700" />
+          Sincronizar Nodo
+        </button>
+      </header>
+
+      {/* KPI Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <KPICard 
+          title="Trabajadores Activos" 
+          value={summary.workers.total} 
+          subtitle={`${summary.workers.expiring} contratos por vencer`}
+          icon={Users} 
+          color="blue"
+          trend={summary.workers.expiring > 0 ? "down" : "up"}
+          trendValue={summary.workers.expiring > 0 ? "Alerta RRHH" : "Estable"}
+        />
+        <KPICard 
+          title="Obras en Ejecución" 
+          value={summary.projects.total} 
+          subtitle={`${summary.projects.ending} próximas a finalizar`}
+          icon={Briefcase} 
+          color="purple"
+        />
+        <KPICard 
+          title="Ítems en Bodega" 
+          value={summary.inventory.total} 
+          subtitle={`${summary.inventory.critical} con stock crítico`}
+          icon={Package} 
+          color="amber"
+          trend={summary.inventory.critical > 0 ? "down" : "up"}
+          trendValue={summary.inventory.critical > 0 ? "Stock Bajo" : "Óptimo"}
+        />
+        <KPICard 
+          title="Alertas Pendientes" 
+          value={summary.notifications.unread} 
+          subtitle="Acciones requeridas"
+          icon={Bell} 
+          color={summary.notifications.unread > 0 ? "red" : "emerald"}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Chart 1: Workers per Project */}
+        <div className="lg:col-span-2 glass-card p-8 min-h-[450px]">
+          <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
+            <HardHat className="text-blue-400" size={20} /> Dotación de Personal por Proyecto
+          </h3>
+          <div className="h-[350px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData.workers_project}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', color: '#fff', backdropFilter: 'blur(10px)' }} 
+                  itemStyle={{ color: 'var(--primary)' }}
+                />
+                <Bar dataKey="workers" fill="var(--accent-blue)" radius={[4, 4, 0, 0]} barSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Chart 2: Alerts breakdown */}
+        <div className="glass-card p-8 min-h-[450px]">
+          <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
+            <AlertTriangle className="text-amber-500" size={20} /> Distribución de Alertas
+          </h3>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData.alerts_priority}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={8}
+                  dataKey="value"
+                >
+                  {chartData.alerts_priority.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0)" />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px' }} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Chart 3: Inventory by Category */}
+        <div className="lg:col-span-3 glass-card p-8 min-h-[450px]">
+          <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
+            <Package className="text-amber-400" size={20} /> Distribución de Stock por Categoría
+          </h3>
+          <div className="h-[350px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData.inventory_category} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" horizontal={false} />
+                <XAxis type="number" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis dataKey="category" type="category" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} width={120} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', color: '#fff' }} 
+                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                />
+                <Bar dataKey="stock" fill="#f59e0b" radius={[0, 6, 6, 0]} barSize={30} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Quick Access Grid */}
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
+          {[
+            { name: 'Gestión RRHH', icon: Users, path: '/workers', color: 'bg-blue-500/10 text-blue-400', roles: ['ADMIN', 'HR_MANAGER', 'MANAGEMENT', 'PROJECT_MANAGER'] },
+            { name: 'Control de Obras', icon: Briefcase, path: '/projects', color: 'bg-purple-500/10 text-purple-400', roles: ['ADMIN', 'PROJECT_MANAGER', 'MANAGEMENT', 'HR_MANAGER', 'INVENTORY_MANAGER'] },
+            { name: 'Inventario Central', icon: Package, path: '/inventory', color: 'bg-amber-500/10 text-amber-500', roles: ['ADMIN', 'INVENTORY_MANAGER', 'MANAGEMENT'] },
+            { name: 'Centro de Alertas', icon: Bell, path: '/notifications', color: 'bg-red-500/10 text-red-400', roles: ['ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT'] }
+          ].filter(item => {
+            const role = localStorage.getItem('userRole');
+            return role && item.roles.includes(role);
+          }).map((item) => (
+            <button
+              key={item.name}
+              onClick={() => navigate(item.path)}
+              className="flex items-center justify-between p-6 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/[0.08] transition-all group shadow-xl"
+            >
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl ${item.color}`}>
+                  <item.icon size={24} />
+                </div>
+                <span className="font-bold text-slate-100">{item.name}</span>
+              </div>
+              <ArrowRight className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" size={20} />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
