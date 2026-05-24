@@ -1,9 +1,31 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum, JSON, Numeric, Text, Table
 from sqlalchemy.orm import relationship
 from app.db.session import Base
+from sqlalchemy.types import TypeDecorator, CHAR
+from sqlalchemy.dialects.postgresql import UUID as pgUUID
 import enum
 from datetime import datetime
 import uuid
+
+class GUID(TypeDecorator):
+    impl = CHAR
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(pgUUID())
+        else:
+            return dialect.type_descriptor(CHAR(36))
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        return str(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        return str(value)
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -30,7 +52,7 @@ class NotificationPriority(str, enum.Enum):
 # --- Multi-tenancy ---
 class Organization(Base):
     __tablename__ = "organizations"
-    id = Column(String, primary_key=True, default=generate_uuid)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
     name = Column(String(255), nullable=False)
     tax_id = Column(String(50), unique=True)
     address = Column(Text)
@@ -49,7 +71,7 @@ class Organization(Base):
 # --- Role Based Access Control (RBAC) ---
 class Permission(Base):
     __tablename__ = "permissions"
-    id = Column(String, primary_key=True, default=generate_uuid)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
     name = Column(String(100), unique=True, nullable=False)
     slug = Column(String(100), unique=True, nullable=False)
     module = Column(String(50), nullable=False)
@@ -59,14 +81,14 @@ class Permission(Base):
 role_permissions = Table(
     "role_permissions",
     Base.metadata,
-    Column("role_id", String, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
-    Column("permission_id", String, ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
+    Column("role_id", GUID, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+    Column("permission_id", GUID, ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
 )
 
 class Role(Base):
     __tablename__ = "roles"
-    id = Column(String, primary_key=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    organization_id = Column(GUID, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True)
     name = Column(String(50), unique=True, nullable=False)
     slug = Column(String(50))
     description = Column(Text)
@@ -76,9 +98,9 @@ class Role(Base):
 
 class UserRoleRel(Base):
     __tablename__ = "user_roles"
-    id = Column(String, primary_key=True, default=generate_uuid)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
-    role_id = Column(String, ForeignKey("roles.id", ondelete="CASCADE"))
+    role_id = Column(GUID, ForeignKey("roles.id", ondelete="CASCADE"))
     assigned_at = Column(DateTime, default=datetime.utcnow)
 
 # --- Core Entities ---
@@ -87,7 +109,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     auth_id = Column(String, unique=True, index=True, nullable=True) # UUID from Supabase Auth
-    organization_id = Column(String, ForeignKey("organizations.id"), nullable=True)
+    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
     full_name = Column(String, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
@@ -109,7 +131,7 @@ class Employee(Base):
     __tablename__ = "employees"
 
     id = Column(Integer, primary_key=True, index=True)
-    organization_id = Column(String, ForeignKey("organizations.id"), nullable=True)
+    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
@@ -135,7 +157,7 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, index=True)
-    organization_id = Column(String, ForeignKey("organizations.id"), nullable=True)
+    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
     name = Column(String, index=True, nullable=False)
     code = Column(String, unique=True, index=True) # Código de obra
     client_name = Column(String)
@@ -175,7 +197,7 @@ class InventoryItem(Base):
     __tablename__ = "inventory_items"
 
     id = Column(Integer, primary_key=True, index=True)
-    organization_id = Column(String, ForeignKey("organizations.id"), nullable=True)
+    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
     name = Column(String, index=True, nullable=False)
     sku = Column(String, unique=True, index=True)
     category = Column(String, index=True)  # Herramientas, Materiales, EPP, etc.
@@ -216,8 +238,8 @@ class InventoryMovement(Base):
 # --- Document Management & OCR ---
 class Document(Base):
     __tablename__ = "documents"
-    id = Column(String, primary_key=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    organization_id = Column(GUID, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(255), nullable=False)
     file_path = Column(String, nullable=False)
     file_type = Column(String(50))
@@ -257,7 +279,7 @@ class Notification(Base):
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
-    id = Column(String, primary_key=True, default=generate_uuid)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     action = Column(String(20), nullable=False)
     table_name = Column(String(50), nullable=False)
@@ -268,8 +290,8 @@ class AuditLog(Base):
 
 class Task(Base):
     __tablename__ = "tasks"
-    id = Column(String, primary_key=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id"), nullable=True)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     assigned_to = Column(Integer, ForeignKey("employees.id"), nullable=True)
     title = Column(String(255), nullable=False)
@@ -287,8 +309,8 @@ class Task(Base):
 
 class TaskComment(Base):
     __tablename__ = "task_comments"
-    id = Column(String, primary_key=True, default=generate_uuid)
-    task_id = Column(String, ForeignKey("tasks.id", ondelete="CASCADE"))
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    task_id = Column(GUID, ForeignKey("tasks.id", ondelete="CASCADE"))
     user_id = Column(Integer, ForeignKey("users.id"))
     comment = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -297,8 +319,8 @@ class TaskComment(Base):
 
 class Expense(Base):
     __tablename__ = "expenses"
-    id = Column(String, primary_key=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id"), nullable=True)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     category = Column(String(100))
     description = Column(Text)
@@ -312,8 +334,8 @@ class Expense(Base):
 
 class Invoice(Base):
     __tablename__ = "invoices"
-    id = Column(String, primary_key=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id"), nullable=True)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
     client_name = Column(String(255), nullable=False)
     total_amount = Column(Numeric(15, 2), nullable=False)

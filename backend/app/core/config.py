@@ -27,8 +27,17 @@ class Settings(BaseSettings):
 
     def __init__(self, **values):
         super().__init__(**values)
-        # HACK FINAL: Forzamos todo para evitar desajustes en el instituto
-        self.DATABASE_URL = "sqlite:///./local_erp.db"
-        self.SECRET_KEY = "construct_erp_2026_fixed_key"
+        # HACK FINAL: Forzamos sqlite por defecto para el instituto, pero permitimos variables de entorno reales si están definidas (ej. en Sevalla o Supabase)
+        env_db_url = os.environ.get("DATABASE_URL")
+        if env_db_url:
+            self.DATABASE_URL = env_db_url
+        else:
+            self.DATABASE_URL = "sqlite:///./local_erp.db"
+            
+        env_secret_key = os.environ.get("SECRET_KEY")
+        if env_secret_key:
+            self.SECRET_KEY = env_secret_key
+        else:
+            self.SECRET_KEY = "construct_erp_2026_fixed_key"
 
 settings = Settings()
