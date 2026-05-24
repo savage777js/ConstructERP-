@@ -18,6 +18,45 @@ class AIService:
             "Content-Type": "application/json"
         }
 
+    async def process_document(self, image_base64: str) -> Optional[Dict]:
+        """Procesa una imagen de documento para extraer datos usando OCR con IA."""
+        if not self.api_key:
+            return None
+
+        prompt = CHATBOT_PROMPTS.get('ocr_invoice')
+        
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(
+                    self.base_url,
+                    headers=self.headers,
+                    json={
+                        "model": settings.OPENROUTER_MODEL,
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "text", "text": prompt},
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": f"data:image/jpeg;base64,{image_base64}"
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        "response_format": { "type": "json_object" }
+                    },
+                    timeout=60.0
+                )
+                response.raise_for_status()
+                content = response.json()["choices"][0]["message"]["content"]
+                return json.loads(content)
+            except Exception as e:
+                print(f"Error in process_document: {e}")
+                return None
+
     async def get_chat_response(
         self, 
         messages: List[Dict[str, str]], 
@@ -32,7 +71,8 @@ class AIService:
         
         # Inyectar instrucción de herramientas si hay DB disponible
         if db and organization_id:
-            system_prompt += "\n\nPUEDES CONSULTAR DATOS: Si el usuario pide datos (finanzas, proyectos, personal), responde ÚNICAMENTE con un JSON con este formato: {\"action\": \"query\", \"type\": \"finance|projects|employees\", \"params\": {}}. No digas nada más."
+            if bot_id == 'erp_assistant':
+                system_prompt += "\n\nPUEDES CONSULTAR DATOS: Si el usuario pide datos (finanzas, proyectos, personal), responde ÚNICAMENTE con un JSON con este formato: {\"action\": \"query\", \"type\": \"finance|projects|employees\", \"params\": {}}. No digas nada más."
 
         full_messages = [
             {"role": "system", "content": system_prompt}
@@ -71,7 +111,6 @@ class AIService:
                             data = fetcher.get_employee_stats()
 
                         # Enviar datos de vuelta a la IA para respuesta final
-                        # No incluimos el JSON original de la IA para que no se confunda
                         full_messages.append({"role": "system", "content": f"DATOS REALES DEL ERP: {json.dumps(data)}. Responde ahora al usuario de forma natural usando estas cifras."})
                         
                         final_response = await client.post(
@@ -86,7 +125,6 @@ class AIService:
                         return final_response.json()["choices"][0]["message"]["content"]
                     except Exception as e:
                         print(f"Error processing AI command: {e}")
-                        # Si falla, intentamos devolver el mensaje original de la IA limpio
                         return ai_msg
 
                 return ai_msg

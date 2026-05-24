@@ -212,6 +212,28 @@ const Reports = () => {
                 
                 <div className="flex gap-2">
                   <button 
+                    disabled={loading || previewData.length === 0}
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const params = new URLSearchParams();
+                        if (filters.start_date) params.append('start_date', filters.start_date);
+                        if (filters.end_date) params.append('end_date', filters.end_date);
+                        
+                        const res = await api.post(`/reports/${selectedReport.id}/analyze?${params.toString()}`);
+                        alert("ANÁLISIS DE CAPATAZ AI:\n\n" + res.data.analysis);
+                      } catch (e) {
+                        console.error(e);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-blue-600/10 border border-blue-500/20 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all font-bold shadow-lg"
+                  >
+                    <Sparkles size={18} />
+                    IA Análisis
+                  </button>
+                  <button 
                     disabled={exporting}
                     onClick={() => handleExport('excel')}
                     className="flex items-center gap-2 px-6 py-3 bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 rounded-xl hover:bg-emerald-600 hover:text-white transition-all font-bold shadow-lg"

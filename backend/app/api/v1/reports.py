@@ -8,6 +8,10 @@ from app.api.deps import get_current_user, RoleChecker
 from app.models.core import User, UserRole
 from datetime import datetime
 
+from datetime import datetime
+from app.ai.service import ai_service
+from app.ai.data_fetcher import AIDataFetcher
+
 router = APIRouter()
 
 # Dependencias genéricas para reportes (Acceso base)
@@ -18,6 +22,44 @@ allow_reports = RoleChecker([
     UserRole.PROJECT_MANAGER, 
     UserRole.INVENTORY_MANAGER
 ])
+
+@router.post("/{report_type}/analyze")
+async def analyze_report(
+    report_type: str,
+    project_id: Optional[int] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_reports)
+):
+    """Genera un análisis inteligente del reporte solicitado usando IA."""
+    
+    # Obtener los datos del reporte primero
+    data = get_report_data(report_type, project_id, start_date, end_date, db, current_user)
+    
+    if not data:
+        return {"analysis": "No hay datos suficientes para realizar un análisis."}
+
+    # Preparar el prompt para la IA
+    import json
+    report_json = json.dumps(data[:50]) # Limitamos a los primeros 50 registros por tokens
+    
+    prompt = f"""
+    Como Analista Senior, analiza los siguientes datos del reporte '{report_type}':
+    {report_json}
+    
+    Entrega un análisis breve (máximo 3 párrafos) que incluya:
+    1. Resumen ejecutivo de la situación.
+    2. Identificación de anomalías o puntos críticos.
+    3. Una recomendación de acción inmediata.
+    """
+    
+    analysis = await ai_service.get_chat_response(
+        messages=[{"role": "user", "content": prompt}],
+        bot_id="financial_analyst"
+    )
+    
+    return {"analysis": analysis}
 
 @router.get("/{report_type}")
 def get_report_data(

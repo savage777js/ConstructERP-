@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.v1 import auth, workers, inventory, projects, notifications, dashboard, reports, ai, tasks, finance
+from app.api.v1 import auth, workers, inventory, projects, notifications, dashboard, reports, ai, tasks, finance, documents
 from app.db.session import engine, Base, SessionLocal
+from fastapi.staticfiles import StaticFiles
+import os
 
 app = FastAPI(
     title="ConstructERP API",
@@ -10,10 +12,16 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Asegurar directorios de uploads
+os.makedirs("uploads/documents", exist_ok=True)
+
+# Static files
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # CORS - Permitir todo para desarrollo local
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000"],
+    allow_origins=["*"], # Simplificado para evitar problemas en el instituto
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,6 +38,7 @@ app.include_router(reports.router, prefix=f"{settings.API_V1_STR}/reports", tags
 app.include_router(ai.router, prefix=f"{settings.API_V1_STR}/ai", tags=["ai"])
 app.include_router(tasks.router, prefix=f"{settings.API_V1_STR}/tasks", tags=["tasks"])
 app.include_router(finance.router, prefix=f"{settings.API_V1_STR}/finance", tags=["finance"])
+app.include_router(documents.router, prefix=f"{settings.API_V1_STR}/documents", tags=["documents"])
 
 def init_db():
     # Crear tablas si usamos SQLite local
