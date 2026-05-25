@@ -49,8 +49,16 @@ export const AuthProvider = ({ children }) => {
 
     // Legacy role fallbacks
     const role = user?.role || localStorage.getItem('userRole');
-    if (role === 'HR_MANAGER' || role === 'MANAGEMENT') return true;
-    if (role === 'PROJECT_MANAGER' && permissionSlug === 'employees:view') return true;
+    if (role === 'MANAGEMENT') return true;
+    if (role === 'HR_MANAGER') {
+      return permissionSlug !== 'inventory:manage'; // HR cannot manage central inventory
+    }
+    if (role === 'INVENTORY_MANAGER') {
+      return permissionSlug.startsWith('inventory:') || permissionSlug === 'projects:view';
+    }
+    if (role === 'PROJECT_MANAGER') {
+      return permissionSlug === 'employees:view' || permissionSlug === 'projects:view' || permissionSlug === 'inventory:view';
+    }
 
     if (!permissions) return false;
     return permissions.includes(permissionSlug);

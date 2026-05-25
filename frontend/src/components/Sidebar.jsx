@@ -59,6 +59,12 @@ const Sidebar = ({ onLogout }) => {
       roles: ['ADMIN', 'PROJECT_MANAGER', 'MANAGEMENT', 'HR_MANAGER', 'INVENTORY_MANAGER']
     },
     {
+      name: 'Inventario Central',
+      path: '/inventory',
+      icon: Package,
+      roles: ['ADMIN', 'INVENTORY_MANAGER', 'MANAGEMENT']
+    },
+    {
       name: 'Notificaciones',
       path: '/notifications',
       icon: Bell,

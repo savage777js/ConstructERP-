@@ -1,4 +1,6 @@
-import pandas as pd
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
 import io
 from fpdf import FPDF
 from datetime import datetime
@@ -7,31 +9,42 @@ from typing import List, Dict
 class ExportService:
     @staticmethod
     def to_excel(data: List[Dict], report_name: str) -> bytes:
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Reporte"
+
         if not data:
-            # Fallback for empty data
-            df = pd.DataFrame([{"Aviso": "No hay datos para este reporte"}])
+            ws.append(["Aviso"])
+            ws.append(["No hay datos para este reporte"])
         else:
-            df = pd.DataFrame(data)
-            
+            headers = list(data[0].keys())
+            ws.append(headers)
+            for row in data:
+                ws.append([row.get(h, "") for h in headers])
+
+            # Format headers
+            header_font = Font(bold=True)
+            header_fill = PatternFill(start_color="D7E4BC", end_color="D7E4BC", fill_type="solid")
+            thin_side = Side(border_style="thin", color="000000")
+            thin_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
+            for cell in ws[1]:
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.border = thin_border
+
+            # Auto-adjust column widths
+            for col in ws.columns:
+                max_len = 0
+                col_letter = get_column_letter(col[0].column)
+                for cell in col:
+                    val_str = str(cell.value or '')
+                    if len(val_str) > max_len:
+                        max_len = len(val_str)
+                ws.column_dimensions[col_letter].width = max(max_len + 2, 10)
+
         output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, index=False, sheet_name='Reporte')
-            
-            # Format
-            workbook = writer.book
-            worksheet = writer.sheets['Reporte']
-            header_format = workbook.add_format({
-                'bold': True,
-                'bg_color': '#D7E4BC',
-                'border': 1
-            })
-            
-            for col_num, value in enumerate(df.columns.values):
-                worksheet.write(0, col_num, value, header_format)
-                # Auto-size columns
-                column_len = max(df[value].astype(str).str.len().max(), len(value) + 2)
-                worksheet.set_column(col_num, col_num, column_len)
-                
+        wb.save(output)
         return output.getvalue()
 
     @staticmethod

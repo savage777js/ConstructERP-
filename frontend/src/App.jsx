@@ -9,6 +9,7 @@ import ProjectDetail from './pages/ProjectDetail';
 import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
 import Spark from './pages/Spark';
+import Inventory from './pages/Inventory';
 import Can from './components/Can';
 
 const ProtectedRoute = ({ children, requiredPermission }) => {
@@ -97,6 +98,17 @@ function AppRoutes() {
             <ProtectedRoute requiredPermission="projects:view">
               <MainLayout>
                 <ProjectDetail />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/inventory" 
+          element={
+            <ProtectedRoute requiredPermission="inventory:view">
+              <MainLayout>
+                <Inventory />
               </MainLayout>
             </ProtectedRoute>
           } 
