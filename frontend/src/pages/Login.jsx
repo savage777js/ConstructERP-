@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { LogIn, Loader2, Eye, EyeOff, ShieldCheck, HardHat, Building2, BarChart3 } from 'lucide-react';
+import { LogIn, Loader2, Eye, EyeOff, ShieldCheck, HardHat, Building2, BarChart3, Phone, Mail, X, HelpCircle } from 'lucide-react';
 
 const Login = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
@@ -10,6 +10,7 @@ const Login = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
   
   // Limpiar basura solo cuando se entra a la página de login por primera vez
   useEffect(() => {
@@ -231,7 +232,15 @@ const Login = ({ onLoginSuccess }) => {
           {/* Footer ayuda */}
           <div className="form-help-text">
             <span>¿Problemas de acceso? Contacte al</span>
-            <span className="form-help-link">Administrador del Sistema</span>
+            <span 
+              className="form-help-link" 
+              onClick={() => setShowSupportModal(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowSupportModal(true); }}
+            >
+              Administrador del Sistema
+            </span>
           </div>
         </div>
 
@@ -239,6 +248,49 @@ const Login = ({ onLoginSuccess }) => {
           © 2026 SERCONIND LTDA. Todos los derechos reservados.
         </p>
       </div>
+
+      {/* Modal de Soporte */}
+      {showSupportModal && (
+        <div className="support-modal-overlay" onClick={() => setShowSupportModal(false)}>
+          <div className="support-modal-card" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="support-modal-close" 
+              onClick={() => setShowSupportModal(false)}
+              aria-label="Cerrar modal de soporte"
+            >
+              <X size={18} />
+            </button>
+            <div className="support-modal-header">
+              <div className="support-modal-icon">
+                <HelpCircle size={22} />
+              </div>
+              <h3>Soporte Técnico</h3>
+              <p>¿Tienes problemas para ingresar al sistema? Ponte en contacto con nosotros.</p>
+            </div>
+            <div className="support-modal-body">
+              <div className="support-contact-item">
+                <Phone size={18} className="support-item-icon" />
+                <div className="support-item-content">
+                  <span className="support-item-label">Teléfono de Soporte</span>
+                  <a href="tel:+56912345678" className="support-item-value">+56 9 1234 5678</a>
+                </div>
+              </div>
+              <div className="support-contact-item">
+                <Mail size={18} className="support-item-icon" />
+                <div className="support-item-content">
+                  <span className="support-item-label">Correo Electrónico</span>
+                  <a href="mailto:soporte.constructERP@gmail.com" className="support-item-value">soporte.constructERP@gmail.com</a>
+                </div>
+              </div>
+            </div>
+            <div className="support-modal-footer">
+              <button className="support-modal-btn" onClick={() => setShowSupportModal(false)}>
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
