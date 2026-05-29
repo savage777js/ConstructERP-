@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
-from app.models.core import Notification, NotificationType, NotificationPriority, Employee, InventoryItem, Project, ProjectAssignment
+from app.models.core import Notification, NotificationType, NotificationPriority, Employee, Project, ProjectAssignment
 from datetime import datetime, timedelta
 
 class NotificationService:
@@ -27,7 +27,6 @@ class NotificationService:
     @staticmethod
     def run_smart_checks(db: Session):
         """Monitorea condiciones críticas y genera alertas si no existen."""
-        NotificationService._check_inventory_stock(db)
         NotificationService._check_employee_contracts(db)
         NotificationService._check_project_deadlines(db)
 
@@ -57,23 +56,7 @@ class NotificationService:
             # Here we commit per notification to be safe in this check loop.
             db.commit()
 
-    @staticmethod
-    def _check_inventory_stock(db: Session):
-        low_stock_items = db.query(InventoryItem).filter(
-            InventoryItem.quantity_available <= InventoryItem.min_stock,
-            InventoryItem.status == "ACTIVE"
-        ).all()
-        
-        for item in low_stock_items:
-            NotificationService._create_notification_if_not_exists(
-                db,
-                NotificationType.STOCK_ALERT,
-                item.id,
-                title=f"Stock Crítico: {item.name}",
-                message=f"El material '{item.name}' tiene solo {item.quantity_available} {item.unit} (Mínimo: {item.min_stock}).",
-                priority=NotificationPriority.CRITICAL if item.quantity_available == 0 else NotificationPriority.WARNING,
-                link=f"/inventory"
-            )
+
 
     @staticmethod
     def _check_employee_contracts(db: Session):

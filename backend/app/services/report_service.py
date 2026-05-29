@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_
-from app.models.core import Employee, Project, ProjectAssignment, InventoryItem, InventoryMovement, Notification, UserRole, EmployeeStatus
+from app.models.core import Employee, Project, ProjectAssignment, Notification, UserRole, EmployeeStatus
 from datetime import datetime
 from typing import List, Optional
 
@@ -50,51 +50,7 @@ class ReportService:
             })
         return report_data
 
-    @staticmethod
-    def get_inventory_status_report(db: Session, critical_only: bool = False):
-        query = db.query(InventoryItem).filter(InventoryItem.status == 'ACTIVE')
-        if critical_only:
-            query = query.filter(InventoryItem.quantity_available <= InventoryItem.min_stock)
-            
-        items = query.all()
-        report_data = []
-        
-        for i in items:
-            report_data.append({
-                "Material/Activo": i.name,
-                "SKU": i.sku,
-                "Categoría": i.category,
-                "Stock Total": i.quantity_total,
-                "Stock Disponible": i.quantity_available,
-                "Stock Mínimo": i.min_stock,
-                "Unidad": i.unit,
-                "Ubicación": i.location
-            })
-        return report_data
 
-    @staticmethod
-    def get_assigned_resources_report(db: Session, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None):
-        query = db.query(InventoryMovement).filter(InventoryMovement.type == 'ASSIGN')
-        
-        if start_date:
-            query = query.filter(InventoryMovement.date >= start_date)
-        if end_date:
-            query = query.filter(InventoryMovement.date <= end_date)
-            
-        movements = query.all()
-        report_data = []
-        
-        for m in movements:
-            report_data.append({
-                "Fecha": m.date.strftime('%d/%m/%Y'),
-                "Obra": m.project.name if m.project else "N/A",
-                "Material": m.item.name,
-                "SKU": m.item.sku,
-                "Cantidad": m.quantity,
-                "Unidad": m.item.unit,
-                "Comentario": m.comment or ""
-            })
-        return report_data
 
     @staticmethod
     def get_projects_report(db: Session, status: Optional[str] = None):

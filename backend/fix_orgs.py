@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
-from app.models.core import User, Organization, Employee, Project, InventoryItem
+from app.models.core import User, Organization, Employee, Project
 
 def fix_orgs():
     db = SessionLocal()
@@ -33,8 +33,7 @@ def fix_orgs():
         for proj in db.query(Project).all():
             proj.organization_id = org_id
             
-        for item in db.query(InventoryItem).all():
-            item.organization_id = org_id
+
 
         db.commit()
         print("✅ Todo vinculado correctamente a SERCONIND LTDA.")

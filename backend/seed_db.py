@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
-from app.models.core import User, Employee, Project, InventoryItem, UserRole
+from app.models.core import User, Employee, Project, UserRole
 from app.core.security import get_password_hash
 from datetime import datetime, timedelta
 
@@ -88,52 +88,10 @@ def seed_data():
             if not db.query(Project).filter(Project.name == proj.name).first():
                 db.add(proj)
 
-        # 4. Agregar Inventario de ejemplo
-        items = [
-            InventoryItem(
-                name="Cemento Melón Extra Forte",
-                sku="CEM-001",
-                category="Materiales",
-                quantity_total=500,
-                quantity_available=500,
-                unit="Sacos",
-                min_stock=50,
-                organization_id=org_id,
-                status="ACTIVE"
-            ),
-            InventoryItem(
-                name="Fierro Corrugado 12mm",
-                sku="FIE-12M",
-                category="Fierros",
-                quantity_total=120,
-                quantity_available=120,
-                unit="Barras",
-                min_stock=20,
-                organization_id=org_id,
-                status="ACTIVE"
-            ),
-            InventoryItem(
-                name="Casco de Seguridad Naranja",
-                sku="SEG-CAS-O",
-                category="EPP",
-                quantity_total=45,
-                quantity_available=45,
-                unit="Unidades",
-                min_stock=10,
-                organization_id=org_id,
-                status="ACTIVE"
-            )
-        ]
-
-        for item in items:
-            if not db.query(InventoryItem).filter(InventoryItem.sku == item.sku).first():
-                db.add(item)
-
         db.commit()
         print("✅ Base de datos poblada con éxito.")
         print(f"   - 3 Trabajadores añadidos.")
         print(f"   - 2 Proyectos creados.")
-        print(f"   - 3 Materiales de inventario registrados.")
 
     except Exception as e:
         print(f"❌ Error inyectando datos: {e}")

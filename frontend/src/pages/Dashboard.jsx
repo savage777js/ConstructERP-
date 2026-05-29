@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { 
-  Users, Briefcase, Package, Bell, 
-  TrendingUp, AlertTriangle, ArrowRight,
-  ClipboardList, HardHat, Box, LayoutDashboard,
-  Loader2, RefreshCw
+  Users, Briefcase, Bell, 
+  AlertTriangle, ArrowRight,
+  HardHat, Loader2, RefreshCw
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -84,7 +83,7 @@ const Dashboard = () => {
       </header>
 
       {/* KPI Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
         <KPICard 
           title="Trabajadores Activos" 
           value={summary.workers.total} 
@@ -100,15 +99,6 @@ const Dashboard = () => {
           subtitle={`${summary.projects.ending} próximas a finalizar`}
           icon={Briefcase} 
           color="purple"
-        />
-        <KPICard 
-          title="Ítems en Bodega" 
-          value={summary.inventory.total} 
-          subtitle={`${summary.inventory.critical} con stock crítico`}
-          icon={Package} 
-          color="amber"
-          trend={summary.inventory.critical > 0 ? "down" : "up"}
-          trendValue={summary.inventory.critical > 0 ? "Stock Bajo" : "Óptimo"}
         />
         <KPICard 
           title="Alertas Pendientes" 
@@ -169,33 +159,11 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Chart 3: Inventory by Category */}
-        <div className="lg:col-span-3 glass-card p-8 min-h-[450px]">
-          <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
-            <Package className="text-amber-400" size={20} /> Distribución de Stock por Categoría
-          </h3>
-          <div className="h-[350px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData.inventory_category} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" horizontal={false} />
-                <XAxis type="number" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis dataKey="category" type="category" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} width={120} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', color: '#fff' }} 
-                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                />
-                <Bar dataKey="stock" fill="#f59e0b" radius={[0, 6, 6, 0]} barSize={30} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Quick Access Grid */}
-        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
           {[
             { name: 'Gestión RRHH', icon: Users, path: '/workers', color: 'bg-blue-500/10 text-blue-400', roles: ['ADMIN', 'HR_MANAGER', 'MANAGEMENT', 'PROJECT_MANAGER'] },
             { name: 'Control de Obras', icon: Briefcase, path: '/projects', color: 'bg-purple-500/10 text-purple-400', roles: ['ADMIN', 'PROJECT_MANAGER', 'MANAGEMENT', 'HR_MANAGER', 'INVENTORY_MANAGER'] },
-            { name: 'Inventario Central', icon: Package, path: '/inventory', color: 'bg-amber-500/10 text-amber-500', roles: ['ADMIN', 'INVENTORY_MANAGER', 'MANAGEMENT'] },
             { name: 'Centro de Alertas', icon: Bell, path: '/notifications', color: 'bg-red-500/10 text-red-400', roles: ['ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT'] }
           ].filter(item => {
             const role = localStorage.getItem('userRole');

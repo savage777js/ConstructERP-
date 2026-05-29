@@ -7,6 +7,8 @@ from app.models import core
 
 router = APIRouter()
 
+allow_write_tasks = deps.RoleChecker([core.UserRole.ADMIN, core.UserRole.PROJECT_MANAGER, core.UserRole.HR_MANAGER])
+
 @router.get("/", response_model=List[TaskOut])
 def read_tasks(
     db: Session = Depends(deps.get_db),
@@ -20,7 +22,7 @@ def read_tasks(
         query = query.filter(core.Task.project_id == project_id)
     return query.offset(skip).limit(limit).all()
 
-@router.post("/", response_model=TaskOut)
+@router.post("/", response_model=TaskOut, dependencies=[Depends(allow_write_tasks)])
 def create_task(
     *,
     db: Session = Depends(deps.get_db),
@@ -48,7 +50,7 @@ def read_task(
         raise HTTPException(status_code=404, detail="Tarea no encontrada")
     return task
 
-@router.post("/{task_id}/comments", response_model=TaskCommentOut)
+@router.post("/{task_id}/comments", response_model=TaskCommentOut, dependencies=[Depends(allow_write_tasks)])
 def create_task_comment(
     *,
     db: Session = Depends(deps.get_db),

@@ -2,7 +2,8 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 from app.schemas.worker import EmployeeOut
-from app.schemas.inventory import InventoryItemOut, MovementOut
+from app.schemas.user import UserOut
+
 
 class ProjectBase(BaseModel):
     name: str
@@ -41,16 +42,27 @@ class ProjectAssignmentOut(BaseModel):
     class Config:
         from_attributes = True
 
+class ProjectLogOut(BaseModel):
+    id: int
+    project_id: int
+    user_id: Optional[int] = None
+    log_type: str
+    content: str
+    created_at: datetime
+    user: Optional[UserOut] = None
+
+    class Config:
+        from_attributes = True
+
+class ProjectLogCreate(BaseModel):
+    content: str
+
 class ProjectDetail(ProjectOut):
     assignments: List[ProjectAssignmentOut] = []
-    movements: List[MovementOut] = []
+    logs: List[ProjectLogOut] = []
     
 class WorkerAssignment(BaseModel):
     worker_id: int
     role: Optional[str] = "Worker"
 
-class InventoryAssignment(BaseModel):
-    item_id: int
-    quantity: int
-    comment: Optional[str] = None
-    force_critical: bool = False
+

@@ -8,8 +8,8 @@ import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
 import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
-import Spark from './pages/Spark';
-import Inventory from './pages/Inventory';
+import Capataz from './pages/Capataz';
+import Hierarchy from './pages/Hierarchy';
 import Can from './components/Can';
 
 const ProtectedRoute = ({ children, requiredPermission }) => {
@@ -103,16 +103,7 @@ function AppRoutes() {
           } 
         />
 
-        <Route 
-          path="/inventory" 
-          element={
-            <ProtectedRoute requiredPermission="inventory:view">
-              <MainLayout>
-                <Inventory />
-              </MainLayout>
-            </ProtectedRoute>
-          } 
-        />
+
 
         <Route 
           path="/notifications" 
@@ -137,11 +128,22 @@ function AppRoutes() {
         />
 
         <Route 
-          path="/spark" 
+          path="/hierarchy" 
           element={
             <ProtectedRoute>
               <MainLayout>
-                <Spark />
+                <Hierarchy />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/capataz" 
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Capataz />
               </MainLayout>
             </ProtectedRoute>
           } 

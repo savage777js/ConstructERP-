@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.models.core import Employee, Project, InventoryItem, Notification, ProjectAssignment, InventoryMovement, MovementType
+from app.models.core import Employee, Project, Notification, ProjectAssignment
 from datetime import datetime, timedelta
 
 class DashboardService:
@@ -28,13 +28,6 @@ class DashboardService:
             Project.status == "ACTIVE"
         ).count()
 
-        # 3. Inventario
-        total_items = db.query(InventoryItem).filter(InventoryItem.status == "ACTIVE").count()
-        critical_stock = db.query(InventoryItem).filter(
-            InventoryItem.quantity_available <= InventoryItem.min_stock,
-            InventoryItem.status == "ACTIVE"
-        ).count()
-
         # 4. Notificaciones
         unread_notifications = db.query(Notification).filter(Notification.is_read == False).count()
 
@@ -46,10 +39,6 @@ class DashboardService:
             "projects": {
                 "total": total_projects,
                 "ending": ending_projects
-            },
-            "inventory": {
-                "total": total_items,
-                "critical": critical_stock
             },
             "notifications": {
                 "unread": unread_notifications
@@ -73,15 +62,7 @@ class DashboardService:
         ).filter(Notification.is_read == False)\
          .group_by(Notification.priority).all()
 
-        # 3. Inventario por categoría (Items con stock disponible)
-        inventory_by_category = db.query(
-            InventoryItem.category,
-            func.sum(InventoryItem.quantity_available).label("stock")
-        ).filter(InventoryItem.status == "ACTIVE")\
-         .group_by(InventoryItem.category).all()
-
         return {
             "workers_project": [{"name": r[0], "workers": r[1]} for r in workers_per_project],
-            "alerts_priority": [{"name": r[0], "value": r[1]} for r in alerts_priority],
-            "inventory_category": [{"category": r[0] or "Sin categoría", "stock": float(r[1] or 0)} for r in inventory_by_category]
+            "alerts_priority": [{"name": r[0], "value": r[1]} for r in alerts_priority]
         }

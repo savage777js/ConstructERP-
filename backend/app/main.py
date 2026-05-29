@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.v1 import auth, workers, inventory, projects, notifications, dashboard, reports, ai, tasks, finance, documents
+from app.api.v1 import auth, workers, projects, notifications, dashboard, reports, ai, tasks, finance, documents
 from app.db.session import engine, Base, SessionLocal
 from fastapi.staticfiles import StaticFiles
 import os
@@ -30,7 +30,6 @@ app.add_middleware(
 # Routers
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(workers.router, prefix=f"{settings.API_V1_STR}/workers", tags=["workers"])
-app.include_router(inventory.router, prefix=f"{settings.API_V1_STR}/inventory", tags=["inventory"])
 app.include_router(projects.router, prefix=f"{settings.API_V1_STR}/projects", tags=["projects"])
 app.include_router(notifications.router, prefix=f"{settings.API_V1_STR}/notifications", tags=["notifications"])
 app.include_router(dashboard.router, prefix=f"{settings.API_V1_STR}/dashboard", tags=["dashboard"])
@@ -51,7 +50,7 @@ def init_db():
         from app.models.core import User, UserRole
         from app.core import security
         
-        if db.query(User).count() == 0:
+        if not db.query(User).filter(User.email == "admin@serconind.cl").first():
             admin_user = User(
                 email="admin@serconind.cl",
                 hashed_password=security.get_password_hash("admin"),
@@ -62,6 +61,18 @@ def init_db():
             db.add(admin_user)
             db.commit()
             print("🚀 Admin local creado: admin@serconind.cl / admin")
+
+        if not db.query(User).filter(User.email == "gerente@serconind.cl").first():
+            gerente_user = User(
+                email="gerente@serconind.cl",
+                hashed_password=security.get_password_hash("gerente"),
+                full_name="Gerente General",
+                role=UserRole.MANAGEMENT,
+                is_active=True
+            )
+            db.add(gerente_user)
+            db.commit()
+            print("🚀 Gerente local creado: gerente@serconind.cl / gerente")
     except Exception as e:
         print(f"❌ Error inicializando DB: {e}")
     finally:

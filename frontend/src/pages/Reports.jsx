@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import { 
   BarChart2, FileText, Download, Calendar, 
-  Users, Package, Briefcase, Bell, 
+  Users, Briefcase, Bell, 
   Search, Filter, Loader2, ChevronRight,
-  FileSpreadsheet, ArrowLeft, LayoutDashboard
+  FileSpreadsheet, ArrowLeft, LayoutDashboard, Sparkles
 } from 'lucide-react';
 
 const Reports = () => {
@@ -32,28 +32,6 @@ const Reports = () => {
       desc: 'Cruce de personal asignado a proyectos activos.', 
       icon: Briefcase,
       color: 'purple'
-    },
-    { 
-      id: 'inventory_status', 
-      title: 'Inventario Disponible', 
-      desc: 'Balance total de stock en bodega central.', 
-      icon: Package,
-      color: 'amber'
-    },
-    { 
-      id: 'inventory_critical', 
-      title: 'Stock Crítico', 
-      desc: 'Ítems que requieren reposición inmediata.', 
-      icon: Package,
-      color: 'red'
-    },
-    { 
-      id: 'assigned_resources', 
-      title: 'Recursos en Obra', 
-      desc: 'Salida de materiales y herramientas a proyectos.', 
-      icon: FileText,
-      color: 'emerald',
-      useDates: true
     },
     { 
       id: 'projects', 

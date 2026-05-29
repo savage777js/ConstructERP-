@@ -7,6 +7,8 @@ from app.models import core
 
 router = APIRouter()
 
+allow_write_finance = deps.RoleChecker([core.UserRole.ADMIN, core.UserRole.PROJECT_MANAGER, core.UserRole.INVENTORY_MANAGER])
+
 @router.get("/expenses", response_model=List[ExpenseOut])
 def read_expenses(
     db: Session = Depends(deps.get_db),
@@ -20,7 +22,7 @@ def read_expenses(
         query = query.filter(core.Expense.project_id == project_id)
     return query.offset(skip).limit(limit).all()
 
-@router.post("/expenses", response_model=ExpenseOut)
+@router.post("/expenses", response_model=ExpenseOut, dependencies=[Depends(allow_write_finance)])
 def create_expense(
     *,
     db: Session = Depends(deps.get_db),
@@ -49,7 +51,7 @@ def read_invoices(
         query = query.filter(core.Invoice.project_id == project_id)
     return query.offset(skip).limit(limit).all()
 
-@router.post("/invoices", response_model=InvoiceOut)
+@router.post("/invoices", response_model=InvoiceOut, dependencies=[Depends(allow_write_finance)])
 def create_invoice(
     *,
     db: Session = Depends(deps.get_db),

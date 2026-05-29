@@ -1,4 +1,4 @@
-import { Users, LayoutDashboard, Briefcase, Package, Bell, LogOut, BarChart, Sun, Moon, Sparkles } from 'lucide-react';
+import { Users, LayoutDashboard, Briefcase, Bell, LogOut, BarChart, Sun, Moon, Sparkles, GitBranch } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import api from '../api';
@@ -59,12 +59,6 @@ const Sidebar = ({ onLogout }) => {
       roles: ['ADMIN', 'PROJECT_MANAGER', 'MANAGEMENT', 'HR_MANAGER', 'INVENTORY_MANAGER']
     },
     {
-      name: 'Inventario Central',
-      path: '/inventory',
-      icon: Package,
-      roles: ['ADMIN', 'INVENTORY_MANAGER', 'MANAGEMENT']
-    },
-    {
       name: 'Notificaciones',
       path: '/notifications',
       icon: Bell,
@@ -78,8 +72,14 @@ const Sidebar = ({ onLogout }) => {
       roles: ['ADMIN', 'MANAGEMENT']
     },
     {
+      name: 'Jerarquía',
+      path: '/hierarchy',
+      icon: GitBranch,
+      roles: ['ADMIN', 'MANAGEMENT']
+    },
+    {
       name: 'Capataz AI',
-      path: '/spark',
+      path: '/capataz',
       icon: Sparkles,
       roles: ['ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT']
     },

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from app.models.core import Project, Employee, InventoryItem, InventoryMovement, MovementType, ProjectAssignment
-from app.schemas.project import ProjectCreate, ProjectUpdate, WorkerAssignment, InventoryAssignment
+from app.models.core import Project, Employee, ProjectAssignment, ProjectLog
+from app.schemas.project import ProjectCreate, ProjectUpdate, WorkerAssignment
 from app.services.notification_service import NotificationService
 from datetime import datetime
 
@@ -25,30 +25,89 @@ class ProjectService:
             if db_project:
                 raise HTTPException(status_code=400, detail="El código de obra ya existe")
         
+        # Validar fechas
+        if project_in.start_date and project_in.end_date:
+            if project_in.end_date < project_in.start_date:
+                raise HTTPException(
+                    status_code=400,
+                    detail="La fecha de término no puede ser anterior a la fecha de inicio"
+                )
+
         new_project = Project(**project_in.model_dump())
         db.add(new_project)
+        db.commit()
+        db.refresh(new_project)
+
+        # Log system creation
+        log = ProjectLog(
+            project_id=new_project.id,
+            log_type="SYSTEM",
+            content="Obra / Proyecto creado en el sistema."
+        )
+        db.add(log)
         db.commit()
         db.refresh(new_project)
         return new_project
 
     @staticmethod
-    def update_project(db: Session, project_id: int, project_in: ProjectUpdate):
+    def update_project(db: Session, project_id: int, project_in: ProjectUpdate, user_id: int = None):
         project = ProjectService.get_project(db, project_id)
         update_data = project_in.model_dump(exclude_unset=True)
-        
-        for field, value in update_data.items():
-            setattr(project, field, value)
-            
+
+        # Validar fechas
+        start_date = update_data.get("start_date") or project.start_date
+        end_date = update_data.get("end_date") or project.end_date
+        if start_date and end_date:
+            if end_date < start_date:
+                raise HTTPException(
+                    status_code=400,
+                    detail="La fecha de término no puede ser anterior a la fecha de inicio"
+                )
+
+        # Rastrear cambios
+        changes = []
+        field_labels = {
+            "name": "Nombre de Obra",
+            "code": "Código de Obra",
+            "client_name": "Cliente / Mandante",
+            "description": "Descripción",
+            "address": "Dirección / Ubicación",
+            "status": "Estado",
+            "start_date": "Fecha de Inicio",
+            "end_date": "Fecha de Término",
+            "observations": "Observaciones"
+        }
+
+        for field, new_value in update_data.items():
+            old_value = getattr(project, field)
+            if old_value != new_value:
+                old_str = old_value.strftime("%Y-%m-%d") if isinstance(old_value, datetime) else str(old_value or "Sin definir")
+                new_str = new_value.strftime("%Y-%m-%d") if isinstance(new_value, datetime) else str(new_value or "Sin definir")
+                
+                label = field_labels.get(field, field)
+                changes.append(f"- {label}: de '{old_str}' a '{new_str}'")
+                setattr(project, field, new_value)
+
+        if changes:
+            log_content = "Modificaciones en el proyecto:\n" + "\n".join(changes)
+            log = ProjectLog(
+                project_id=project.id,
+                user_id=user_id,
+                log_type="SYSTEM",
+                content=log_content
+            )
+            db.add(log)
+
         db.commit()
         db.refresh(project)
         return project
 
     @staticmethod
-    def delete_project(db: Session, project_id: int):
+    def delete_project(db: Session, project_id: int, user_id: int = None):
         project = ProjectService.get_project(db, project_id)
         project.status = "INACTIVE"
         
-        # Opcional: También podríamos dar de baja las asignaciones activas de trabajadores
+        # También podríamos dar de baja las asignaciones activas de trabajadores
         active_assignments = db.query(ProjectAssignment).filter(
             ProjectAssignment.project_id == project_id,
             ProjectAssignment.is_active == True
@@ -56,12 +115,21 @@ class ProjectService:
         for assignment in active_assignments:
             assignment.is_active = False
             assignment.unassigned_at = datetime.utcnow()
+        
+        # Log system closing
+        log = ProjectLog(
+            project_id=project.id,
+            user_id=user_id,
+            log_type="SYSTEM",
+            content="Obra finalizada oficialmente. Se desactivaron todas las dotaciones asignadas."
+        )
+        db.add(log)
             
         db.commit()
         return project
 
     @staticmethod
-    def assign_worker(db: Session, project_id: int, assignment: WorkerAssignment):
+    def assign_worker(db: Session, project_id: int, assignment: WorkerAssignment, user_id: int = None):
         project = ProjectService.get_project(db, project_id)
         worker = db.query(Employee).filter(Employee.id == assignment.worker_id).first()
         
@@ -78,12 +146,6 @@ class ProjectService:
         if existing:
             raise HTTPException(status_code=400, detail="El trabajador ya está asignado a este proyecto")
 
-        # Opcional: Desactivar asignaciones previas en otras obras si queremos que solo esté en una
-        # db.query(ProjectAssignment).filter(
-        #     ProjectAssignment.worker_id == assignment.worker_id,
-        #     ProjectAssignment.is_active == True
-        # ).update({"is_active": False, "unassigned_at": datetime.utcnow()})
-
         new_assignment = ProjectAssignment(
             project_id=project_id,
             worker_id=assignment.worker_id,
@@ -92,52 +154,31 @@ class ProjectService:
         )
         
         db.add(new_assignment)
+        
+        # Log assignment
+        log = ProjectLog(
+            project_id=project_id,
+            user_id=user_id,
+            log_type="SYSTEM",
+            content=f"Asignación de personal: {worker.first_name} {worker.last_name} asignado como '{assignment.role}'."
+        )
+        db.add(log)
+        
         db.commit()
         return {"message": f"Trabajador {worker.first_name} asignado como {assignment.role} a {project.name}"}
 
     @staticmethod
-    def assign_inventory(db: Session, project_id: int, assignment: InventoryAssignment):
+    def create_project_log(db: Session, project_id: int, content: str, user_id: int, log_type: str = "NOTE"):
         project = ProjectService.get_project(db, project_id)
-        item = db.query(InventoryItem).filter(InventoryItem.id == assignment.item_id).first()
-        
-        if not item:
-            raise HTTPException(status_code=404, detail="Material no encontrado")
-        
-        if assignment.quantity <= 0:
-            raise HTTPException(status_code=400, detail="La cantidad debe ser mayor a 0")
-        
-        if item.quantity_available < assignment.quantity:
-            raise HTTPException(status_code=400, detail="Stock insuficiente en bodega")
-            
-        resulting_stock = item.quantity_available - assignment.quantity
-        
-        # Validar Stock Crítico
-        if resulting_stock <= item.min_stock and not assignment.force_critical:
-            raise HTTPException(
-                status_code=409, 
-                detail={
-                    "code": "CRITICAL_STOCK_WARNING",
-                    "message": "La operación dejará el ítem en stock crítico.",
-                    "current": item.quantity_available,
-                    "request": assignment.quantity,
-                    "resulting": resulting_stock,
-                    "min_stock": item.min_stock
-                }
-            )
-        
-        movement = InventoryMovement(
-            item_id=item.id,
+        new_log = ProjectLog(
             project_id=project_id,
-            type=MovementType.ASSIGN,
-            quantity=assignment.quantity,
-            comment=assignment.comment or f"Asignación a obra: {project.name}"
+            user_id=user_id,
+            log_type=log_type,
+            content=content
         )
-        
-        item.quantity_available = resulting_stock
-        db.add(movement)
+        db.add(new_log)
         db.commit()
-        
-        # Forzar el check manual de notificaciones para generar la alerta inmediata si aplica
-        NotificationService._check_inventory_stock(db)
-        
-        return {"message": f"Asignados {assignment.quantity} {item.unit} de {item.name} a {project.name}"}
+        db.refresh(new_log)
+        return new_log
+
+

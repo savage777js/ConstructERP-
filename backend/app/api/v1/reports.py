@@ -80,12 +80,6 @@ def get_report_data(
         data = ReportService.get_workers_report(db, current_user.role)
     elif report_type == "assignments":
         data = ReportService.get_assignments_report(db, project_id)
-    elif report_type == "inventory_status":
-        data = ReportService.get_inventory_status_report(db, critical_only=False)
-    elif report_type == "inventory_critical":
-        data = ReportService.get_inventory_status_report(db, critical_only=True)
-    elif report_type == "assigned_resources":
-        data = ReportService.get_assigned_resources_report(db, s_date, e_date)
     elif report_type == "projects":
         data = ReportService.get_projects_report(db)
     elif report_type == "notifications":
@@ -113,9 +107,6 @@ def export_report(
     title_map = {
         "workers": "Listado General de Trabajadores",
         "assignments": "Trabajadores Asignados por Proyecto",
-        "inventory_status": "Estado de Inventario Disponible",
-        "inventory_critical": "Reporte de Stock Crítico",
-        "assigned_resources": "Recursos Asignados a Obras",
         "projects": "Reporte de Proyectos Activos",
         "notifications": "Historial de Alertas del Sistema",
         "contracts_expiring": "Contratos Próximos a Vencer"

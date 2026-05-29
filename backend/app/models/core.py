@@ -65,7 +65,6 @@ class Organization(Base):
     users = relationship("User", back_populates="organization")
     projects = relationship("Project", back_populates="organization")
     employees = relationship("Employee", back_populates="organization")
-    inventory_items = relationship("InventoryItem", back_populates="organization")
     documents = relationship("Document", back_populates="organization")
 
 # --- Role Based Access Control (RBAC) ---
@@ -172,11 +171,11 @@ class Project(Base):
 
     organization = relationship("Organization", back_populates="projects")
     assignments = relationship("ProjectAssignment", back_populates="project")
-    movements = relationship("InventoryMovement", back_populates="project")
     tasks = relationship("Task", back_populates="project")
     expenses = relationship("Expense", back_populates="project")
     invoices = relationship("Invoice", back_populates="project")
     documents = relationship("Document", back_populates="project")
+    logs = relationship("ProjectLog", back_populates="project", cascade="all, delete-orphan")
 
 class ProjectAssignment(Base):
     __tablename__ = "project_assignments"
@@ -193,47 +192,20 @@ class ProjectAssignment(Base):
     project = relationship("Project", back_populates="assignments")
     worker = relationship("Employee", back_populates="assignments")
 
-class InventoryItem(Base):
-    __tablename__ = "inventory_items"
+class ProjectLog(Base):
+    __tablename__ = "project_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
-    name = Column(String, index=True, nullable=False)
-    sku = Column(String, unique=True, index=True)
-    category = Column(String, index=True)  # Herramientas, Materiales, EPP, etc.
-    description = Column(String)
-    unit = Column(String)  # un, kg, m, etc.
-    quantity_total = Column(Integer, default=0)
-    quantity_available = Column(Integer, default=0)
-    min_stock = Column(Integer, default=0)  # Alerta de stock crítico
-    location = Column(String)  # Bodega Central, Rack A1, etc.
-    status = Column(String, default="ACTIVE") # ACTIVE, INACTIVE (logical delete)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    log_type = Column(String(50), default="NOTE")  # "SYSTEM" or "NOTE"
+    content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    organization = relationship("Organization", back_populates="inventory_items")
-    movements = relationship("InventoryMovement", back_populates="item")
+    project = relationship("Project", back_populates="logs")
+    user = relationship("User")
 
-class MovementType(str, enum.Enum):
-    IN = "IN"
-    OUT = "OUT"
-    ASSIGN = "ASSIGN"
-    RETURN = "RETURN"
 
-class InventoryMovement(Base):
-    __tablename__ = "inventory_movements"
-
-    id = Column(Integer, primary_key=True, index=True)
-    item_id = Column(Integer, ForeignKey("inventory_items.id"))
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
-    type = Column(Enum(MovementType))
-    quantity = Column(Integer, nullable=False)
-    date = Column(DateTime, default=datetime.utcnow)
-    comment = Column(String)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    item = relationship("InventoryItem", back_populates="movements")
-    project = relationship("Project", back_populates="movements")
 
 # --- Document Management & OCR ---
 class Document(Base):

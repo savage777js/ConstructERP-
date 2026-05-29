@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
-import { Plus, Search, MoreVertical, Edit2, Trash2, UserPlus, UserMinus, Loader2, FileText, AlertTriangle, CheckCircle2, Users } from 'lucide-react';
+import { Plus, Search, MoreVertical, Edit2, Trash2, UserPlus, UserMinus, Loader2, FileText, AlertTriangle, CheckCircle2, Users, Calendar, DollarSign } from 'lucide-react';
 import WorkerForm from '../components/WorkerForm';
 
 const Workers = () => {
@@ -89,6 +89,17 @@ const Workers = () => {
     setSelectedWorker(null);
   };
 
+  const upcomingExpirations = workers.filter(w => {
+    if (w.status !== 'ACTIVE' || !w.contract_end_date) return false;
+    const end = new Date(w.contract_end_date);
+    const now = new Date();
+    const diff = end - now;
+    const diffDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= 30;
+  }).length;
+
+  const monthlyPayroll = workers.filter(w => w.status === 'ACTIVE').reduce((acc, curr) => acc + (curr.salary || 0), 0);
+
   const filteredWorkers = workers.filter(w => 
     `${w.first_name} ${w.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
     w.rut.includes(searchTerm) ||
@@ -126,21 +137,21 @@ const Workers = () => {
             </div>
           </div>
           <div className="glass-card p-6 rounded-2xl flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-              <CheckCircle2 size={24} />
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400">
+              <Calendar size={24} />
             </div>
             <div>
-              <p className="text-sm text-slate-400 font-medium">Roles Distintos</p>
-              <p className="text-2xl font-bold text-white">{new Set(workers.filter(w => w.status === 'ACTIVE').map(w => w.role)).size}</p>
+              <p className="text-sm text-slate-400 font-medium">Contratos por Vencer (30d)</p>
+              <p className="text-2xl font-bold text-white">{upcomingExpirations}</p>
             </div>
           </div>
           <div className="glass-card p-6 rounded-2xl flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400">
-              <FileText size={24} />
+            <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+              <DollarSign size={24} />
             </div>
             <div>
-              <p className="text-sm text-slate-400 font-medium">Contratos Históricos</p>
-              <p className="text-2xl font-bold text-white">{workers.filter(w => w.status === 'INACTIVE').length}</p>
+              <p className="text-sm text-slate-400 font-medium">Costo Mensual de Nómina</p>
+              <p className="text-2xl font-bold text-white">${monthlyPayroll.toLocaleString('es-CL')}</p>
             </div>
           </div>
         </div>

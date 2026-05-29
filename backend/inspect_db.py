@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.db.session import SessionLocal
-from app.models.core import User, Employee, Project, InventoryItem, Notification
+from app.models.core import User, Employee, Project, Notification
 from sqlalchemy import inspect, text
 
 db = SessionLocal()
@@ -34,9 +34,7 @@ try:
     proyectos = db.query(Project).all()
     tabla("PROYECTOS", proyectos, ["id", "name", "status", "budget", "location"])
 
-    # Inventario
-    items = db.query(InventoryItem).all()
-    tabla("INVENTARIO", items, ["id", "name", "category", "quantity", "unit", "unit_price"])
+
 
     # Notificaciones
     notifs = db.query(Notification).all()
@@ -48,7 +46,6 @@ try:
     print(f"  Usuarios:        {len(usuarios)}")
     print(f"  Empleados:       {len(empleados)}")
     print(f"  Proyectos:       {len(proyectos)}")
-    print(f"  Inventario:      {len(items)}")
     print(f"  Notificaciones:  {len(notifs)}")
     print(f"{'='*60}\n")
 

@@ -23,6 +23,11 @@ const ProjectForm = ({ onClose, onSuccess, projectData = null }) => {
     if (!formData.name) newErrors.name = 'El nombre de la obra es obligatorio';
     if (!formData.code) newErrors.code = 'El código de obra es obligatorio';
     if (!formData.start_date) newErrors.start_date = 'La fecha de inicio es obligatoria';
+    if (formData.start_date && formData.end_date) {
+      if (new Date(formData.end_date) < new Date(formData.start_date)) {
+        newErrors.end_date = 'La fecha de término no puede ser anterior a la de inicio';
+      }
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -138,8 +143,9 @@ const ProjectForm = ({ onClose, onSuccess, projectData = null }) => {
                 name="end_date"
                 value={formData.end_date}
                 onChange={handleChange}
-                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                className={`w-full bg-slate-800/50 border ${errors.end_date ? 'border-red-500' : 'border-white/10'} rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all`}
               />
+              {errors.end_date && <p className="text-red-400 text-xs mt-1">{errors.end_date}</p>}
             </div>
 
             {/* Ubicación */}
