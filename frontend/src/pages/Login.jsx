@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { LogIn, Loader2, Eye, EyeOff, ShieldCheck, HardHat, Building2, BarChart3 } from 'lucide-react';
 
 const Login = ({ onLoginSuccess }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,9 +42,9 @@ const Login = ({ onLoginSuccess }) => {
 
       onLoginSuccess(user);
       
-      // Empujón final: Redirección forzada
+      // Redirección client-side usando React Router para evitar 404 en Render
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        navigate('/dashboard');
       }, 100);
     } catch (err) {
       console.error('❌ Error en Login:', err.response?.data || err.message);
