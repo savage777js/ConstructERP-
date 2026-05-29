@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     
     # AI - OpenRouter
     OPENROUTER_API_KEY: Optional[str] = None
-    OPENROUTER_MODEL: str = "baidu/cobuddy:free"
+    OPENROUTER_MODEL: str = "google/gemma-4-31b-it:free"
     
     model_config = SettingsConfigDict(
         env_file=".env", 
