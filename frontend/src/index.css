@@ -23,15 +23,75 @@
 }
 
 .light {
-  --bg-main: #f8fafc;
-  --bg-card: #ffffff;
-  --bg-sidebar: #f1f5f9;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --border: rgba(0, 0, 0, 0.06);
-  --border-active: rgba(245, 158, 11, 0.4);
-  --glass: rgba(255, 255, 255, 0.8);
-  --grid-color: rgba(0, 0, 0, 0.02);
+  --bg-main: #ebedf2; /* Softer, low-contrast warm/slate gray instead of blinding white */
+  --bg-card: #f6f8fb; /* Off-white card background */
+  --bg-sidebar: #dfe3ea; /* Softer sidebar */
+  --text-main: #1e293b; /* Dark slate text instead of harsh black */
+  --text-muted: #475569; /* Slate gray for secondary text */
+  --border: rgba(15, 23, 42, 0.1); /* Slightly visible dark border */
+  --border-active: rgba(245, 158, 11, 0.5);
+  --glass: rgba(246, 248, 251, 0.85);
+  --grid-color: rgba(15, 23, 42, 0.02);
+}
+
+/* Smooth transition when changing theme */
+body, aside, main, header, .glass-card, button, input, select, textarea, div, h1, h2, h3, h4, p, span, svg, a {
+  transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.3s ease,
+              box-shadow 0.4s ease;
+}
+
+/* Light theme overrides for hardcoded Tailwind dark classes */
+.light .text-white,
+.light .text-slate-50,
+.light .text-slate-100,
+.light .text-slate-200,
+.light .text-slate-300 {
+  color: var(--text-main) !important;
+}
+
+.light .text-slate-400 {
+  color: var(--text-muted) !important;
+}
+
+.light .text-slate-500 {
+  color: var(--text-muted) !important;
+}
+
+.light .bg-slate-900\/80,
+.light .bg-slate-900 {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border) !important;
+}
+
+.light .bg-slate-800\/40,
+.light .bg-slate-800\/50,
+.light .bg-slate-800 {
+  background-color: var(--bg-main) !important;
+  border-color: var(--border) !important;
+}
+
+.light .bg-white\/5,
+.light .bg-white\/\[0\.02\] {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+  border-color: var(--border) !important;
+}
+
+/* Specific inputs for light mode */
+.light input, 
+.light select, 
+.light textarea,
+.light .capataz-input {
+  background-color: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border) !important;
+}
+
+.light .msg-bot {
+  background-color: var(--bg-card) !important;
+  color: var(--text-main) !important;
 }
 
 * {
