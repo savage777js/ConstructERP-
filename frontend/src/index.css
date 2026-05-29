@@ -23,15 +23,15 @@
 }
 
 .light {
-  --bg-main: #ebedf2; /* Softer, low-contrast warm/slate gray instead of blinding white */
-  --bg-card: #f6f8fb; /* Off-white card background */
-  --bg-sidebar: #dfe3ea; /* Softer sidebar */
-  --text-main: #1e293b; /* Dark slate text instead of harsh black */
-  --text-muted: #475569; /* Slate gray for secondary text */
-  --border: rgba(15, 23, 42, 0.1); /* Slightly visible dark border */
-  --border-active: rgba(245, 158, 11, 0.5);
-  --glass: rgba(246, 248, 251, 0.85);
-  --grid-color: rgba(15, 23, 42, 0.02);
+  --bg-main: #dfdacf; /* Soft pastel sand/beige that is extremely gentle on the eyes */
+  --bg-card: #ece7de; /* Warm pastel cream card background */
+  --bg-sidebar: #d2ccc1; /* Soft sand sidebar */
+  --text-main: #2b3036; /* Soft charcoal dark text instead of harsh black */
+  --text-muted: #5a6069; /* Balanced gray-slate for muted text */
+  --border: rgba(43, 48, 54, 0.08); /* Soft subtle dark border */
+  --border-active: rgba(245, 158, 11, 0.4);
+  --glass: rgba(236, 231, 222, 0.85);
+  --grid-color: rgba(43, 48, 54, 0.015);
 }
 
 /* Smooth transition when changing theme */

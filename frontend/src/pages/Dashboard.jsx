@@ -122,7 +122,7 @@ const Dashboard = () => {
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', color: '#fff', backdropFilter: 'blur(10px)' }} 
+                  contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', color: 'var(--text-main)', backdropFilter: 'blur(10px)' }} 
                   itemStyle={{ color: 'var(--primary)' }}
                 />
                 <Bar dataKey="workers" fill="var(--accent-blue)" radius={[4, 4, 0, 0]} barSize={32} />
@@ -152,7 +152,7 @@ const Dashboard = () => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0)" />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px' }} />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text-main)' }} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>

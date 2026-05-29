@@ -57,9 +57,9 @@ const KPICard = ({ title, value, subtitle, icon: Icon, color = 'blue', trend, tr
         )}
       </div>
       <div>
-        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(139,139,153,0.7)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{title}</p>
-        <h3 style={{ fontSize: '2.25rem', fontWeight: 900, color: 'white', marginTop: '0.15rem', letterSpacing: '-0.04em', lineHeight: 1 }}>{value}</h3>
-        {subtitle && <p style={{ fontSize: '0.72rem', color: 'rgba(139,139,153,0.55)', marginTop: '0.4rem', fontWeight: 500 }}>{subtitle}</p>}
+        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{title}</p>
+        <h3 style={{ fontSize: '2.25rem', fontWeight: 900, color: 'var(--text-main)', marginTop: '0.15rem', letterSpacing: '-0.04em', lineHeight: 1 }}>{value}</h3>
+        {subtitle && <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.4rem', fontWeight: 500 }}>{subtitle}</p>}
       </div>
     </div>
   );
