@@ -181,4 +181,60 @@ class ProjectService:
         db.refresh(new_log)
         return new_log
 
+    @staticmethod
+    def approve_assignment(db: Session, project_id: int, assignment_id: int, user_id: int):
+        from app.models.core import User
+        assignment = db.query(ProjectAssignment).filter(
+            ProjectAssignment.id == assignment_id,
+            ProjectAssignment.project_id == project_id
+        ).first()
+        if not assignment:
+            raise HTTPException(status_code=404, detail="Asignación no encontrada")
+        
+        assignment.approved_by_manager = True
+        
+        user = db.query(User).filter(User.id == user_id).first()
+        worker = db.query(Employee).filter(Employee.id == assignment.worker_id).first()
+        user_name = user.full_name if user else "Usuario"
+        user_rut = user.rut if user and user.rut else "S/R"
+        
+        # Log approval
+        log = ProjectLog(
+            project_id=project_id,
+            user_id=user_id,
+            log_type="SYSTEM",
+            content=f"Visto Bueno otorgado para la asignación de {worker.first_name} {worker.last_name}."
+        )
+        db.add(log)
+        db.commit()
+        db.refresh(assignment)
+        return assignment
+
+    @staticmethod
+    def update_assignment_notes(db: Session, project_id: int, assignment_id: int, notes: str, user_id: int):
+        from app.models.core import User
+        assignment = db.query(ProjectAssignment).filter(
+            ProjectAssignment.id == assignment_id,
+            ProjectAssignment.project_id == project_id
+        ).first()
+        if not assignment:
+            raise HTTPException(status_code=404, detail="Asignación no encontrada")
+        
+        assignment.manager_notes = notes
+        
+        user = db.query(User).filter(User.id == user_id).first()
+        worker = db.query(Employee).filter(Employee.id == assignment.worker_id).first()
+        
+        # Log note change
+        log = ProjectLog(
+            project_id=project_id,
+            user_id=user_id,
+            log_type="SYSTEM",
+            content=f"Nota del Gerente sobre la asignación de {worker.first_name} {worker.last_name}: \"{notes}\"."
+        )
+        db.add(log)
+        db.commit()
+        db.refresh(assignment)
+        return assignment
+
 

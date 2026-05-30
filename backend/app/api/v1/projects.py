@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from pydantic import BaseModel
 from app.db.session import get_db
 from app.schemas.project import ProjectCreate, ProjectOut, ProjectUpdate, ProjectDetail, WorkerAssignment, ProjectLogOut, ProjectLogCreate
 from app.services.project_service import ProjectService
 
 from app.models.core import UserRole
-from app.api.deps import RoleChecker, get_current_user
+from app.api.deps import RoleChecker, get_current_user, RoleChecker as role_checker_type
 
 router = APIRouter()
 
@@ -62,3 +63,31 @@ def create_project_log(
     current_user = Depends(get_current_user)
 ):
     return ProjectService.create_project_log(db, project_id, log_in.content, current_user.id, "NOTE")
+
+@router.patch("/{project_id}/assignments/{assignment_id}/approve")
+def approve_worker_assignment(
+    project_id: int,
+    assignment_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    # Solo ADMIN o MANAGEMENT pueden dar visto bueno
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGEMENT]:
+         raise HTTPException(status_code=403, detail="No tiene permisos para dar visto bueno")
+    return ProjectService.approve_assignment(db, project_id, assignment_id, current_user.id)
+
+class AssignmentNotesInput(BaseModel):
+    notes: str
+
+@router.patch("/{project_id}/assignments/{assignment_id}/notes")
+def update_worker_assignment_notes(
+    project_id: int,
+    assignment_id: int,
+    notes_in: AssignmentNotesInput,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    # Solo ADMIN o MANAGEMENT pueden editar notas de asignación
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGEMENT]:
+         raise HTTPException(status_code=403, detail="No tiene permisos para modificar notas de gerencia")
+    return ProjectService.update_assignment_notes(db, project_id, assignment_id, notes_in.notes, current_user.id)

@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Workers from './pages/Workers';
+import Documents from './pages/Documents';
 import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
 import Notifications from './pages/Notifications';
@@ -36,12 +38,48 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
 
 const MainLayout = ({ children }) => {
   const { logout } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', position: 'relative' }}>
-      <Sidebar onLogout={logout} />
-      <main style={{ marginLeft: '256px', flex: 1, position: 'relative', zIndex: 10, padding: '2rem' }}>
-        {children}
-      </main>
+    <div className="flex min-h-screen bg-[var(--bg-main)] relative overflow-x-hidden">
+      {/* Sidebar Wrapper (Hidden on mobile, slide in on state toggle, visible on desktop) */}
+      <div 
+        className={`fixed inset-y-0 left-0 z-50 transform md:relative md:translate-x-0 transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:flex`}
+      >
+        <Sidebar onLogout={logout} onCloseMobile={() => setSidebarOpen(false)} />
+      </div>
+
+      {/* Backdrop overlay for mobile */}
+      {sidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity"
+        />
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Sticky Mobile Header */}
+        <header className="flex md:hidden items-center justify-between p-4 bg-[var(--bg-sidebar)] border-b border-[var(--border)] sticky top-0 z-30">
+          <button 
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 text-slate-400 hover:text-white transition-colors"
+            title="Abrir menú"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          </button>
+          <span className="font-extrabold text-sm gradient-text tracking-wider uppercase">ConstructERP</span>
+          <div className="w-8" />
+        </header>
+
+        <main className="flex-1 p-4 md:p-8 relative z-10 overflow-y-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 };
@@ -74,6 +112,17 @@ function AppRoutes() {
             <ProtectedRoute requiredPermission="employees:view">
               <MainLayout>
                 <Workers />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/documents" 
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Documents />
               </MainLayout>
             </ProtectedRoute>
           } 

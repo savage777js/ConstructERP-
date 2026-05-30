@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { Plus, Search, MoreVertical, Edit2, Trash2, UserPlus, UserMinus, Loader2, FileText, AlertTriangle, CheckCircle2, Users, Calendar, DollarSign } from 'lucide-react';
+import { Plus, Search, MoreVertical, Edit2, Trash2, UserPlus, UserMinus, Loader2, FileText, AlertTriangle, CheckCircle2, Users, Calendar, DollarSign, Download, Briefcase } from 'lucide-react';
 import WorkerForm from '../components/WorkerForm';
 
 const Workers = () => {
@@ -9,10 +10,14 @@ const Workers = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [salaryFilter, setSalaryFilter] = useState('ALL');
+  const [actionWorker, setActionWorker] = useState(null); // Worker selected for hover action menu
   
   const [closingWorkerId, setClosingWorkerId] = useState(null);
   const [activeAssignmentsWarning, setActiveAssignmentsWarning] = useState(null);
   const [closingLoading, setClosingLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const userRole = localStorage.getItem('userRole');
   const canManage = ['ADMIN', 'HR_MANAGER'].includes(userRole);
@@ -100,11 +105,19 @@ const Workers = () => {
 
   const monthlyPayroll = workers.filter(w => w.status === 'ACTIVE').reduce((acc, curr) => acc + (curr.salary || 0), 0);
 
-  const filteredWorkers = workers.filter(w => 
-    `${w.first_name} ${w.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    w.rut.includes(searchTerm) ||
-    w.role?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredWorkers = workers.filter(w => {
+    const matchesSearch = `${w.first_name} ${w.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (w.rut && w.rut.includes(searchTerm)) ||
+      w.role?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    if (!matchesSearch) return false;
+
+    if (salaryFilter === 'ALL') return true;
+    if (salaryFilter === 'LOW') return (w.salary || 0) < 500000;
+    if (salaryFilter === 'MEDIUM') return (w.salary || 0) >= 500000 && (w.salary || 0) <= 1000000;
+    if (salaryFilter === 'HIGH') return (w.salary || 0) > 1000000;
+    return true;
+  });
 
   return (
     <div className="p-8">
@@ -175,16 +188,30 @@ const Workers = () => {
 
 
       {/* Bar de búsqueda y filtros */}
-      <div className="mb-6 flex items-center space-x-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-          <input 
-            type="text" 
-            placeholder="Buscar por nombre, RUT o cargo..."
-            className="w-full bg-slate-800/50 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="mb-6 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+        <div className="flex flex-1 flex-col md:flex-row gap-4 max-w-2xl">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <input 
+              type="text" 
+              placeholder="Buscar por nombre o cargo..."
+              className="w-full bg-slate-800/50 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div>
+            <select
+              value={salaryFilter}
+              onChange={(e) => setSalaryFilter(e.target.value)}
+              className="bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer w-full"
+            >
+              <option value="ALL">Todos los Sueldos</option>
+              <option value="LOW">Menor a $500,000</option>
+              <option value="MEDIUM">$500,000 - $1,000,000</option>
+              <option value="HIGH">Mayor a $1,000,000</option>
+            </select>
+          </div>
         </div>
         <div className="text-sm text-slate-500">
           Mostrando {filteredWorkers.length} de {workers.length} trabajadores
@@ -196,11 +223,11 @@ const Workers = () => {
           <thead>
             <tr className="border-b border-white/5 text-slate-400 text-sm uppercase tracking-wider">
               <th className="px-6 py-4 font-semibold">Nombre</th>
-              <th className="px-6 py-4 font-semibold">RUT</th>
+              <th className="px-6 py-4 font-semibold">Edad</th>
               <th className="px-6 py-4 font-semibold">Cargo</th>
               <th className="px-6 py-4 font-semibold">Sueldo Base</th>
               <th className="px-6 py-4 font-semibold">Estado</th>
-              <th className="px-6 py-4 text-right">Acciones</th>
+              <th className="px-6 py-4 text-right">Proyecto / Obra</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -216,8 +243,21 @@ const Workers = () => {
             ) : (
               filteredWorkers.map((worker) => (
                 <tr key={worker.id} className="hover:bg-white/5 transition-colors group">
-                  <td className="px-6 py-4 font-medium">{worker.first_name} {worker.last_name}</td>
-                  <td className="px-6 py-4 text-slate-400">{worker.rut}</td>
+                  <td className="px-6 py-4 font-medium flex items-center justify-between group-hover:pr-2">
+                    <span>{worker.first_name} {worker.last_name}</span>
+                    {canManage && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setActionWorker(worker); }}
+                        className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-slate-400 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                        title="Opciones de Personal"
+                      >
+                        <MoreVertical size={14} />
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-slate-400">
+                    {worker.age ? `${worker.age} años` : <span className="text-slate-600 italic text-xs">Sin definir</span>}
+                  </td>
                   <td className="px-6 py-4 text-slate-400">
                     <span className={`flex items-center gap-2 ${worker.status === 'INACTIVE' ? 'opacity-50 line-through' : ''}`}>
                        {worker.role}
@@ -239,47 +279,13 @@ const Workers = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {canManage && worker.status === 'ACTIVE' && (
-                        <>
-                          <button 
-                            onClick={() => handleDownloadContract(worker.id, worker.rut)}
-                            className="p-2 hover:bg-blue-500/10 rounded-lg text-slate-400 hover:text-blue-400 transition-all shadow-lg"
-                            title="Descargar Contrato"
-                          >
-                            <FileText size={16}/>
-                          </button>
-                          <button 
-                            onClick={() => handleEdit(worker)}
-                            className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-all shadow-lg"
-                            title="Editar Datos"
-                          >
-                            <Edit2 size={16}/>
-                          </button>
-                          <button 
-                            onClick={() => initDeactivate(worker.id)}
-                            className="p-2 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-400 transition-all shadow-lg"
-                            title="Dar de Baja"
-                          >
-                            <Trash2 size={16}/>
-                          </button>
-                        </>
-                      )}
-                      
-                      {canManage && worker.status === 'INACTIVE' && (
-                        <button 
-                          onClick={() => handleDownloadContract(worker.id, worker.rut)}
-                          className="flex items-center gap-2 p-2 hover:bg-blue-500/10 rounded-lg text-slate-500 hover:text-blue-400 transition-all text-xs font-bold uppercase"
-                          title="Descargar Contrato Histórico"
-                        >
-                          <FileText size={14}/> Contrato PDF
-                        </button>
-                      )}
-                      
-                      {!canManage && (
-                        <span className="text-xs text-slate-500 uppercase font-semibold px-2">Lectura</span>
-                      )}
-                    </div>
+                    {worker.active_project ? (
+                      <span className="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-2.5 py-1.5 rounded-xl font-bold">
+                        <Briefcase size={12} /> {worker.active_project}
+                      </span>
+                    ) : (
+                      <span className="text-slate-600 text-xs italic">Sin asignar</span>
+                    )}
                   </td>
                 </tr>
               ))
@@ -305,6 +311,51 @@ const Workers = () => {
           onSuccess={handleCreateSuccess}
           workerData={selectedWorker}
         />
+      )}
+
+      {actionWorker && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-sm p-8 text-center animate-in zoom-in-95 duration-200 relative">
+            <h3 className="text-2xl font-bold text-white mb-1">{actionWorker.first_name} {actionWorker.last_name}</h3>
+            <p className="text-slate-400 text-xs mb-6">{actionWorker.role}</p>
+            
+            <div className="flex flex-col gap-3 mb-6">
+              <button 
+                onClick={() => { navigate(`/documents`); setActionWorker(null); }}
+                className="w-full py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-xl transition-all font-bold text-sm flex items-center justify-center gap-2"
+              >
+                <FileText size={16} /> Carpeta Digital
+              </button>
+              <button 
+                onClick={() => { handleEdit(actionWorker); setActionWorker(null); }}
+                className="w-full py-3 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/5 rounded-xl transition-all font-bold text-sm flex items-center justify-center gap-2"
+              >
+                <Edit2 size={16} /> Editar Datos
+              </button>
+              <button 
+                onClick={() => { handleDownloadContract(actionWorker.id, actionWorker.rut); setActionWorker(null); }}
+                className="w-full py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-xl transition-all font-bold text-sm flex items-center justify-center gap-2"
+              >
+                <Download size={16} /> Descargar Contrato PDF
+              </button>
+              {actionWorker.status === 'ACTIVE' && (
+                <button 
+                  onClick={() => { initDeactivate(actionWorker.id); setActionWorker(null); }}
+                  className="w-full py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl transition-all font-bold text-sm flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={16} /> Dar de Baja
+                </button>
+              )}
+            </div>
+            
+            <button 
+              onClick={() => setActionWorker(null)} 
+              className="text-xs text-slate-500 hover:text-slate-300 font-bold uppercase tracking-widest mt-2"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
       )}
       
       {closingWorkerId && (

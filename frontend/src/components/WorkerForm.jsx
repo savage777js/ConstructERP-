@@ -8,6 +8,7 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
     first_name: workerData?.first_name || '',
     last_name: workerData?.last_name || '',
     rut: workerData?.rut || '',
+    age: workerData?.age || '',
     role: workerData?.role || '',
     salary: workerData?.salary || '',
     hire_date: workerData?.hire_date ? new Date(workerData.hire_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
@@ -23,7 +24,6 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
     const newErrors = {};
     if (!formData.first_name) newErrors.first_name = 'El nombre es obligatorio';
     if (!formData.last_name) newErrors.last_name = 'El apellido es obligatorio';
-    if (!formData.rut) newErrors.rut = 'El RUT es obligatorio';
     if (!formData.role) newErrors.role = 'El cargo es obligatorio';
     if (!formData.salary || formData.salary < 0) newErrors.salary = 'Ingrese un sueldo válido';
     
@@ -40,6 +40,8 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
       const payload = {
         ...formData,
         salary: parseInt(formData.salary),
+        age: formData.age ? parseInt(formData.age) : null,
+        rut: formData.rut || null,
         hire_date: new Date(formData.hire_date).toISOString(),
       };
 
@@ -108,16 +110,30 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
 
             {/* RUT */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">RUT</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">RUT (Opcional)</label>
               <input
                 type="text"
                 name="rut"
                 value={formData.rut}
                 onChange={handleChange}
-                className={`w-full bg-slate-800/50 border ${errors.rut ? 'border-red-500' : 'border-white/10'} rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all`}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                 placeholder="12.345.678-9"
               />
-              {errors.rut && <p className="text-red-400 text-xs mt-1">{errors.rut}</p>}
+            </div>
+
+            {/* Edad */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Edad</label>
+              <input
+                type="number"
+                name="age"
+                value={formData.age}
+                onChange={handleChange}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                placeholder="Ej: 35"
+                min="18"
+                max="100"
+              />
             </div>
 
             {/* Cargo */}

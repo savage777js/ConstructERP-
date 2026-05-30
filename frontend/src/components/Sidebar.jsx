@@ -1,9 +1,9 @@
-import { Users, LayoutDashboard, Briefcase, Bell, LogOut, BarChart, Sun, Moon, Sparkles, GitBranch } from 'lucide-react';
+import { Users, LayoutDashboard, Briefcase, Bell, LogOut, BarChart, Sun, Moon, Sparkles, GitBranch, FileText } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import api from '../api';
 
-const Sidebar = ({ onLogout }) => {
+const Sidebar = ({ onLogout, onCloseMobile }) => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const [isLight, setIsLight] = useState(localStorage.getItem('theme') === 'light');
@@ -83,6 +83,12 @@ const Sidebar = ({ onLogout }) => {
       icon: Sparkles,
       roles: ['ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT']
     },
+    {
+      name: 'Documentación OCR',
+      path: '/documents',
+      icon: FileText,
+      roles: ['ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT']
+    },
   ].filter(item => item.roles.includes(userRole));
 
   return (
@@ -90,15 +96,10 @@ const Sidebar = ({ onLogout }) => {
       style={{ 
         width: '256px',
         height: '100vh',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        zIndex: 50,
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--bg-sidebar)',
         borderRight: '1px solid var(--border)',
-        transition: 'all 0.3s ease',
       }}>
       
       {/* Brand Header */}
@@ -142,6 +143,7 @@ const Sidebar = ({ onLogout }) => {
           <NavLink
             key={item.path}
             to={item.path}
+            onClick={() => onCloseMobile && onCloseMobile()}
             style={({ isActive }) => ({
               display: 'flex',
               alignItems: 'center',
@@ -152,12 +154,24 @@ const Sidebar = ({ onLogout }) => {
               transition: 'all 0.3s ease',
               background: item.name === 'Capataz AI' 
                 ? (isActive ? 'linear-gradient(90deg, rgba(245, 158, 11, 0.2), rgba(251, 146, 60, 0.2))' : 'rgba(245, 158, 11, 0.05)')
-                : (isActive ? 'var(--primary-glow)' : 'transparent'),
-              color: item.name === 'Capataz AI' ? '#fb923c' : (isActive ? 'var(--primary)' : 'var(--text-muted)'),
+                : item.name === 'Documentación OCR'
+                  ? (isActive ? 'linear-gradient(90deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2))' : 'rgba(16, 185, 129, 0.05)')
+                  : (isActive ? 'var(--primary-glow)' : 'transparent'),
+              color: item.name === 'Capataz AI' 
+                ? '#fb923c' 
+                : item.name === 'Documentación OCR'
+                  ? '#10b981'
+                  : (isActive ? 'var(--primary)' : 'var(--text-muted)'),
               border: item.name === 'Capataz AI'
                 ? '1px solid rgba(245, 158, 11, 0.3)'
-                : (isActive ? '1px solid var(--primary-glow)' : '1px solid transparent'),
-              boxShadow: item.name === 'Capataz AI' && isActive ? '0 0 15px rgba(245, 158, 11, 0.1)' : 'none',
+                : item.name === 'Documentación OCR'
+                  ? '1px solid rgba(16, 185, 129, 0.3)'
+                  : (isActive ? '1px solid var(--primary-glow)' : '1px solid transparent'),
+              boxShadow: item.name === 'Capataz AI' && isActive 
+                ? '0 0 15px rgba(245, 158, 11, 0.1)' 
+                : item.name === 'Documentación OCR' && isActive
+                  ? '0 0 15px rgba(16, 185, 129, 0.1)'
+                  : 'none',
             })}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

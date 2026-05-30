@@ -29,11 +29,12 @@ class ContractService:
         pdf.ln(10)
 
         # Intro
+        current_date_str = datetime.now().strftime('%d/%m/%Y')
         pdf.set_font("helvetica", size=11)
         pdf.multi_cell(0, 6, 
-            f"En la ciudad de [CIUDAD], a [FECHA_ACTUAL], entre la empresa SERCONIND LTDA., "
-            f"RUT [RUT_EMPRESA], representada por [REPRESENTANTE], en adelante 'el empleador', "
-            f"y don(ña) {worker_data['first_name']} {worker_data['last_name']}, RUT {worker_data['rut']}, "
+            f"En la ciudad de Santiago, a {current_date_str}, entre la empresa SERCONIND LTDA., "
+            f"RUT 77.654.321-K, representada por don Gerente General en su calidad de Representante Legal, en adelante 'el empleador', "
+            f"y don(ña) {worker_data['first_name']} {worker_data['last_name']}, RUT {worker_data['rut'] or 'Sin especificar'}, "
             f"en adelante 'el trabajador', se ha convenido el siguiente contrato de trabajo:"
         )
         pdf.ln(5)
@@ -64,10 +65,26 @@ class ContractService:
         pdf.set_font("helvetica", 'B', 11)
         pdf.cell(0, 8, "TERCERO: VIGENCIA", ln=True)
         pdf.set_font("helvetica", size=11)
-        hire_date = datetime.fromisoformat(str(worker_data['hire_date'])).strftime('%d/%m/%Y')
+        # Parse timestamp safely
+        try:
+            h_date = datetime.fromisoformat(str(worker_data['hire_date'])).strftime('%d/%m/%Y')
+        except Exception:
+            h_date = str(worker_data['hire_date'])
         pdf.multi_cell(0, 6, 
-            f"El presente contrato tendrá una vigencia a contar del día {hire_date}. "
+            f"El presente contrato tendrá una vigencia a contar del día {h_date}. "
             f"Se entiende que el trabajador ingresa a prestar servicios en esta fecha."
+        )
+        pdf.ln(5)
+
+        # Clause 4: Initiation of Activities
+        pdf.set_font("helvetica", 'B', 11)
+        pdf.cell(0, 8, "CUARTO: INICIACIÓN DE ACTIVIDADES", ln=True)
+        pdf.set_font("helvetica", size=11)
+        pdf.multi_cell(0, 6, 
+            "El empleador declara expresamente y las partes toman conocimiento de que SERCONIND LTDA. "
+            "se encuentra actualmente en trámites de iniciación de actividades comerciales ante el Servicio "
+            "de Impuestos Internos (SII), por lo cual el presente contrato de trabajo y sus términos legales "
+            "se acogen íntegramente a las normativas de constitución corporativa vigentes."
         )
         pdf.ln(15)
 

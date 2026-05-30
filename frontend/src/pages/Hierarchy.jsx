@@ -37,7 +37,7 @@ const Hierarchy = () => {
   const getWorkerRank = (role = "") => {
     const r = role.toLowerCase();
     if (r.includes('gerente') || r.includes('director') || r.includes('ceo') || r.includes('general')) return 1;
-    if (r.includes('ingenier') || r.includes('civil') || r.includes('admin') || r.includes('oficina') || r.includes('prevencion') || r.includes('compras')) return 2;
+    if (r.includes('ingenier') || r.includes('civil') || r.includes('admin') || r.includes('oficina') || r.includes('prevencion') || r.includes('compras') || r.includes('encargado') || r.includes('proyecto')) return 2;
     if (r.includes('topograf') || r.includes('capataz') || r.includes('supervis') || r.includes('jefe')) return 3;
     return 4; // Field workers / Operarios
   };

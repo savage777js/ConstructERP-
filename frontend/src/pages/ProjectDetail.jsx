@@ -5,7 +5,7 @@ import {
   ArrowLeft, Briefcase, Users, Calendar, MapPin, 
   Plus, UserPlus, Info, Loader2, CheckCircle2, AlertCircle,
   Clock, ShieldCheck, HardHat, MoreVertical, Archive, AlertTriangle,
-  Edit2, Settings, ClipboardList
+  Edit2, Settings, ClipboardList, Folder, Eye, X, Check, MessageSquare
 } from 'lucide-react';
 import ProjectForm from '../components/ProjectForm';
 
@@ -31,6 +31,8 @@ const ProjectDetail = () => {
 
   const [newNote, setNewNote] = useState('');
   const [submittingNote, setSubmittingNote] = useState(false);
+  const [selectedWorkerDocs, setSelectedWorkerDocs] = useState(null);
+  const [notesForm, setNotesForm] = useState({ assignmentId: null, notes: '' });
 
   const userRole = localStorage.getItem('userRole');
   const canAssignWorker = ['ADMIN', 'PROJECT_MANAGER', 'HR_MANAGER'].includes(userRole);
@@ -96,6 +98,34 @@ const ProjectDetail = () => {
       alert('Error al guardar nota de avance');
     } finally {
       setSubmittingNote(false);
+    }
+  };
+
+  const handleViewWorkerDocs = async (worker) => {
+    try {
+      const response = await api.get(`/documents/employee/${worker.id}`);
+      setSelectedWorkerDocs({ worker, docs: response.data });
+    } catch (error) {
+      alert('Error al cargar la documentación del trabajador');
+    }
+  };
+
+  const handleApproveAssignment = async (assignmentId) => {
+    try {
+      await api.patch(`/projects/${id}/assignments/${assignmentId}/approve`);
+      fetchProjectData();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error al otorgar visto bueno');
+    }
+  };
+
+  const handleSaveNotes = async (assignmentId, notes) => {
+    try {
+      await api.patch(`/projects/${id}/assignments/${assignmentId}/notes`, { notes });
+      setNotesForm({ assignmentId: null, notes: '' });
+      fetchProjectData();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error al guardar la nota');
     }
   };
 
@@ -300,11 +330,11 @@ const ProjectDetail = () => {
                 <thead>
                   <tr className="bg-slate-900/50 text-slate-500 text-xs font-bold uppercase tracking-wider">
                     <th className="px-8 py-5">Trabajador</th>
-                    <th className="px-8 py-5">RUT / ID</th>
                     <th className="px-8 py-5">Rol en Obra</th>
-                    <th className="px-8 py-5">Fecha Ingreso</th>
-                    <th className="px-8 py-5">Estado</th>
-                    <th className="px-8 py-5"></th>
+                    <th className="px-8 py-5">Visto Bueno</th>
+                    <th className="px-8 py-5">Notas Gerenciales</th>
+                    <th className="px-8 py-5">Documentos</th>
+                    <th className="px-8 py-5 text-right"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -321,31 +351,93 @@ const ProjectDetail = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-slate-400 font-mono text-sm">{a.worker.rut}</td>
                       <td className="px-8 py-6">
                         <span className="flex items-center gap-2 text-slate-200">
                           <HardHat size={14} className="text-blue-400" />
                           {a.role || 'Operario'}
                         </span>
                       </td>
-                      <td className="px-8 py-6 text-slate-400 text-sm">
-                        {new Date(a.assigned_at).toLocaleDateString('es-CL')}
-                      </td>
                       <td className="px-8 py-6">
-                        {a.is_active ? (
-                          <span className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold px-2 py-1 rounded-full bg-emerald-500/10 w-fit">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> ACTIVO
+                        {a.approved_by_manager ? (
+                          <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold px-2.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/10 w-fit">
+                            <Check size={12} /> Visto Bueno Dado
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1.5 text-slate-500 text-xs font-bold px-2 py-1 rounded-full bg-white/5 w-fit">
-                            FINALIZADO
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-slate-500 text-xs font-semibold italic">Pendiente de Visto Bueno</span>
+                            {['ADMIN', 'MANAGEMENT'].includes(userRole) && a.is_active && (
+                              <button
+                                onClick={() => handleApproveAssignment(a.id)}
+                                className="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg text-[10px] font-black transition-all w-fit uppercase"
+                              >
+                                Otorgar Visto Bueno
+                              </button>
+                            )}
+                          </div>
                         )}
                       </td>
+                      <td className="px-8 py-6">
+                        {notesForm.assignmentId === a.id ? (
+                          <div className="flex gap-2 items-center">
+                            <input 
+                              type="text"
+                              value={notesForm.notes}
+                              onChange={(e) => setNotesForm({...notesForm, notes: e.target.value})}
+                              className="bg-slate-800 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none"
+                              placeholder="Nota gerencial..."
+                            />
+                            <button 
+                              onClick={() => handleSaveNotes(a.id, notesForm.notes)}
+                              className="p-1 bg-emerald-600 rounded text-white"
+                            >
+                              <Check size={12} />
+                            </button>
+                            <button 
+                              onClick={() => setNotesForm({ assignmentId: null, notes: '' })}
+                              className="p-1 bg-slate-800 rounded text-slate-400"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-300 font-medium max-w-[200px] truncate block">
+                              {a.manager_notes || <span className="text-slate-600 italic">Sin notas</span>}
+                            </span>
+                            {['ADMIN', 'MANAGEMENT'].includes(userRole) && a.is_active && (
+                              <button 
+                                onClick={() => setNotesForm({ assignmentId: a.id, notes: a.manager_notes || '' })}
+                                className="p-1 hover:bg-white/5 rounded text-slate-500 hover:text-white transition-all"
+                                title="Editar Nota"
+                              >
+                                <MessageSquare size={12} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-8 py-6">
+                        <button 
+                          onClick={() => handleViewWorkerDocs(a.worker)}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded-xl text-slate-300 text-xs font-bold transition-all"
+                        >
+                          <Folder size={12} className="text-amber-500" /> Expediente
+                        </button>
+                      </td>
                       <td className="px-8 py-6 text-right">
-                         <button className="text-slate-600 hover:text-white transition-colors">
-                           <MoreVertical size={18} />
-                         </button>
+                         {canAssignWorker && a.is_active && (
+                           <button 
+                             onClick={() => {
+                               if (confirm(`¿Dar de baja a ${a.worker.first_name} ${a.worker.last_name} de esta obra?`)) {
+                                 api.delete(`/workers/${a.worker.id}?force=true`).then(() => fetchProjectData());
+                               }
+                             }}
+                             className="text-slate-600 hover:text-red-400 transition-colors"
+                             title="Liberar de Obra"
+                           >
+                             <X size={16} />
+                           </button>
+                         )}
                       </td>
                     </tr>
                   ))}
@@ -435,11 +527,15 @@ const ProjectDetail = () => {
                             {log.content}
                           </div>
 
-                          {!isSystem && log.user && (
+                          {log.user ? (
                             <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2 text-xs text-slate-500">
-                              <span className="font-bold text-slate-400">{log.user.full_name}</span>
+                              <span className="font-bold text-slate-400">Autor: {log.user.full_name} (RUT: {log.user.rut || 'S/R'})</span>
                               <span>·</span>
                               <span className="capitalize">{log.user.role.toLowerCase().replace('_', ' ')}</span>
+                            </div>
+                          ) : (
+                            <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2 text-xs text-slate-500">
+                              <span className="font-bold text-slate-400">Autor: Sistema</span>
                             </div>
                           )}
                         </div>
@@ -539,6 +635,62 @@ const ProjectDetail = () => {
                 className="flex-1 py-3 bg-red-500 hover:bg-red-400 text-white rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70"
               >
                 {closingLoading ? <Loader2 size={18} className="animate-spin" /> : 'Confirmar Cierre'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Worker Document Viewer Modal */}
+      {selectedWorkerDocs && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-lg p-8 relative animate-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setSelectedWorkerDocs(null)} 
+              className="absolute top-6 right-6 text-slate-400 hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-2xl font-bold text-white mb-2">Expediente de Personal</h3>
+            <p className="text-sm text-slate-400 mb-6">
+              Visualizando documentos vigentes para <strong>{selectedWorkerDocs.worker.first_name} {selectedWorkerDocs.worker.last_name}</strong>
+            </p>
+            
+            <div className="space-y-3 max-h-[300px] overflow-y-auto mb-6 pr-2">
+              {selectedWorkerDocs.docs.length > 0 ? (
+                selectedWorkerDocs.docs.map(doc => (
+                  <div key={doc.id} className="p-3 bg-white/5 border border-white/5 rounded-xl flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-white">{doc.title}</p>
+                      <span className="text-[10px] text-slate-500 font-semibold uppercase">{doc.category}</span>
+                    </div>
+                    <a 
+                      href={api.defaults.baseURL ? `${api.defaults.baseURL.replace('/api/v1', '')}${doc.file_path}` : doc.file_path}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold transition-all text-center"
+                    >
+                      Ver Archivo
+                    </a>
+                  </div>
+                ))
+              ) : (
+                <p className="text-slate-500 text-center py-6 italic text-sm">El trabajador no registra documentos cargados en su carpeta.</p>
+              )}
+            </div>
+
+            <div className="flex gap-4">
+              <button 
+                onClick={() => { navigate('/documents'); setSelectedWorkerDocs(null); }}
+                className="flex-1 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-xl transition-all font-bold text-xs text-center"
+              >
+                Ir a Cargar Documentos
+              </button>
+              <button 
+                onClick={() => setSelectedWorkerDocs(null)} 
+                className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-slate-400 rounded-xl transition-all font-bold text-xs"
+              >
+                Cerrar Ventana
               </button>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import { 
   Bell, CheckCircle2, AlertTriangle, Info, AlertOctagon, 
-  Trash2, ExternalLink, Calendar, Package, Users, Loader2 
+  Trash2, ExternalLink, Calendar, Package, Users, Loader2, DollarSign
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -19,7 +19,9 @@ const Notifications = () => {
     setLoading(true);
     try {
       const response = await api.get('/notifications/');
-      setNotifications(response.data);
+      // Filtrar y omitir alertas de stock / inventario
+      const filtered = response.data.filter(n => n.type !== 'STOCK_ALERT');
+      setNotifications(filtered);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -55,7 +57,7 @@ const Notifications = () => {
 
   const getBadgeColor = (type) => {
     switch (type) {
-      case 'STOCK_ALERT': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+      case 'UNPAID_SALARY': return 'bg-red-500/10 text-red-500 border-red-500/20 font-black';
       case 'CONTRACT_EXPIRING': return 'bg-red-500/10 text-red-500 border-red-500/20';
       case 'PROJECT_ENDING': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
       default: return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
@@ -64,7 +66,7 @@ const Notifications = () => {
 
   const getTypeIcon = (type) => {
     switch (type) {
-      case 'STOCK_ALERT': return <Package size={14} />;
+      case 'UNPAID_SALARY': return <DollarSign size={14} />;
       case 'CONTRACT_EXPIRING': return <Users size={14} />;
       case 'PROJECT_ENDING': return <Calendar size={14} />;
       default: return <Bell size={14} />;

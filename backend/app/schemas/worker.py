@@ -6,7 +6,8 @@ from app.models.core import EmployeeStatus
 class EmployeeBase(BaseModel):
     first_name: str
     last_name: str
-    rut: str
+    rut: Optional[str] = None
+    age: Optional[int] = None
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
@@ -30,6 +31,7 @@ class EmployeeOut(EmployeeBase):
     id: int
     hire_date: datetime
     updated_at: datetime
+    active_project: Optional[str] = None
 
     class Config:
         from_attributes = True

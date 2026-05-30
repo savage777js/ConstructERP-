@@ -38,6 +38,8 @@ class ProjectAssignmentOut(BaseModel):
     unassigned_at: Optional[datetime] = None
     is_active: bool
     updated_at: datetime
+    approved_by_manager: bool = False
+    manager_notes: Optional[str] = None
 
     class Config:
         from_attributes = True

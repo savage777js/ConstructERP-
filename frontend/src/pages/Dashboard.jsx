@@ -3,7 +3,7 @@ import api from '../api';
 import { 
   Users, Briefcase, Bell, 
   AlertTriangle, ArrowRight,
-  HardHat, Loader2, RefreshCw
+  HardHat, Loader2, RefreshCw, Folder, FileText
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -16,17 +16,22 @@ const Dashboard = () => {
   const [summary, setSummary] = useState(null);
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasUnpaidSalaries, setHasUnpaidSalaries] = useState(false);
   const navigate = useNavigate();
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [summaryRes, chartRes] = await Promise.all([
+      const [summaryRes, chartRes, notifRes] = await Promise.all([
         api.get('/dashboard/summary'),
-        api.get('/dashboard/charts')
+        api.get('/dashboard/charts'),
+        api.get('/notifications/')
       ]);
       setSummary(summaryRes.data);
       setChartData(chartRes.data);
+      // Omitir alertas de stock en notificaciones del dashboard si existieran
+      const unpaid = notifRes.data.some(n => n.type === 'UNPAID_SALARY' && !n.is_read);
+      setHasUnpaidSalaries(unpaid);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -81,6 +86,22 @@ const Dashboard = () => {
           Sincronizar Nodo
         </button>
       </header>
+      
+      {/* Unpaid Salaries Alert Banner */}
+      {hasUnpaidSalaries && (
+        <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-400 animate-pulse">
+          <AlertTriangle size={20} />
+          <div className="flex-1 text-sm font-semibold">
+            ¡Alerta de Gestión! Se han detectado alertas vigentes de sueldos no pagados en el sistema.
+          </div>
+          <button 
+            onClick={() => navigate('/notifications')} 
+            className="text-xs bg-red-500/20 hover:bg-red-500/30 px-3.5 py-2 rounded-xl font-bold text-red-300 transition-all uppercase"
+          >
+            Revisar
+          </button>
+        </div>
+      )}
 
       {/* KPI Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
@@ -160,29 +181,59 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Access Grid */}
-        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-          {[
-            { name: 'Gestión RRHH', icon: Users, path: '/workers', color: 'bg-blue-500/10 text-blue-400', roles: ['ADMIN', 'HR_MANAGER', 'MANAGEMENT', 'PROJECT_MANAGER'] },
-            { name: 'Control de Obras', icon: Briefcase, path: '/projects', color: 'bg-purple-500/10 text-purple-400', roles: ['ADMIN', 'PROJECT_MANAGER', 'MANAGEMENT', 'HR_MANAGER', 'INVENTORY_MANAGER'] },
-            { name: 'Centro de Alertas', icon: Bell, path: '/notifications', color: 'bg-red-500/10 text-red-400', roles: ['ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT'] }
-          ].filter(item => {
-            const role = localStorage.getItem('userRole');
-            return role && item.roles.includes(role);
-          }).map((item) => (
-            <button
-              key={item.name}
-              onClick={() => navigate(item.path)}
-              className="flex items-center justify-between p-6 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/[0.08] transition-all group shadow-xl"
-            >
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-xl ${item.color}`}>
-                  <item.icon size={24} />
-                </div>
-                <span className="font-bold text-slate-100">{item.name}</span>
-              </div>
-              <ArrowRight className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" size={20} />
-            </button>
-          ))}
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-6 mt-4">
+          {localStorage.getItem('userRole') === 'ADMIN' ? (
+            // Admin Tiles: RRHH, Capataz, Reportes, Documentos/OCR, Alertas
+            <>
+              {[
+                { name: 'Recursos Humanos', icon: Users, path: '/workers', color: 'bg-blue-500/10 text-blue-400' },
+                { name: 'Capataz AI', icon: HardHat, path: '/capataz', color: 'bg-amber-500/10 text-amber-400' },
+                { name: 'Reportes Generales', icon: FileText, path: '/reports', color: 'bg-indigo-500/10 text-indigo-400' },
+                { name: 'Expedientes & OCR', icon: Folder, path: '/documents', color: 'bg-emerald-500/10 text-emerald-400' },
+                { name: 'Alertas & Sueldos', icon: Bell, path: '/notifications', color: 'bg-red-500/10 text-red-400' }
+              ].map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => navigate(item.path)}
+                  className="flex items-center justify-between p-6 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/[0.08] transition-all group shadow-xl"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl ${item.color}`}>
+                      <item.icon size={24} />
+                    </div>
+                    <span className="font-bold text-slate-100 text-sm">{item.name}</span>
+                  </div>
+                  <ArrowRight className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" size={20} />
+                </button>
+              ))}
+            </>
+          ) : (
+            // Other Roles
+            <>
+              {[
+                { name: 'Gestión RRHH', icon: Users, path: '/workers', color: 'bg-blue-500/10 text-blue-400', roles: ['ADMIN', 'HR_MANAGER', 'MANAGEMENT', 'PROJECT_MANAGER'] },
+                { name: 'Control de Obras', icon: Briefcase, path: '/projects', color: 'bg-purple-500/10 text-purple-400', roles: ['ADMIN', 'PROJECT_MANAGER', 'MANAGEMENT', 'HR_MANAGER', 'INVENTORY_MANAGER'] },
+                { name: 'Centro de Alertas', icon: Bell, path: '/notifications', color: 'bg-red-500/10 text-red-400', roles: ['ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT'] }
+              ].filter(item => {
+                const role = localStorage.getItem('userRole');
+                return role && item.roles.includes(role);
+              }).map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => navigate(item.path)}
+                  className="flex items-center justify-between p-6 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/[0.08] transition-all group shadow-xl"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl ${item.color}`}>
+                      <item.icon size={24} />
+                    </div>
+                    <span className="font-bold text-slate-100">{item.name}</span>
+                  </div>
+                  <ArrowRight className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" size={20} />
+                </button>
+              ))}
+            </>
+          )}
         </div>
       </div>
     </div>

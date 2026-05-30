@@ -7,6 +7,7 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
     role: UserRole = UserRole.ADMIN
+    rut: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str

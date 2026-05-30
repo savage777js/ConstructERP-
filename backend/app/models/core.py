@@ -43,6 +43,7 @@ class NotificationType(str, enum.Enum):
     STOCK_ALERT = "STOCK_ALERT"
     PROJECT_ENDING = "PROJECT_ENDING"
     SYSTEM_INFO = "SYSTEM_INFO"
+    UNPAID_SALARY = "UNPAID_SALARY"
 
 class NotificationPriority(str, enum.Enum):
     INFO = "INFO"
@@ -116,6 +117,7 @@ class User(Base):
     is_active = Column(Boolean(), default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    rut = Column(String(50), nullable=True) # RUT del usuario administrativo
 
     organization = relationship("Organization", back_populates="users")
     employee = relationship("Employee", back_populates="user", uselist=False)
@@ -134,7 +136,8 @@ class Employee(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
-    rut = Column(String, unique=True, index=True, nullable=False)  # Chile ID
+    rut = Column(String, unique=True, index=True, nullable=True)  # Chile ID (ahora opcional)
+    age = Column(Integer, nullable=True)  # Edad del trabajador
     email = Column(String, index=True)
     phone = Column(String)
     address = Column(String)
@@ -151,6 +154,11 @@ class Employee(Base):
     assignments = relationship("ProjectAssignment", back_populates="worker")
     tasks = relationship("Task", back_populates="assigned_employee")
     documents = relationship("Document", back_populates="employee")
+
+    @property
+    def active_project(self):
+        active_assignment = next((a for a in self.assignments if a.is_active), None)
+        return active_assignment.project.name if active_assignment and active_assignment.project else None
 
 class Project(Base):
     __tablename__ = "projects"
@@ -188,6 +196,8 @@ class ProjectAssignment(Base):
     unassigned_at = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    approved_by_manager = Column(Boolean, default=False)
+    manager_notes = Column(Text, nullable=True)
 
     project = relationship("Project", back_populates="assignments")
     worker = relationship("Employee", back_populates="assignments")
