@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { Search, Plus, Briefcase, Calendar, MapPin, ChevronRight, Loader2, User, Archive, AlertTriangle } from 'lucide-react';
+import { Search, Plus, Briefcase, Calendar, MapPin, ChevronRight, Loader2, User, Archive, AlertTriangle, DollarSign } from 'lucide-react';
 import ProjectForm from '../components/ProjectForm';
 
 const Projects = () => {
@@ -54,19 +54,19 @@ const Projects = () => {
   );
 
   return (
-    <div className="p-8">
-      <header className="flex justify-between items-center mb-10">
+    <div className="p-4 sm:p-8">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-10">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <Briefcase size={32} className="text-blue-400" />
+          <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
+            <Briefcase size={28} className="text-blue-400" />
             Gestión de Obras
           </h1>
-          <p className="text-slate-400">Control operativo, personal y recursos por proyecto.</p>
+          <p className="text-slate-400 text-sm">Control operativo, personal y recursos por proyecto.</p>
         </div>
         {canCreate && (
           <button 
             onClick={() => setShowModal(true)}
-            className="btn-primary flex items-center space-x-2"
+            className="btn-primary flex items-center space-x-2 w-full sm:w-auto justify-center"
           >
             <Plus size={20} />
             <span>Nueva Obra</span>
@@ -74,7 +74,7 @@ const Projects = () => {
         )}
       </header>
 
-      <div className="mb-8 relative max-w-md">
+      <div className="mb-6 sm:mb-8 relative max-w-md w-full">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
         <input 
           type="text" 
@@ -91,7 +91,7 @@ const Projects = () => {
           <p>Cargando proyectos operativos...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredProjects.map((project) => (
             <div 
               key={project.id} 
@@ -136,6 +136,10 @@ const Projects = () => {
                   <div className="flex items-center gap-2 text-slate-400 text-sm">
                     <Calendar size={14} className="text-slate-500" />
                     <span>Inicio: {new Date(project.start_date).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-300 text-sm font-semibold">
+                    <DollarSign size={14} className="text-emerald-400 shrink-0" />
+                    <span>Presupuesto: <span className="text-emerald-400 font-extrabold">${project.budget ? Number(project.budget).toLocaleString('es-CL') : '0'}</span></span>
                   </div>
                 </div>
               </div>

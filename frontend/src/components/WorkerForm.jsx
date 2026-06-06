@@ -15,6 +15,8 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
     email: workerData?.email || '',
     phone: workerData?.phone || '',
     contract_end_date: workerData?.contract_end_date ? new Date(workerData.contract_end_date).toISOString().split('T')[0] : '',
+    contract_type: workerData?.contract_type || 'INDEFINIDO',
+    vacation_balance: workerData?.vacation_balance !== undefined ? workerData.vacation_balance : 15.0,
   });
 
   const [errors, setErrors] = useState({});
@@ -43,6 +45,9 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
         age: formData.age ? parseInt(formData.age) : null,
         rut: formData.rut || null,
         hire_date: new Date(formData.hire_date).toISOString(),
+        contract_end_date: formData.contract_end_date ? new Date(formData.contract_end_date).toISOString() : null,
+        contract_type: formData.contract_type,
+        vacation_balance: parseFloat(formData.vacation_balance) || 0.0,
       };
 
       if (isEdit) {
@@ -67,8 +72,8 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="glass-card w-full max-w-2xl shadow-2xl relative">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="glass-card w-full max-w-2xl shadow-2xl relative my-8">
         <button 
           onClick={onClose}
           className="absolute right-4 top-4 text-slate-400 hover:text-white transition-colors"
@@ -189,6 +194,35 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
                 className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-amber-500 outline-none transition-all"
               />
               <p className="text-[10px] text-slate-500 mt-1 italic">Habilita alertas automáticas de RRHH.</p>
+            </div>
+
+            {/* Tipo de Contrato */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Tipo de Contrato</label>
+              <select
+                name="contract_type"
+                value={formData.contract_type}
+                onChange={handleChange}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+              >
+                <option value="INDEFINIDO">Indefinido</option>
+                <option value="PLAZO_FIJO">Plazo Fijo</option>
+              </select>
+            </div>
+
+            {/* Saldo de Vacaciones */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Saldo Vacaciones (días)</label>
+              <input
+                type="number"
+                step="0.5"
+                name="vacation_balance"
+                value={formData.vacation_balance}
+                onChange={handleChange}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                placeholder="Ej: 15"
+                min="0"
+              />
             </div>
           </div>
 

@@ -18,6 +18,8 @@ class EmployeeBase(BaseModel):
     status: EmployeeStatus = EmployeeStatus.ACTIVE
     user_id: Optional[int] = None
     project_id: Optional[int] = None
+    contract_type: Optional[str] = "INDEFINIDO"
+    vacation_balance: Optional[float] = 15.0
 
 class EmployeeCreate(EmployeeBase):
     pass
@@ -32,6 +34,28 @@ class EmployeeOut(EmployeeBase):
     hire_date: datetime
     updated_at: datetime
     active_project: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class VacationRequestBase(BaseModel):
+    employee_id: int
+    start_date: datetime
+    end_date: datetime
+    days_requested: int
+
+class VacationRequestCreate(VacationRequestBase):
+    pass
+
+class VacationRequestOut(VacationRequestBase):
+    id: str
+    status: str
+    document_path: Optional[str] = None
+    approved_by: Optional[int] = None
+    rebated_by: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    employee: Optional[EmployeeOut] = None
 
     class Config:
         from_attributes = True

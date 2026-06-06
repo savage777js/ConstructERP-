@@ -91,3 +91,50 @@ def update_worker_assignment_notes(
     if current_user.role not in [UserRole.ADMIN, UserRole.MANAGEMENT]:
          raise HTTPException(status_code=403, detail="No tiene permisos para modificar notas de gerencia")
     return ProjectService.update_assignment_notes(db, project_id, assignment_id, notes_in.notes, current_user.id)
+
+@router.post("/{project_id}/unassign-worker/{worker_id}", dependencies=[Depends(allow_assign_worker)])
+def unassign_worker(
+    project_id: int,
+    worker_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    return ProjectService.unassign_worker(db, project_id, worker_id, current_user.id)
+
+class MiniBudgetInput(BaseModel):
+    description: str
+    amount: float
+
+@router.post("/{project_id}/mini-budgets", dependencies=[Depends(allow_manage_proj)])
+def add_mini_budget(
+    project_id: int,
+    mini_in: MiniBudgetInput,
+    db: Session = Depends(get_db)
+):
+    return ProjectService.add_mini_budget(db, project_id, mini_in.description, mini_in.amount)
+
+@router.delete("/{project_id}/mini-budgets/{mini_budget_id}", dependencies=[Depends(allow_manage_proj)])
+def delete_mini_budget(
+    project_id: int,
+    mini_budget_id: str,
+    db: Session = Depends(get_db)
+):
+    return ProjectService.delete_mini_budget(db, project_id, mini_budget_id)
+
+@router.get("/{project_id}/download-folder")
+def download_project_folder(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    zip_content = ProjectService.download_project_folder(db, project_id)
+    project = ProjectService.get_project(db, project_id)
+    
+    from fastapi.responses import Response
+    return Response(
+        content=zip_content,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename=carpeta_proyecto_{project.code or project_id}.zip"
+        }
+    )

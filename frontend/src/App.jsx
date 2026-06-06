@@ -76,7 +76,7 @@ const MainLayout = ({ children }) => {
           <div className="w-8" />
         </header>
 
-        <main className="flex-1 p-4 md:p-8 relative z-10 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 md:p-8 relative z-10 overflow-y-auto">
           {children}
         </main>
       </div>

@@ -332,7 +332,7 @@ const Capataz = () => {
 
       {/* OCR expense registration modal */}
       {pendingExpense && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="glass-card w-full max-w-lg shadow-2xl relative p-6">
             <button 
               onClick={() => setPendingExpense(null)}

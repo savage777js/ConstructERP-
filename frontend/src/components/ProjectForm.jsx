@@ -13,6 +13,7 @@ const ProjectForm = ({ onClose, onSuccess, projectData = null }) => {
     start_date: projectData?.start_date ? new Date(projectData.start_date).toISOString().split('T')[0] : '',
     end_date: projectData?.end_date ? new Date(projectData.end_date).toISOString().split('T')[0] : '',
     status: projectData?.status || 'ACTIVE',
+    budget: projectData?.budget || 0,
   });
 
   const [errors, setErrors] = useState({});
@@ -43,6 +44,7 @@ const ProjectForm = ({ onClose, onSuccess, projectData = null }) => {
         ...formData,
         start_date: new Date(formData.start_date).toISOString(),
         end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
+        budget: parseFloat(formData.budget) || 0,
       };
 
       if (isEdit) {
@@ -67,8 +69,8 @@ const ProjectForm = ({ onClose, onSuccess, projectData = null }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="glass-card w-full max-w-2xl shadow-2xl relative">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="glass-card w-full max-w-2xl shadow-2xl relative my-8">
         <button 
           onClick={onClose}
           className="absolute right-4 top-4 text-slate-400 hover:text-white transition-colors"
@@ -123,6 +125,19 @@ const ProjectForm = ({ onClose, onSuccess, projectData = null }) => {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Presupuesto Total ($)</label>
+              <input
+                type="number"
+                name="budget"
+                value={formData.budget}
+                onChange={handleChange}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                placeholder="Ej: 15000000"
+                min="0"
+              />
+            </div>
+
             {/* Fechas */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Fecha Inicio</label>
@@ -157,6 +172,19 @@ const ProjectForm = ({ onClose, onSuccess, projectData = null }) => {
                 value={formData.address}
                 onChange={handleChange}
                 className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              />
+            </div>
+
+            {/* Descripción */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-300 mb-2">Descripción del Proyecto</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows={3}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
+                placeholder="Descripción general de la obra..."
               />
             </div>
           </div>

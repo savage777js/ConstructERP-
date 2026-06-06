@@ -17,10 +17,7 @@ router = APIRouter()
 # Dependencias genéricas para reportes (Acceso base)
 allow_reports = RoleChecker([
     UserRole.ADMIN, 
-    UserRole.MANAGEMENT, 
-    UserRole.HR_MANAGER, 
-    UserRole.PROJECT_MANAGER, 
-    UserRole.INVENTORY_MANAGER
+    UserRole.MANAGEMENT
 ])
 
 @router.post("/{report_type}/analyze")

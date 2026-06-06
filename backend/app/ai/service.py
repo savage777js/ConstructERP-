@@ -46,7 +46,8 @@ class AIService:
                                 ]
                             }
                         ],
-                        "response_format": { "type": "json_object" }
+                        "response_format": { "type": "json_object" },
+                        "max_tokens": 4000
                     },
                     timeout=60.0
                 )
@@ -86,7 +87,8 @@ class AIService:
                     headers=self.headers,
                     json={
                         "model": settings.OPENROUTER_MODEL,
-                        "messages": full_messages
+                        "messages": full_messages,
+                        "max_tokens": 2000
                     },
                     timeout=30.0
                 )
@@ -118,7 +120,8 @@ class AIService:
                             headers=self.headers,
                             json={
                                 "model": settings.OPENROUTER_MODEL,
-                                "messages": full_messages
+                                "messages": full_messages,
+                                "max_tokens": 2000
                             },
                             timeout=30.0
                         )

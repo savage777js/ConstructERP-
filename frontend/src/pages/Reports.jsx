@@ -111,27 +111,27 @@ const Reports = () => {
   };
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto pb-20">
-      <header className="mb-10">
-        <h1 className="text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
-          <BarChart2 className="text-blue-500" size={36} />
-          Módulo de Reportes & Business Intelligence
+    <div className="p-4 sm:p-8 max-w-[1600px] mx-auto pb-20">
+      <header className="mb-6 sm:mb-10">
+        <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+          <BarChart2 className="text-blue-500" size={32} />
+          Módulo de Reportes & BI
         </h1>
-        <p className="text-slate-400 text-lg mt-2 font-medium">Análisis operativo para la toma de decisiones en SERCONIND LTDA.</p>
+        <p className="text-slate-400 text-sm sm:text-lg mt-2 font-medium">Análisis operativo para la toma de decisiones en SERCONIND LTDA.</p>
       </header>
 
       {!selectedReport ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {reportsList.map((report) => (
             <button
               key={report.id}
               onClick={() => handleFetchPreview(report.id)}
-              className="glass-card p-8 text-left hover:border-blue-500/50 transition-all group relative overflow-hidden"
+              className="glass-card p-5 sm:p-8 text-left hover:border-blue-500/50 transition-all group relative overflow-hidden"
             >
               <div className={`p-4 rounded-2xl w-fit mb-6 transition-transform group-hover:scale-110 duration-300 bg-${report.color}-500/10 text-${report.color}-400`}>
-                <report.icon size={32} />
+                <report.icon size={28} />
               </div>
-              <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">{report.title}</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">{report.title}</h3>
               <p className="text-slate-400 text-sm leading-relaxed">{report.desc}</p>
               <div className="mt-8 flex items-center gap-2 text-xs font-bold text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
                 GENERAR VISTA PREVIA <ChevronRight size={14} />
@@ -150,20 +150,20 @@ const Reports = () => {
           </button>
 
           <div className="glass-card mb-8">
-            <div className="p-8 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-white/[0.02]">
+            <div className="p-4 sm:p-8 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sm:gap-8 bg-white/[0.02]">
               <div className="flex items-center gap-4">
-                <div className={`p-4 rounded-xl bg-blue-500/10 text-blue-400`}>
-                  <selectedReport.icon size={32} />
+                <div className={`p-3 sm:p-4 rounded-xl bg-blue-500/10 text-blue-400`}>
+                  <selectedReport.icon size={28} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight">{selectedReport.title}</h2>
-                  <p className="text-slate-400 text-sm">{selectedReport.desc}</p>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">{selectedReport.title}</h2>
+                  <p className="text-slate-400 text-xs sm:text-sm">{selectedReport.desc}</p>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
                 {selectedReport.useDates && (
-                  <div className="flex items-center gap-3 bg-slate-900/50 p-2 rounded-xl border border-white/5">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 bg-slate-900/50 p-2 rounded-xl border border-white/5 w-full sm:w-auto justify-between sm:justify-start">
                     <Calendar size={18} className="text-slate-500 ml-2" />
                     <input 
                       type="date" 
@@ -176,11 +176,11 @@ const Reports = () => {
                       type="date" 
                       value={filters.end_date}
                       onChange={(e) => setFilters({...filters, end_date: e.target.value})}
-                      className="bg-transparent text-white text-sm outline-none cursor-pointer"
+                      className="bg-transparent text-white text-sm outline-none cursor-pointer w-full sm:w-auto"
                     />
                     <button 
                       onClick={() => handleFetchPreview(selectedReport.id)}
-                      className="ml-2 p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+                      className="ml-auto sm:ml-2 p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
                       title="Aplicar Filtros"
                     >
                       <Filter size={16} />
@@ -188,7 +188,7 @@ const Reports = () => {
                   </div>
                 )}
                 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end sm:justify-start">
                   <button 
                     disabled={loading || previewData.length === 0}
                     onClick={async () => {
@@ -242,7 +242,7 @@ const Reports = () => {
                   <thead>
                     <tr className="bg-slate-900/50 text-slate-500 text-[10px] font-black uppercase tracking-widest">
                       {Object.keys(previewData[0]).map(key => (
-                        <th key={key} className="px-8 py-5 border-b border-white/5">{key}</th>
+                        <th key={key} className="px-4 sm:px-8 py-3 sm:py-5 border-b border-white/5">{key}</th>
                       ))}
                     </tr>
                   </thead>
@@ -250,7 +250,7 @@ const Reports = () => {
                     {previewData.slice(0, 15).map((row, idx) => (
                       <tr key={idx} className="hover:bg-white/[0.02] transition-colors group">
                         {Object.entries(row).map(([key, val], i) => (
-                            <td key={i} className="px-8 py-6 text-sm">
+                            <td key={i} className="px-4 sm:px-8 py-4 sm:py-6 text-sm">
                                 <span className={
                                     (key === 'Estado' || key === 'Prioridad') 
                                     ? `px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusColor(val)}`

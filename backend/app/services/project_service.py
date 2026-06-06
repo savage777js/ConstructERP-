@@ -1,9 +1,12 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from app.models.core import Project, Employee, ProjectAssignment, ProjectLog
+from app.models.core import Project, Employee, ProjectAssignment, ProjectLog, Document
 from app.schemas.project import ProjectCreate, ProjectUpdate, WorkerAssignment
 from app.services.notification_service import NotificationService
+from app.services.pdf_service import ContractService
 from datetime import datetime
+import uuid
+import os
 
 class ProjectService:
     @staticmethod
@@ -75,7 +78,8 @@ class ProjectService:
             "status": "Estado",
             "start_date": "Fecha de Inicio",
             "end_date": "Fecha de Término",
-            "observations": "Observaciones"
+            "observations": "Observaciones",
+            "budget": "Presupuesto"
         }
 
         for field, new_value in update_data.items():
@@ -150,11 +154,63 @@ class ProjectService:
             project_id=project_id,
             worker_id=assignment.worker_id,
             role=assignment.role,
-            assigned_at=datetime.utcnow()
+            assigned_at=datetime.utcnow(),
+            end_date=assignment.end_date
         )
         
         db.add(new_assignment)
         
+        # --- Generar automáticamente Anexo de Contrato PDF ---
+        try:
+            worker_data = {
+                "first_name": worker.first_name,
+                "last_name": worker.last_name,
+                "rut": worker.rut,
+                "role": worker.role,
+                "salary": worker.salary,
+                "hire_date": worker.hire_date
+            }
+            project_data = {
+                "name": project.name,
+                "code": project.code,
+                "address": project.address
+            }
+            
+            # Generar bytes PDF
+            pdf_bytes = ContractService.generate_contract_addendum(
+                worker_data=worker_data,
+                project_data=project_data,
+                assignment_role=assignment.role,
+                start_date=datetime.utcnow(),
+                end_date=assignment.end_date
+            )
+            
+            # Crear directorio si no existe
+            os.makedirs("uploads/documents", exist_ok=True)
+            unique_filename = f"anexo_{worker.id}_{project_id}_{uuid.uuid4().hex[:8]}.pdf"
+            file_path = f"uploads/documents/{unique_filename}"
+            
+            # Escribir archivo a disco
+            with open(file_path, "wb") as f:
+                f.write(pdf_bytes)
+                
+            # Registrar documento en BD
+            db_doc = Document(
+                organization_id=project.organization_id or worker.organization_id,
+                title=f"Anexo de Contrato - Obra {project.name}",
+                file_path=f"/uploads/documents/{unique_filename}",
+                file_type="application/pdf",
+                file_size=len(pdf_bytes),
+                category="anexo_contrato",
+                employee_id=worker.id,
+                project_id=project_id,
+                created_by=user_id
+            )
+            db.add(db_doc)
+            print(f"✅ Anexo de contrato generado automáticamente para {worker.first_name} en {project.name}.")
+        except Exception as pdf_err:
+            print(f"❌ Error generando anexo de contrato PDF: {pdf_err}")
+
         # Log assignment
         log = ProjectLog(
             project_id=project_id,
@@ -236,5 +292,161 @@ class ProjectService:
         db.commit()
         db.refresh(assignment)
         return assignment
+
+    @staticmethod
+    def unassign_worker(db: Session, project_id: int, worker_id: int, user_id: int = None):
+        project = ProjectService.get_project(db, project_id)
+        worker = db.query(Employee).filter(Employee.id == worker_id).first()
+        if not worker:
+            raise HTTPException(status_code=404, detail="Trabajador no encontrado")
+            
+        assignment = db.query(ProjectAssignment).filter(
+            ProjectAssignment.project_id == project_id,
+            ProjectAssignment.worker_id == worker_id,
+            ProjectAssignment.is_active == True
+        ).first()
+        
+        if not assignment:
+            raise HTTPException(status_code=404, detail="El trabajador no está asignado activamente a esta obra")
+            
+        assignment.is_active = False
+        assignment.unassigned_at = datetime.utcnow()
+        
+        # Log unassignment
+        log = ProjectLog(
+            project_id=project_id,
+            user_id=user_id,
+            log_type="SYSTEM",
+            content=f"Asignación de personal finalizada: {worker.first_name} {worker.last_name} liberado de la obra."
+        )
+        db.add(log)
+        db.commit()
+        return {"message": f"Trabajador {worker.first_name} liberado de la obra {project.name}."}
+
+    @staticmethod
+    def add_mini_budget(db: Session, project_id: int, description: str, amount: float):
+        from app.models.core import MiniBudget
+        project = ProjectService.get_project(db, project_id)
+        mini = MiniBudget(
+            project_id=project_id,
+            description=description,
+            amount=amount
+        )
+        db.add(mini)
+        
+        # Log in project history
+        log = ProjectLog(
+            project_id=project_id,
+            log_type="SYSTEM",
+            content=f"Sub-presupuesto añadido: '{description}' por ${amount:,.0f}."
+        )
+        db.add(log)
+        db.commit()
+        db.refresh(mini)
+        return mini
+
+    @staticmethod
+    def delete_mini_budget(db: Session, project_id: int, mini_budget_id: str):
+        from app.models.core import MiniBudget
+        mini = db.query(MiniBudget).filter(
+            MiniBudget.id == mini_budget_id,
+            MiniBudget.project_id == project_id
+        ).first()
+        if not mini:
+            raise HTTPException(status_code=404, detail="Sub-presupuesto no encontrado")
+            
+        # Log in project history
+        log = ProjectLog(
+            project_id=project_id,
+            log_type="SYSTEM",
+            content=f"Sub-presupuesto eliminado: '{mini.description}' por ${mini.amount:,.0f}."
+        )
+        db.add(log)
+        db.delete(mini)
+        db.commit()
+        return {"message": "Sub-presupuesto eliminado"}
+
+    @staticmethod
+    def download_project_folder(db: Session, project_id: int):
+        import io
+        import zipfile
+        from app.models.core import Document
+        
+        project = ProjectService.get_project(db, project_id)
+        
+        # 1. Fetch direct project documents
+        proj_docs = db.query(Document).filter(Document.project_id == project_id).all()
+        
+        # 2. Fetch assigned workers' documents
+        active_worker_ids = db.query(ProjectAssignment.worker_id).filter(
+            ProjectAssignment.project_id == project_id,
+            ProjectAssignment.is_active == True
+        ).all()
+        worker_ids = [w[0] for w in active_worker_ids]
+        
+        worker_docs = []
+        if worker_ids:
+            worker_docs = db.query(Document).filter(Document.employee_id.in_(worker_ids)).all()
+            
+        # Create Zip in-memory
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+            # Write project specific docs
+            for doc in proj_docs:
+                local_path = doc.file_path.lstrip('/')
+                if os.path.exists(local_path):
+                    filename = os.path.basename(local_path)
+                    ext = os.path.splitext(filename)[1].lower()
+                    
+                    if ext in [".jpg", ".jpeg", ".png"]:
+                        try:
+                            with open(local_path, "rb") as img_f:
+                                img_bytes = img_f.read()
+                            compressed_bytes = ProjectService.compress_image_bytes(img_bytes)
+                            zip_file.writestr(f"documentos_proyecto/{filename}", compressed_bytes)
+                        except Exception:
+                            zip_file.write(local_path, f"documentos_proyecto/{filename}")
+                    else:
+                        zip_file.write(local_path, f"documentos_proyecto/{filename}")
+                        
+            # Write worker specific docs
+            for doc in worker_docs:
+                local_path = doc.file_path.lstrip('/')
+                if os.path.exists(local_path):
+                    worker_name = "desconocido"
+                    if doc.employee:
+                        worker_name = f"{doc.employee.first_name}_{doc.employee.last_name}".replace(" ", "_")
+                    filename = os.path.basename(local_path)
+                    ext = os.path.splitext(filename)[1].lower()
+                    
+                    if ext in [".jpg", ".jpeg", ".png"]:
+                        try:
+                            with open(local_path, "rb") as img_f:
+                                img_bytes = img_f.read()
+                            compressed_bytes = ProjectService.compress_image_bytes(img_bytes)
+                            zip_file.writestr(f"documentos_trabajadores/{worker_name}/{filename}", compressed_bytes)
+                        except Exception:
+                            zip_file.write(local_path, f"documentos_trabajadores/{worker_name}/{filename}")
+                    else:
+                        zip_file.write(local_path, f"documentos_trabajadores/{worker_name}/{filename}")
+                        
+        zip_buffer.seek(0)
+        return zip_buffer.getvalue()
+
+    @staticmethod
+    def compress_image_bytes(image_bytes: bytes, max_size=(1600, 1600), quality=75) -> bytes:
+        import io
+        from PIL import Image
+        try:
+            img = Image.open(io.BytesIO(image_bytes))
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            img.thumbnail(max_size, Image.Resampling.LANCZOS)
+            out_bytes = io.BytesIO()
+            img.save(out_bytes, format="JPEG", quality=quality, optimize=True)
+            return out_bytes.getvalue()
+        except Exception as e:
+            print(f"Error compressing image: {e}")
+            return image_bytes
 
 

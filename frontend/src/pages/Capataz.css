@@ -346,3 +346,66 @@
 .ocr-msg {
     border-left: 4px solid var(--primary);
 }
+
+@media (max-width: 768px) {
+    .capataz-container {
+        height: calc(100vh - 80px);
+        border-radius: 12px;
+    }
+    .capataz-header {
+        padding: 0.75rem 1rem;
+        gap: 0.75rem;
+    }
+    .capataz-avatar-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        border-width: 1.5px;
+        box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+    }
+    .capataz-title-area h1 {
+        font-size: 1.15rem;
+    }
+    .capataz-status {
+        font-size: 0.65rem;
+        gap: 0.3rem;
+    }
+    .capataz-actions {
+        margin-left: auto;
+    }
+    .tech-action-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.7rem;
+        border-radius: 8px;
+    }
+    .tech-action-btn span {
+        display: none;
+    }
+    .capataz-messages {
+        padding: 1rem;
+        gap: 1rem;
+    }
+    .capataz-msg {
+        max-width: 92%;
+        padding: 0.875rem 1rem;
+        font-size: 0.875rem;
+    }
+    .capataz-input-area {
+        padding: 0.875rem 1rem;
+        gap: 0.5rem;
+    }
+    .capataz-input {
+        padding: 0.875rem 1rem 0.875rem 2.75rem !important;
+        font-size: 0.875rem;
+        border-radius: 12px;
+    }
+    .capataz-send-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+    }
+    .ocr-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+}

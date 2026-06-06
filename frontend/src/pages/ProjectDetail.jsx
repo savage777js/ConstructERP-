@@ -5,7 +5,8 @@ import {
   ArrowLeft, Briefcase, Users, Calendar, MapPin, 
   Plus, UserPlus, Info, Loader2, CheckCircle2, AlertCircle,
   Clock, ShieldCheck, HardHat, MoreVertical, Archive, AlertTriangle,
-  Edit2, Settings, ClipboardList, Folder, Eye, X, Check, MessageSquare
+  Edit2, Settings, ClipboardList, Folder, Eye, X, Check, MessageSquare,
+  DollarSign, Download
 } from 'lucide-react';
 import ProjectForm from '../components/ProjectForm';
 
@@ -26,8 +27,15 @@ const ProjectDetail = () => {
 
   const [assignmentForm, setAssignmentForm] = useState({
     worker_id: '',
-    role: 'Jornalero'
+    role: 'Jornalero',
+    end_date: ''
   });
+
+  const [expenses, setExpenses] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [downloadingFolder, setDownloadingFolder] = useState(false);
+  const [showAddMini, setShowAddMini] = useState(false);
+  const [miniForm, setMiniForm] = useState({ description: '', amount: '' });
 
   const [newNote, setNewNote] = useState('');
   const [submittingNote, setSubmittingNote] = useState(false);
@@ -47,6 +55,13 @@ const ProjectDetail = () => {
     try {
       const response = await api.get(`/projects/${id}`);
       setProject(response.data);
+      
+      // Fetch finances in parallel
+      const expRes = await api.get(`/finance/expenses?project_id=${id}`);
+      setExpenses(expRes.data);
+      
+      const invRes = await api.get(`/finance/invoices?project_id=${id}`);
+      setInvoices(invRes.data);
     } catch (error) {
       console.error('Error fetching project detail:', error);
     } finally {
@@ -76,13 +91,70 @@ const ProjectDetail = () => {
     try {
       await api.post(`/projects/${id}/assign-worker`, { 
         worker_id: parseInt(assignmentForm.worker_id),
-        role: assignmentForm.role 
+        role: assignmentForm.role,
+        end_date: assignmentForm.end_date ? new Date(assignmentForm.end_date).toISOString() : null
       });
       setShowAssignWorker(false);
-      setAssignmentForm({ worker_id: '', role: 'Jornalero' });
+      setAssignmentForm({ worker_id: '', role: 'Jornalero', end_date: '' });
       fetchProjectData();
     } catch (error) {
       alert(error.response?.data?.detail || 'Error al asignar trabajador');
+    }
+  };
+
+  const handleDownloadFolder = async () => {
+    setDownloadingFolder(true);
+    try {
+      const response = await api.get(`/projects/${id}/download-folder`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `carpeta_proyecto_${project.code || id}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      alert('Error al descargar la carpeta del proyecto.');
+    } finally {
+      setDownloadingFolder(false);
+    }
+  };
+
+  const handleAddMiniBudget = async (e) => {
+    e.preventDefault();
+    if (!miniForm.description || !miniForm.amount) return;
+    try {
+      await api.post(`/projects/${id}/mini-budgets`, {
+        description: miniForm.description,
+        amount: parseFloat(miniForm.amount)
+      });
+      setMiniForm({ description: '', amount: '' });
+      setShowAddMini(false);
+      fetchProjectData();
+    } catch (error) {
+      alert('Error al añadir sub-presupuesto.');
+    }
+  };
+
+  const handleDeleteMiniBudget = async (miniId) => {
+    if (!confirm('¿Eliminar este sub-presupuesto?')) return;
+    try {
+      await api.delete(`/projects/${id}/mini-budgets/${miniId}`);
+      fetchProjectData();
+    } catch (error) {
+      alert('Error al eliminar sub-presupuesto.');
+    }
+  };
+
+  const handleUpdateInvoiceStatus = async (invoiceId, currentStatus) => {
+    const nextStatus = currentStatus === 'PAID' ? 'DRAFT' : 'PAID';
+    try {
+      await api.patch(`/finance/invoices/${invoiceId}/status?status_in=${nextStatus}`);
+      fetchProjectData();
+    } catch (error) {
+      alert('Error al actualizar el estado de la factura.');
     }
   };
 
@@ -153,7 +225,7 @@ const ProjectDetail = () => {
   const sortedLogs = project.logs ? [...project.logs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) : [];
 
   return (
-    <div className="p-8 pb-20 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-8 pb-20 max-w-7xl mx-auto">
       <button 
         onClick={() => navigate('/projects')}
         className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors group"
@@ -162,7 +234,7 @@ const ProjectDetail = () => {
         Volver al Panel de Obras
       </button>
 
-      <header className="mb-10">
+      <header className="mb-6 sm:mb-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
@@ -173,8 +245,8 @@ const ProjectDetail = () => {
                 {project.code}
               </span>
             </div>
-            <h1 className="text-5xl font-extrabold text-white mb-3 tracking-tight">{project.name}</h1>
-            <div className="flex flex-wrap items-center gap-6 text-slate-400">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white mb-3 tracking-tight">{project.name}</h1>
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-slate-400">
               <p className="flex items-center gap-2">
                 <MapPin size={18} className="text-blue-500/50" /> {project.address}
               </p>
@@ -183,25 +255,35 @@ const ProjectDetail = () => {
                 {new Date(project.start_date).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })}
               </p>
             </div>
-            {canManageProject && project.status === 'ACTIVE' && (
-              <div className="mt-6 flex flex-wrap gap-4">
-                <button 
-                  onClick={() => setShowEditModal(true)}
-                  className="flex items-center gap-2 text-blue-400 hover:text-blue-300 bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-xl transition-all font-bold shadow-[0_0_15px_rgba(59,130,246,0.1)]"
-                >
-                  <Edit2 size={16} /> Editar Especificaciones
-                </button>
-                <button 
-                  onClick={() => setShowCloseModal(true)}
-                  className="flex items-center gap-2 text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-xl transition-all font-bold shadow-[0_0_15px_rgba(239,68,68,0.1)]"
-                >
-                  <Archive size={16} /> Finalizar Obra Definitivamente
-                </button>
-              </div>
-            )}
+            <div className="mt-6 flex flex-wrap gap-4">
+              {canManageProject && project.status === 'ACTIVE' && (
+                <>
+                  <button 
+                    onClick={() => setShowEditModal(true)}
+                    className="flex items-center gap-2 text-blue-400 hover:text-blue-300 bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-xl transition-all font-bold shadow-[0_0_15px_rgba(59,130,246,0.1)]"
+                  >
+                    <Edit2 size={16} /> Editar Especificaciones
+                  </button>
+                  <button 
+                    onClick={() => setShowCloseModal(true)}
+                    className="flex items-center gap-2 text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-xl transition-all font-bold shadow-[0_0_15px_rgba(239,68,68,0.1)]"
+                  >
+                    <Archive size={16} /> Finalizar Obra Definitivamente
+                  </button>
+                </>
+              )}
+              <button 
+                onClick={handleDownloadFolder}
+                disabled={downloadingFolder}
+                className="flex items-center gap-2 text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl transition-all font-bold shadow-[0_0_15px_rgba(245,158,11,0.1)] disabled:opacity-50"
+              >
+                {downloadingFolder ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                {downloadingFolder ? 'Comprimiendo Carpeta...' : 'Descargar Carpeta de Obra'}
+              </button>
+            </div>
           </div>
           
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-start md:items-end gap-2">
              <span className={`px-4 py-1.5 rounded-full text-sm font-bold border flex items-center gap-2 shadow-lg ${
                project.status === 'ACTIVE' 
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' 
@@ -216,16 +298,18 @@ const ProjectDetail = () => {
       </header>
 
       {/* Tabs Menu */}
-      <div className="flex gap-2 p-1 bg-slate-900/50 border border-white/5 rounded-2xl mb-10 w-fit backdrop-blur-md">
+      <div className="flex gap-2 p-1 bg-slate-900/50 border border-white/5 rounded-2xl mb-6 sm:mb-10 w-full sm:w-fit backdrop-blur-md overflow-x-auto whitespace-nowrap scrollbar-none">
         {[
           { id: 'info', label: 'Dashboard General', icon: Info },
           { id: 'workers', label: 'Dotación de Personal', icon: Users, count: project.assignments?.filter(a => a.is_active).length || 0 },
+          { id: 'budget', label: 'Presupuesto', icon: DollarSign },
+          { id: 'finance', label: 'Finanzas y Gastos', icon: Briefcase },
           { id: 'history', label: 'Bitácora de Obra', icon: ClipboardList, count: project.logs?.length || 0 }
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-3 px-6 py-3 text-sm font-bold rounded-xl transition-all duration-300 ${
+            className={`flex items-center gap-3 px-4 sm:px-6 py-3 text-sm font-bold rounded-xl transition-all duration-300 shrink-0 ${
               activeTab === tab.id 
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
@@ -247,11 +331,11 @@ const ProjectDetail = () => {
         {activeTab === 'info' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 glass-card p-10 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-900/10">
+              <div className="lg:col-span-2 glass-card p-4 sm:p-6 md:p-10 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-900/10">
                 <h3 className="text-2xl font-bold mb-8 text-white flex items-center gap-3">
                   <Info className="text-blue-400" /> Especificaciones Técnicas
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
                   <div className="space-y-8">
                     <div>
                       <label className="label-neutral block mb-2">Cliente / Mandante</label>
@@ -287,7 +371,7 @@ const ProjectDetail = () => {
               </div>
 
               <div className="space-y-6">
-                <div className="glass-card p-8 border-l-4 border-l-blue-500 shadow-xl bg-blue-500/5">
+                <div className="glass-card p-4 sm:p-8 border-l-4 border-l-blue-500 shadow-xl bg-blue-500/5">
                   <h4 className="text-sm font-bold text-blue-400 uppercase tracking-widest mb-4">Métricas de Dotación</h4>
                   <div className="flex justify-between items-end">
                     <div>
@@ -297,6 +381,292 @@ const ProjectDetail = () => {
                     <Users size={48} className="text-blue-500/10" />
                   </div>
                 </div>
+
+                <div className="glass-card p-4 sm:p-8 border-l-4 border-l-amber-500 shadow-xl bg-amber-500/5">
+                  <h4 className="text-sm font-bold text-amber-400 uppercase tracking-widest mb-4">Estado Financiero</h4>
+                  <div className="space-y-4">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400 text-xs">Presupuesto Base:</span>
+                      <span className="text-white text-sm font-bold">${(project.budget || 0).toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400 text-xs">Gastos Ejecutados:</span>
+                      <span className="text-white text-sm font-bold">${expenses.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0).toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-white/5 pt-2">
+                      <span className="text-slate-400 text-xs">Utilidad Proyectada:</span>
+                      {(() => {
+                        const totalExpenses = expenses.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0);
+                        const budget = project.budget || 0;
+                        const diff = budget - totalExpenses;
+                        const pct = budget > 0 ? (diff / budget) * 100 : 0;
+                        const isUnder15 = budget > 0 && totalExpenses > (budget * 0.85);
+                        return (
+                          <div className="text-right">
+                            <span className={`text-sm font-black ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              ${diff.toLocaleString('es-CL')}
+                            </span>
+                            <span className={`block text-[10px] font-bold ${isUnder15 ? 'text-red-400 animate-pulse' : 'text-slate-500'}`}>
+                              {pct.toFixed(1)}% Margen {isUnder15 && '(Crítico < 15%)'}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'budget' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Presupuestos del proyecto */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="glass-card p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950/10">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                      <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                        <DollarSign className="text-blue-400" size={24} />
+                        Presupuestos del Proyecto
+                      </h3>
+                      <p className="text-xs text-slate-400">Distribución y desglose de partidas presupuestarias.</p>
+                    </div>
+                    {canManageProject && (
+                      <button 
+                        onClick={() => setShowAddMini(true)}
+                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center gap-1.5"
+                      >
+                        <Plus size={14} /> Añadir Sub-presupuesto
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Presupuesto Principal */}
+                    <div className="p-4 bg-slate-950/80 border border-white/5 rounded-xl flex justify-between items-center">
+                      <div>
+                        <p className="text-sm font-bold text-white">Presupuesto Total Autorizado</p>
+                        <span className="text-[10px] text-slate-500 uppercase font-bold">Base contractual del proyecto</span>
+                      </div>
+                      <span className="text-lg font-black text-blue-400">${(project.budget || 0).toLocaleString('es-CL')}</span>
+                    </div>
+
+                    {/* Desglose de mini-presupuestos */}
+                    {project.mini_budgets?.map(mini => (
+                      <div key={mini.id} className="p-4 bg-white/5 border border-white/5 rounded-xl flex justify-between items-center group transition-all hover:bg-white/[0.08]">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-200">{mini.description}</p>
+                          <span className="text-[10px] text-slate-500">{new Date(mini.created_at).toLocaleDateString('es-CL')}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm font-bold text-white">${parseFloat(mini.amount).toLocaleString('es-CL')}</span>
+                          {canManageProject && (
+                            <button 
+                              onClick={() => handleDeleteMiniBudget(mini.id)}
+                              className="text-slate-500 hover:text-red-400 transition-all p-1 hover:bg-white/5 rounded"
+                              title="Eliminar partida"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {(!project.mini_budgets || project.mini_budgets.length === 0) && (
+                      <div className="text-center py-12 text-slate-500 bg-white/[0.01] rounded-xl border border-dashed border-white/5">
+                        <DollarSign className="mx-auto mb-3 opacity-10" size={36} />
+                        <p className="text-xs italic">No hay sub-presupuestos registrados en esta obra. Haz clic en "Añadir Sub-presupuesto" para comenzar a desglosar.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Lado derecho: validaciones y comparación de montos */}
+              <div className="space-y-6">
+                <div className="glass-card p-6 bg-white/[0.02]">
+                  <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                    <CheckCircle2 className="text-blue-400" size={18} />
+                    Validación Presupuestaria
+                  </h3>
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-xs">Presupuesto Total:</span>
+                      <span className="text-white text-sm font-bold">${(project.budget || 0).toLocaleString('es-CL')}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-xs">Suma de Partidas:</span>
+                      {(() => {
+                        const totalMini = project.mini_budgets?.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0) || 0;
+                        return (
+                          <span className="text-white text-sm font-bold">${totalMini.toLocaleString('es-CL')}</span>
+                        );
+                      })()}
+                    </div>
+
+                    <div className="border-t border-white/5 pt-4">
+                      {(() => {
+                        const totalMini = project.mini_budgets?.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0) || 0;
+                        const mainB = project.budget || 0;
+                        const diff = mainB - totalMini;
+
+                        if (diff === 0) {
+                          return (
+                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2">
+                              <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                                <CheckCircle2 size={16} />
+                                <span>La suma concuerda</span>
+                              </div>
+                              <p className="text-[11px] text-emerald-500/80 leading-normal">
+                                La suma de los montos desglosados coincide exactamente con el presupuesto total del proyecto.
+                              </p>
+                            </div>
+                          );
+                        } else if (diff > 0) {
+                          return (
+                            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">
+                              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                                <AlertTriangle size={16} />
+                                <span>Diferencia pendiente</span>
+                              </div>
+                              <p className="text-[11px] text-amber-500/80 leading-normal">
+                                Quedan por desglosar <strong className="text-white">${diff.toLocaleString('es-CL')}</strong> para concordar con el presupuesto total.
+                              </p>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl space-y-2">
+                              <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
+                                <AlertCircle size={16} />
+                                <span>Exceso de presupuesto</span>
+                              </div>
+                              <p className="text-[11px] text-red-500/80 leading-normal">
+                                Las partidas desglosadas exceden el presupuesto total por <strong className="text-white">${Math.abs(diff).toLocaleString('es-CL')}</strong>. Por favor, ajuste los montos.
+                              </p>
+                            </div>
+                          );
+                        }
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'finance' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Gastos registrados */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="glass-card p-6 bg-white/[0.02]">
+                  <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                    <Briefcase className="text-blue-500" size={20} />
+                    Detalle de Gastos de Obra
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-slate-900/50 text-slate-500 text-[10px] font-black uppercase tracking-wider">
+                          <th className="px-4 py-3">Fecha</th>
+                          <th className="px-4 py-3">Categoría</th>
+                          <th className="px-4 py-3">Descripción</th>
+                          <th className="px-4 py-3 text-right">Monto</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {expenses.map(exp => (
+                          <tr key={exp.id} className="hover:bg-white/[0.01] transition-colors text-xs text-slate-300">
+                            <td className="px-4 py-3">{new Date(exp.expense_date || exp.created_at).toLocaleDateString('es-CL')}</td>
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full font-bold uppercase text-[9px]">
+                                {exp.category?.replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">{exp.description}</td>
+                            <td className="px-4 py-3 text-right font-bold text-white">${parseFloat(exp.amount).toLocaleString('es-CL')}</td>
+                          </tr>
+                        ))}
+                        {expenses.length === 0 && (
+                          <tr>
+                            <td colSpan="4" className="text-center py-10 text-slate-600 italic">No hay gastos registrados en esta obra.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Facturas y cosas cobradas/pagadas */}
+              <div className="space-y-6">
+                <div className="glass-card p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/20">
+                  <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                    <CheckCircle2 className="text-emerald-400" size={18} />
+                    Cosas que me han Pagado
+                  </h3>
+                  
+                  {/* Summary indicators */}
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-slate-950 p-4 rounded-xl border border-white/5">
+                      <p className="text-[10px] text-slate-500 uppercase font-black">Facturado Total</p>
+                      <p className="text-base font-extrabold text-white">
+                        ${invoices.reduce((acc, curr) => acc + parseFloat(curr.total_amount || 0), 0).toLocaleString('es-CL')}
+                      </p>
+                    </div>
+                    <div className="bg-emerald-950/30 p-4 rounded-xl border border-emerald-500/10">
+                      <p className="text-[10px] text-emerald-500 uppercase font-black">Pagado Recibido</p>
+                      <p className="text-base font-extrabold text-emerald-400">
+                        ${invoices.filter(i => i.status === 'PAID').reduce((acc, curr) => acc + parseFloat(curr.total_amount || 0), 0).toLocaleString('es-CL')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {invoices.map(inv => (
+                      <div key={inv.id} className="p-4 bg-slate-950 border border-white/5 rounded-xl space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-xs font-bold text-white">{inv.client_name}</p>
+                            <span className="text-[9px] text-slate-500">Emitido: {new Date(inv.issue_date).toLocaleDateString('es-CL')}</span>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                            inv.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400 animate-pulse'
+                          }`}>
+                            {inv.status === 'PAID' ? 'PAGADA' : 'PENDIENTE'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                          <span className="text-sm font-extrabold text-white">${parseFloat(inv.total_amount).toLocaleString('es-CL')}</span>
+                          {['ADMIN', 'MANAGEMENT'].includes(userRole) && (
+                            <button
+                              onClick={() => handleUpdateInvoiceStatus(inv.id, inv.status)}
+                              className={`px-2.5 py-1 rounded text-[10px] font-black transition-all uppercase ${
+                                inv.status === 'PAID' 
+                                  ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20' 
+                                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
+                              }`}
+                            >
+                              {inv.status === 'PAID' ? 'Marcar Pendiente' : 'Marcar Pagada'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {invoices.length === 0 && (
+                      <p className="text-center py-6 text-slate-600 text-xs italic">No hay facturas/cobros registrados en esta obra.</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -304,7 +674,7 @@ const ProjectDetail = () => {
 
         {activeTab === 'workers' && (
           <div className="glass-card overflow-hidden border-white/5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/[0.02]">
+            <div className="p-4 sm:p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/[0.02]">
               <div>
                 <h3 className="text-xl font-bold text-white flex items-center gap-3">
                   <Users size={24} className="text-blue-400" /> Plantilla de Personal
@@ -314,35 +684,35 @@ const ProjectDetail = () => {
               {canAssignWorker && project.status === 'ACTIVE' ? (
                 <button 
                   onClick={() => { fetchAvailableResources(); setShowAssignWorker(true); }}
-                  className="btn-primary flex items-center gap-2 py-3 px-6 shadow-lg shadow-blue-600/20"
+                  className="btn-primary flex items-center gap-2 py-3 px-6 shadow-lg shadow-blue-600/20 w-full md:w-auto justify-center"
                 >
                   <UserPlus size={18} /> Asignar Especialista
                 </button>
               ) : (
-                <span className="text-sm text-slate-500 font-bold uppercase border border-white/5 px-4 py-2 rounded-xl bg-white/[0.02]">
+                <span className="text-sm text-slate-500 font-bold uppercase border border-white/5 px-4 py-2 rounded-xl bg-white/[0.02] w-full md:w-auto text-center">
                   {project.status === 'INACTIVE' ? 'Obra Cerrada' : 'Solo Lectura'}
                 </span>
               )}
             </div>
             
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left min-w-[650px]">
                 <thead>
                   <tr className="bg-slate-900/50 text-slate-500 text-xs font-bold uppercase tracking-wider">
-                    <th className="px-8 py-5">Trabajador</th>
-                    <th className="px-8 py-5">Rol en Obra</th>
-                    <th className="px-8 py-5">Visto Bueno</th>
-                    <th className="px-8 py-5">Notas Gerenciales</th>
-                    <th className="px-8 py-5">Documentos</th>
-                    <th className="px-8 py-5 text-right"></th>
+                    <th className="px-3 sm:px-8 py-3 sm:py-5">Trabajador</th>
+                    <th className="px-3 sm:px-8 py-3 sm:py-5">Rol en Obra</th>
+                    <th className="px-3 sm:px-8 py-3 sm:py-5">Visto Bueno</th>
+                    <th className="px-3 sm:px-8 py-3 sm:py-5">Notas Gerenciales</th>
+                    <th className="px-3 sm:px-8 py-3 sm:py-5">Documentos</th>
+                    <th className="px-3 sm:px-8 py-3 sm:py-5 text-right"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {project.assignments?.map(a => (
                     <tr key={a.id} className="hover:bg-white/[0.03] transition-colors group">
-                      <td className="px-8 py-6">
+                      <td className="px-3 sm:px-8 py-4 sm:py-6">
                         <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold border border-blue-500/20">
+                          <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold border border-blue-500/20 shrink-0">
                             {a.worker.first_name[0]}{a.worker.last_name[0]}
                           </div>
                           <div>
@@ -351,13 +721,13 @@ const ProjectDetail = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-3 sm:px-8 py-4 sm:py-6">
                         <span className="flex items-center gap-2 text-slate-200">
-                          <HardHat size={14} className="text-blue-400" />
+                          <HardHat size={14} className="text-blue-400 shrink-0" />
                           {a.role || 'Operario'}
                         </span>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-3 sm:px-8 py-4 sm:py-6">
                         {a.approved_by_manager ? (
                           <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold px-2.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/10 w-fit">
                             <Check size={12} /> Visto Bueno Dado
@@ -368,7 +738,7 @@ const ProjectDetail = () => {
                             {['ADMIN', 'MANAGEMENT'].includes(userRole) && a.is_active && (
                               <button
                                 onClick={() => handleApproveAssignment(a.id)}
-                                className="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg text-[10px] font-black transition-all w-fit uppercase"
+                                className="px-2 py-1 bg-amber-500/10 hover:bg-amber-400 text-white rounded-lg text-[10px] font-black transition-all w-fit uppercase"
                               >
                                 Otorgar Visto Bueno
                               </button>
@@ -376,7 +746,7 @@ const ProjectDetail = () => {
                           </div>
                         )}
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-3 sm:px-8 py-4 sm:py-6">
                         {notesForm.assignmentId === a.id ? (
                           <div className="flex gap-2 items-center">
                             <input 
@@ -416,20 +786,20 @@ const ProjectDetail = () => {
                           </div>
                         )}
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-3 sm:px-8 py-4 sm:py-6">
                         <button 
-                          onClick={() => handleViewWorkerDocs(a.worker)}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded-xl text-slate-300 text-xs font-bold transition-all"
+                           onClick={() => handleViewWorkerDocs(a.worker)}
+                           className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded-xl text-slate-300 text-xs font-bold transition-all"
                         >
                           <Folder size={12} className="text-amber-500" /> Expediente
                         </button>
                       </td>
-                      <td className="px-8 py-6 text-right">
+                      <td className="px-3 sm:px-8 py-4 sm:py-6 text-right">
                          {canAssignWorker && a.is_active && (
                            <button 
                              onClick={() => {
-                               if (confirm(`¿Dar de baja a ${a.worker.first_name} ${a.worker.last_name} de esta obra?`)) {
-                                 api.delete(`/workers/${a.worker.id}?force=true`).then(() => fetchProjectData());
+                               if (confirm(`¿Liberar a ${a.worker.first_name} ${a.worker.last_name} de esta obra?`)) {
+                                 api.post(`/projects/${id}/unassign-worker/${a.worker.id}`).then(() => fetchProjectData());
                                }
                              }}
                              className="text-slate-600 hover:text-red-400 transition-colors"
@@ -488,7 +858,7 @@ const ProjectDetail = () => {
             )}
 
             {/* Logs Timeline */}
-            <div className="glass-card p-8">
+            <div className="glass-card p-4 sm:p-8">
               <h3 className="text-xl font-bold text-white mb-6">Línea de Tiempo y Bitácora</h3>
               
               <div className="relative border-l border-white/10 pl-6 ml-4 space-y-8">
@@ -505,9 +875,9 @@ const ProjectDetail = () => {
                         }`}>
                           {isSystem ? <Settings size={12} /> : <Users size={12} />}
                         </div>
-
+ 
                         {/* Card body */}
-                        <div className={`glass-card p-5 border transition-all ${
+                        <div className={`glass-card p-4 sm:p-5 border transition-all ${
                           isSystem 
                             ? 'bg-blue-500/5 border-blue-500/10 hover:border-blue-500/20' 
                             : 'bg-emerald-500/5 border-emerald-500/10 hover:border-emerald-500/20'
@@ -556,7 +926,7 @@ const ProjectDetail = () => {
       {/* Assignment Modal (Workers) */}
       {showAssignWorker && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4 overflow-y-auto pt-20">
-             <div className="glass-card w-full max-w-xl p-10 relative shadow-[0_0_100px_rgba(37,99,235,0.2)]">
+             <div className="glass-card w-full max-w-xl p-5 md:p-10 relative shadow-[0_0_100px_rgba(37,99,235,0.2)]">
                  <button onClick={() => setShowAssignWorker(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors">
                    <ArrowLeft size={24} />
                  </button>
@@ -592,6 +962,17 @@ const ProjectDetail = () => {
                        className="w-full bg-slate-800/80 p-4 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                        required
                      />
+                   </div>
+
+                   <div>
+                     <label className="label-neutral block mb-3">Fecha Término Estimada (Vencimiento de Anexo)</label>
+                     <input 
+                       type="date"
+                       value={assignmentForm.end_date}
+                       onChange={(e) => setAssignmentForm({...assignmentForm, end_date: e.target.value})}
+                       className="w-full bg-slate-800/80 p-4 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                     />
+                     <p className="text-[10px] text-slate-500 mt-1 italic">Opcional. Deja vacío si es indefinido.</p>
                    </div>
 
                    <div className="pt-6 flex gap-4">
@@ -704,6 +1085,56 @@ const ProjectDetail = () => {
           onClose={() => setShowEditModal(false)}
           onSuccess={fetchProjectData}
         />
+      )}
+
+      {/* Mini Budget Modal */}
+      {showAddMini && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-bold text-white mb-2">Añadir Sub-presupuesto</h3>
+            <p className="text-slate-400 mb-6 text-sm">Crea una nueva partida o sub-presupuesto para esta obra.</p>
+            <form onSubmit={handleAddMiniBudget} className="space-y-4">
+              <div>
+                <label className="label-neutral block mb-2">Descripción</label>
+                <input 
+                  type="text"
+                  required
+                  placeholder="Ej: Pintura de muros, Instalación eléctrica"
+                  value={miniForm.description}
+                  onChange={(e) => setMiniForm({ ...miniForm, description: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+              <div>
+                <label className="label-neutral block mb-2">Monto ($)</label>
+                <input 
+                  type="number"
+                  required
+                  min="1"
+                  placeholder="Monto de la partida"
+                  value={miniForm.amount}
+                  onChange={(e) => setMiniForm({ ...miniForm, amount: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowAddMini(false)}
+                  className="flex-1 py-3 text-slate-400 hover:text-white font-bold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-white rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all font-bold"
+                >
+                  Añadir Partida
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

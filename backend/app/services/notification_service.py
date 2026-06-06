@@ -4,11 +4,35 @@ from app.models.core import Notification, NotificationType, NotificationPriority
 from datetime import datetime, timedelta
 
 class NotificationService:
+    _last_run = None
+
     @staticmethod
-    def get_notifications(db: Session, skip: int = 0, limit: int = 50):
+    def get_notifications(db: Session, role: str = None, skip: int = 0, limit: int = 50):
         # Triggers the smart check before returning
         NotificationService.run_smart_checks(db)
-        return db.query(Notification).order_by(Notification.created_at.desc()).offset(skip).limit(limit).all()
+        
+        query = db.query(Notification)
+        
+        if role and role not in ["ADMIN", "MANAGEMENT"]:
+            if role == "HR_MANAGER":
+                query = query.filter(Notification.type.in_([
+                    NotificationType.CONTRACT_EXPIRING,
+                    NotificationType.UNPAID_SALARY,
+                    NotificationType.SYSTEM_INFO
+                ]))
+            elif role == "PROJECT_MANAGER":
+                query = query.filter(Notification.type.in_([
+                    NotificationType.PROJECT_ENDING,
+                    NotificationType.STOCK_ALERT,
+                    NotificationType.SYSTEM_INFO
+                ]))
+            elif role == "INVENTORY_MANAGER":
+                query = query.filter(Notification.type.in_([
+                    NotificationType.STOCK_ALERT,
+                    NotificationType.SYSTEM_INFO
+                ]))
+                
+        return query.order_by(Notification.created_at.desc()).offset(skip).limit(limit).all()
 
     @staticmethod
     def mark_as_read(db: Session, notification_id: int):
@@ -27,8 +51,16 @@ class NotificationService:
     @staticmethod
     def run_smart_checks(db: Session):
         """Monitorea condiciones críticas y genera alertas si no existen."""
+        now = datetime.utcnow()
+        if NotificationService._last_run and (now - NotificationService._last_run) < timedelta(minutes=5):
+            return
+        NotificationService._last_run = now
+
         NotificationService._check_employee_contracts(db)
         NotificationService._check_project_deadlines(db)
+        NotificationService._check_project_profitability(db)
+        NotificationService._check_addendum_expirations(db)
+        NotificationService._check_accumulated_vacations(db)
 
     @staticmethod
     def _create_notification_if_not_exists(db: Session, n_type: NotificationType, ref_id: int, title: str, message: str, priority: NotificationPriority, link: str = None):
@@ -110,4 +142,67 @@ class NotificationService:
                 message=f"El proyecto '{proj.name}' ({proj.code}) finaliza en {days_left} días.",
                 priority=NotificationPriority.WARNING,
                 link=f"/projects/{proj.id}"
+            )
+
+    @staticmethod
+    def _check_project_profitability(db: Session):
+        active_projects = db.query(Project).filter(Project.status == "ACTIVE").all()
+        for proj in active_projects:
+            if proj.budget and proj.budget > 0:
+                from sqlalchemy import func
+                from app.models.core import Expense
+                expenses = db.query(func.sum(Expense.amount)).filter(Expense.project_id == proj.id).scalar() or 0
+                if expenses > (proj.budget * 0.85):
+                    margin = ((proj.budget - expenses) / proj.budget) * 100
+                    priority = NotificationPriority.CRITICAL if expenses >= proj.budget else NotificationPriority.WARNING
+                    NotificationService._create_notification_if_not_exists(
+                        db,
+                        NotificationType.STOCK_ALERT,
+                        proj.id,
+                        title=f"Margen Crítico: {proj.name}",
+                        message=f"Los gastos de la obra '{proj.name}' (${expenses:,.0f}) representan el {expenses/proj.budget*100:.1f}% del presupuesto (${proj.budget:,.0f}). El margen de utilidad proyectado es del {margin:.1f}% (menor al 15%).",
+                        priority=priority,
+                        link=f"/projects/{proj.id}"
+                    )
+
+    @staticmethod
+    def _check_addendum_expirations(db: Session):
+        threshold = datetime.utcnow() + timedelta(days=30)
+        expiring_assignments = db.query(ProjectAssignment).filter(
+            ProjectAssignment.is_active == True,
+            ProjectAssignment.end_date != None,
+            ProjectAssignment.end_date <= threshold,
+            ProjectAssignment.end_date >= datetime.utcnow()
+        ).all()
+        
+        for assign in expiring_assignments:
+            days_left = (assign.end_date - datetime.utcnow()).days
+            priority = NotificationPriority.CRITICAL if days_left < 7 else NotificationPriority.WARNING
+            NotificationService._create_notification_if_not_exists(
+                db,
+                NotificationType.CONTRACT_EXPIRING,
+                assign.id,
+                title=f"Vencimiento de Anexo: {assign.worker.first_name} en {assign.project.name}",
+                message=f"El anexo de contrato de {assign.worker.first_name} {assign.worker.last_name} para la obra '{assign.project.name}' vence en {days_left} días ({assign.end_date.strftime('%Y-%m-%d')}).",
+                priority=priority,
+                link=f"/projects/{assign.project.id}"
+            )
+
+    @staticmethod
+    def _check_accumulated_vacations(db: Session):
+        from app.models.core import Employee
+        workers = db.query(Employee).filter(
+            Employee.status == "ACTIVE",
+            Employee.vacation_balance > 30.0
+        ).all()
+        
+        for emp in workers:
+            NotificationService._create_notification_if_not_exists(
+                db,
+                NotificationType.CONTRACT_EXPIRING,
+                emp.id,
+                title=f"Vacaciones Acumuladas: {emp.first_name} {emp.last_name}",
+                message=f"El trabajador tiene {emp.vacation_balance} días de vacaciones acumulados (límite recomendado: 30 días). Se sugiere coordinar descanso.",
+                priority=NotificationPriority.WARNING,
+                link="/workers"
             )

@@ -154,13 +154,13 @@ const Documents = () => {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto pb-20">
-      <header className="mb-10">
-        <h1 className="text-4xl font-extrabold text-white flex items-center gap-3">
-          <Folder className="text-amber-500" size={36} />
-          Carpetas de Personal y Escaneo OCR
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto pb-20">
+      <header className="mb-6 sm:mb-10">
+        <h1 className="text-2xl sm:text-4xl font-extrabold text-white flex items-center gap-3">
+          <Folder className="text-amber-500" size={32} />
+          Carpetas de Personal
         </h1>
-        <p className="text-slate-400 mt-2">
+        <p className="text-slate-400 text-sm mt-2">
           Gestión documental inteligente para el personal de Serconind. Carga de contratos, licencias y escaneo de credenciales.
         </p>
       </header>
@@ -174,8 +174,8 @@ const Documents = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* Left Column: Workers List */}
-          <div className="lg:col-span-4 glass-card p-6 h-[650px] flex flex-col">
-            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <div className="lg:col-span-4 glass-card p-4 sm:p-6 h-[280px] lg:h-[650px] flex flex-col">
+            <h2 className="text-md sm:text-lg font-bold text-white mb-4 flex items-center gap-2">
               <User size={18} className="text-amber-400" />
               Trabajadores Activos
             </h2>
@@ -212,7 +212,7 @@ const Documents = () => {
             {selectedWorker ? (
               <>
                 {/* Worker Profile Header */}
-                <div className="glass-card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="glass-card p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div>
                     <span className="text-xs font-black uppercase text-amber-500 tracking-wider">Carpeta Digital</span>
                     <h2 className="text-3xl font-extrabold text-white mt-1">
@@ -234,8 +234,8 @@ const Documents = () => {
                 </div>
 
                 {/* Upload New Document Form */}
-                <div className="glass-card p-6">
-                  <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <div className="glass-card p-4 sm:p-6">
+                  <h3 className="text-base sm:text-lg font-bold text-white mb-4 flex items-center gap-2">
                     <Upload size={18} className="text-amber-500" />
                     Cargar Nuevo Documento
                   </h3>
@@ -295,7 +295,7 @@ const Documents = () => {
                 </div>
 
                 {/* Documents Grid / Folder List */}
-                <div className="glass-card p-6">
+                <div className="glass-card p-4 sm:p-6">
                   <h3 className="text-lg font-bold text-white mb-6">Archivos Vigentes</h3>
                   
                   {loadingDocs ? (

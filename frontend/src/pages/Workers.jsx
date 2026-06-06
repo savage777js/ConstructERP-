@@ -17,13 +17,28 @@ const Workers = () => {
   const [activeAssignmentsWarning, setActiveAssignmentsWarning] = useState(null);
   const [closingLoading, setClosingLoading] = useState(false);
 
+  const [activeTab, setActiveTab] = useState('directory'); // 'directory' or 'vacations'
+  const [vacationRequests, setVacationRequests] = useState([]);
+  const [showVacationModal, setShowVacationModal] = useState(false);
+  const [vacationForm, setVacationForm] = useState({
+    employee_id: '',
+    start_date: '',
+    end_date: '',
+    days_requested: ''
+  });
+
   const navigate = useNavigate();
 
   const userRole = localStorage.getItem('userRole');
   const canManage = ['ADMIN', 'HR_MANAGER'].includes(userRole);
 
+  const canReadHR = ['ADMIN', 'HR_MANAGER', 'MANAGEMENT', 'PROJECT_MANAGER'].includes(userRole);
+
   useEffect(() => {
     fetchWorkers();
+    if (canReadHR) {
+      fetchVacationRequests();
+    }
   }, []);
 
   const fetchWorkers = async () => {
@@ -35,6 +50,15 @@ const Workers = () => {
       console.error('Error fetching workers:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchVacationRequests = async () => {
+    try {
+      const response = await api.get('/workers/vacations/requests');
+      setVacationRequests(response.data);
+    } catch (error) {
+      console.error('Error fetching vacations:', error);
     }
   };
 
@@ -94,6 +118,105 @@ const Workers = () => {
     setSelectedWorker(null);
   };
 
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await api.get('/workers/template-excel', {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'plantilla_trabajadores.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      alert('Error al descargar la plantilla de Excel');
+    }
+  };
+
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setLoading(true);
+    try {
+      const res = await api.post('/workers/import-excel', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      alert(`Importación exitosa. Se registraron ${res.data.count} trabajadores.`);
+      fetchWorkers();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error al importar archivo Excel');
+    } finally {
+      setLoading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleApproveVacation = async (requestId) => {
+    try {
+      await api.patch(`/workers/vacations/request/${requestId}/approve`);
+      alert('Solicitud de vacaciones aprobada con éxito. Documento para firma generado.');
+      fetchVacationRequests();
+      fetchWorkers();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error al aprobar vacaciones.');
+    }
+  };
+
+  const handleRebateVacation = async (requestId) => {
+    try {
+      await api.patch(`/workers/vacations/request/${requestId}/rebate`);
+      alert('Rebaja de vacaciones realizada con éxito. Saldo actualizado.');
+      fetchVacationRequests();
+      fetchWorkers();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error al realizar rebaja de vacaciones.');
+    }
+  };
+
+  const handleUploadVacationDoc = async (requestId, file) => {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      await api.post(`/workers/vacations/request/${requestId}/upload-document`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      alert('Documento firmado cargado correctamente.');
+      fetchVacationRequests();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error al cargar documento firmado.');
+    }
+  };
+
+  const handleRequestVacation = async (e) => {
+    e.preventDefault();
+    if (!vacationForm.employee_id || !vacationForm.start_date || !vacationForm.end_date || !vacationForm.days_requested) return;
+    try {
+      await api.post('/workers/vacations/request', {
+        employee_id: parseInt(vacationForm.employee_id),
+        start_date: new Date(vacationForm.start_date).toISOString(),
+        end_date: new Date(vacationForm.end_date).toISOString(),
+        days_requested: parseInt(vacationForm.days_requested)
+      });
+      alert('Solicitud de vacaciones creada con éxito.');
+      setShowVacationModal(false);
+      setVacationForm({ employee_id: '', start_date: '', end_date: '', days_requested: '' });
+      fetchVacationRequests();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error al crear solicitud de vacaciones.');
+    }
+  };
+
   const upcomingExpirations = workers.filter(w => {
     if (w.status !== 'ACTIVE' || !w.contract_end_date) return false;
     const end = new Date(w.contract_end_date);
@@ -120,26 +243,49 @@ const Workers = () => {
   });
 
   return (
-    <div className="p-8">
-      <header className="flex flex-col gap-6 mb-10">
-        <div className="flex justify-between items-center">
+    <div className="p-4 sm:p-8">
+      <header className="flex flex-col gap-4 md:gap-6 mb-6 sm:mb-10">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Recursos Humanos</h1>
-            <p className="text-slate-400">Panel central de gestión de personal, contratos y asistencia.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Recursos Humanos</h1>
+            <p className="text-slate-400 text-sm">Panel central de gestión de personal, contratos y asistencia.</p>
           </div>
           {canManage && (
-            <button 
-              onClick={() => { setSelectedWorker(null); setShowModal(true); }}
-              className="btn-primary flex items-center space-x-2"
-            >
-              <UserPlus size={20} />
-              <span>Añadir Empleado</span>
-            </button>
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <button 
+                onClick={handleDownloadTemplate}
+                className="flex items-center gap-1.5 px-4 py-2 border border-slate-700 bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-bold transition-all shadow-md"
+                title="Descargar Plantilla Excel"
+              >
+                <Download size={14} /> Plantilla
+              </button>
+              
+              <label 
+                className="flex items-center gap-1.5 px-4 py-2 border border-slate-700 bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer"
+                title="Importar desde Excel"
+              >
+                <Plus size={14} /> Importar Excel
+                <input 
+                  type="file" 
+                  accept=".xlsx" 
+                  onChange={handleImportExcel} 
+                  className="hidden" 
+                />
+              </label>
+
+              <button 
+                onClick={() => { setSelectedWorker(null); setShowModal(true); }}
+                className="btn-primary flex items-center space-x-2 py-2 px-4 shadow-lg shadow-blue-600/20 justify-center text-xs font-bold rounded-lg"
+              >
+                <UserPlus size={14} />
+                <span>Añadir Empleado</span>
+              </button>
+            </div>
           )}
         </div>
 
         {/* HR Dashboard Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           <div className="glass-card p-6 rounded-2xl flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
               <Users size={24} />
@@ -170,25 +316,34 @@ const Workers = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-1 bg-slate-800/30 p-1 rounded-xl w-fit border border-white/5">
-          <button className="px-6 py-2.5 rounded-lg bg-white/10 text-white font-medium shadow-sm transition-all">
+        <div className="flex space-x-1 bg-slate-800/30 p-1 rounded-xl w-full sm:w-fit border border-white/5 overflow-x-auto whitespace-nowrap scrollbar-none">
+          <button 
+            onClick={() => setActiveTab('directory')}
+            className={`px-4 sm:px-6 py-2.5 rounded-lg font-medium transition-all shrink-0 ${activeTab === 'directory' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+          >
             Directorio de Personal
           </button>
-          <button className="px-6 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium transition-all cursor-not-allowed opacity-50" title="Próximamente">
+          {canReadHR && (
+            <button 
+              onClick={() => setActiveTab('vacations')}
+              className={`px-4 sm:px-6 py-2.5 rounded-lg font-medium transition-all shrink-0 ${activeTab === 'vacations' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              Vacaciones & Permisos
+            </button>
+          )}
+          <button className="px-4 sm:px-6 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium transition-all cursor-not-allowed opacity-50 shrink-0" title="Próximamente">
             Asistencias
           </button>
-          <button className="px-6 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium transition-all cursor-not-allowed opacity-50" title="Próximamente">
+          <button className="px-4 sm:px-6 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium transition-all cursor-not-allowed opacity-50 shrink-0" title="Próximamente">
             Liquidaciones
-          </button>
-          <button className="px-6 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium transition-all cursor-not-allowed opacity-50" title="Próximamente">
-            Capacitaciones
           </button>
         </div>
       </header>
 
 
       {/* Bar de búsqueda y filtros */}
-      <div className="mb-6 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+      {activeTab === 'directory' && (
+        <div className="mb-6 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
         <div className="flex flex-1 flex-col md:flex-row gap-4 max-w-2xl">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
@@ -217,23 +372,26 @@ const Workers = () => {
           Mostrando {filteredWorkers.length} de {workers.length} trabajadores
         </div>
       </div>
+      )}
 
-      <div className="glass-card overflow-hidden shadow-2xl">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="border-b border-white/5 text-slate-400 text-sm uppercase tracking-wider">
-              <th className="px-6 py-4 font-semibold">Nombre</th>
-              <th className="px-6 py-4 font-semibold">Edad</th>
-              <th className="px-6 py-4 font-semibold">Cargo</th>
-              <th className="px-6 py-4 font-semibold">Sueldo Base</th>
-              <th className="px-6 py-4 font-semibold">Estado</th>
-              <th className="px-6 py-4 text-right">Proyecto / Obra</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {loading ? (
-              <tr>
-                <td colSpan="6" className="px-6 py-10 text-center">
+      {activeTab === 'directory' && (
+        <div className="glass-card p-0 overflow-hidden shadow-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[600px]">
+            <thead>
+              <tr className="border-b border-white/5 text-slate-400 text-xs sm:text-sm uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Nombre</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Contrato / Cargo</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Sueldo Base</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Saldo Vacaciones</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Estado</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-right">Proyecto / Obra</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="px-3 sm:px-6 py-10 text-center">
                   <div className="flex items-center justify-center space-x-2 text-slate-400">
                     <Loader2 className="animate-spin" size={20} />
                     <span>Cargando trabajadores...</span>
@@ -243,8 +401,11 @@ const Workers = () => {
             ) : (
               filteredWorkers.map((worker) => (
                 <tr key={worker.id} className="hover:bg-white/5 transition-colors group">
-                  <td className="px-6 py-4 font-medium flex items-center justify-between group-hover:pr-2">
-                    <span>{worker.first_name} {worker.last_name}</span>
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 font-medium flex items-center justify-between group-hover:pr-2">
+                    <div>
+                      <p className="font-bold text-white truncate">{worker.first_name} {worker.last_name}</p>
+                      <p className="text-[10px] text-slate-500">{worker.rut || 'Sin RUT'} · {worker.email || 'Sin Email'}</p>
+                    </div>
                     {canManage && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); setActionWorker(worker); }}
@@ -255,21 +416,38 @@ const Workers = () => {
                       </button>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-slate-400">
-                    {worker.age ? `${worker.age} años` : <span className="text-slate-600 italic text-xs">Sin definir</span>}
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
+                    <div>
+                      <p className="text-white text-sm font-semibold">{worker.role}</p>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                        {worker.contract_type?.replace('_', ' ') || 'INDEFINIDO'}
+                      </span>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-slate-400">
-                    <span className={`flex items-center gap-2 ${worker.status === 'INACTIVE' ? 'opacity-50 line-through' : ''}`}>
-                       {worker.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-400">
-                    <span className={`${worker.status === 'INACTIVE' ? 'opacity-50 font-mono text-xs' : ''}`}>
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
+                    <span className={`${worker.status === 'INACTIVE' ? 'opacity-50 font-mono text-xs' : ''}}`}>
                        ${worker.salary?.toLocaleString('es-CL')}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center justify-center gap-1.5 w-fit ${
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
+                    {worker.vacation_balance !== undefined ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className={`font-bold ${worker.vacation_balance > 30 ? 'text-amber-400 font-black' : 'text-slate-300'}}`}>
+                          {worker.vacation_balance} días
+                        </span>
+                        {worker.vacation_balance > 30 && (
+                          <span 
+                            className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping" 
+                            title="Alerta: Acumulación de vacaciones > 30 días"
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-slate-600 text-xs italic">N/A</span>
+                    )}
+                  </td>
+                  <td className="px-3 sm:px-6 py-3 sm:py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border flex items-center justify-center gap-1.5 w-fit ${
                       worker.status === 'ACTIVE' 
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                         : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
@@ -278,9 +456,9 @@ const Workers = () => {
                       {worker.status === 'ACTIVE' ? 'ACTIVO' : 'HISTÓRICO'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
                     {worker.active_project ? (
-                      <span className="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-2.5 py-1.5 rounded-xl font-bold">
+                      <span className="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-2.5 py-1 rounded-xl font-bold">
                         <Briefcase size={12} /> {worker.active_project}
                       </span>
                     ) : (
@@ -303,8 +481,211 @@ const Workers = () => {
           </tbody>
         </table>
       </div>
+    </div>
+    )}
+
+    {/* Vacations view */}
+    {activeTab === 'vacations' && (
+      <div className="glass-card p-0 overflow-hidden shadow-2xl animate-in fade-in duration-300">
+        <div className="p-4 sm:p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/[0.02]">
+          <div>
+            <h3 className="text-xl font-bold text-white flex items-center gap-3">
+              <Calendar size={24} className="text-amber-500" /> Solicitudes de Vacaciones
+            </h3>
+            <p className="text-slate-400 text-sm">Validación y procesamiento de salida de personal.</p>
+          </div>
+          {canManage && (
+            <button 
+              onClick={() => setShowVacationModal(true)}
+              className="btn-primary flex items-center gap-2 py-3 px-6 shadow-lg shadow-amber-600/20 w-full md:w-auto justify-center"
+            >
+              <Plus size={18} /> Solicitar Vacaciones
+            </button>
+          )}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[700px]">
+            <thead>
+              <tr className="border-b border-white/5 text-slate-400 text-xs sm:text-sm uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Trabajador</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Período</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Días Solicitados</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Estado</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Documentos</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-right"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {vacationRequests.map((req) => (
+                <tr key={req.id} className="hover:bg-white/5 transition-colors text-slate-300 text-sm">
+                  <td className="px-3 sm:px-6 py-4 font-bold text-white">
+                    {req.employee ? `${req.employee.first_name} ${req.employee.last_name}` : `ID: ${req.employee_id}`}
+                  </td>
+                  <td className="px-3 sm:px-6 py-4">
+                    {new Date(req.start_date).toLocaleDateString('es-CL')} - {new Date(req.end_date).toLocaleDateString('es-CL')}
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 font-semibold">
+                    {req.days_requested} días
+                  </td>
+                  <td className="px-3 sm:px-6 py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border flex items-center justify-center gap-1.5 w-fit ${
+                      req.status === 'REBATED' 
+                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
+                        : req.status === 'APPROVED'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    }`}>
+                      {req.status === 'PENDING_APPROVAL' && 'Pendiente Aprobación'}
+                      {req.status === 'APPROVED' && 'Autorizado - Pendiente Firma/Rebaja'}
+                      {req.status === 'REBATED' && 'Rebajado de Saldo'}
+                      {req.status === 'REJECTED' && 'Rechazado'}
+                    </span>
+                  </td>
+                  <td className="px-3 sm:px-6 py-4">
+                    <div className="flex flex-col gap-1.5">
+                      {req.document_path ? (
+                        <a 
+                          href={api.defaults.baseURL ? `${api.defaults.baseURL.replace('/api/v1', '')}${req.document_path}` : req.document_path}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1 font-bold"
+                        >
+                          <FileText size={12} /> Solicitud Autorizada / Firmada
+                        </a>
+                      ) : (
+                        <span className="text-slate-600 text-xs italic">Sin documento disponible</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      {req.status === 'PENDING_APPROVAL' && ['ADMIN', 'MANAGEMENT'].includes(userRole) && (
+                        <button
+                          onClick={() => handleApproveVacation(req.id)}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all uppercase"
+                        >
+                          Autorizar
+                        </button>
+                      )}
+                      {req.status === 'APPROVED' && (
+                        <>
+                          {['ADMIN', 'HR_MANAGER'].includes(userRole) && (
+                            <button
+                              onClick={() => handleRebateVacation(req.id)}
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all uppercase"
+                            >
+                              Procesar Rebaja
+                            </button>
+                          )}
+                          <label className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold transition-all uppercase cursor-pointer">
+                            Cargar Firmado
+                            <input 
+                              type="file" 
+                              accept="application/pdf,image/*" 
+                              onChange={(e) => handleUploadVacationDoc(req.id, e.target.files[0])} 
+                              className="hidden" 
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {vacationRequests.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="px-6 py-20 text-center text-slate-500">
+                    No hay solicitudes de vacaciones registradas.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
 
       {/* Modals */}
+      {showVacationModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-bold text-white mb-2">Solicitar Vacaciones</h3>
+            <p className="text-slate-400 mb-6 text-sm">Crea una solicitud de descanso para un trabajador.</p>
+            <form onSubmit={handleRequestVacation} className="space-y-4">
+              <div>
+                <label className="label-neutral block mb-2">Trabajador</label>
+                <select 
+                  value={vacationForm.employee_id}
+                  onChange={(e) => setVacationForm({ ...vacationForm, employee_id: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm appearance-none"
+                  required
+                >
+                  <option value="">-- Seleccionar Trabajador --</option>
+                  {workers.filter(w => w.status === 'ACTIVE').map(w => (
+                    <option key={w.id} value={w.id}>
+                      {w.first_name} {w.last_name} (Saldo: {w.vacation_balance} d)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label-neutral block mb-2">Fecha Inicio</label>
+                  <input 
+                    type="date"
+                    required
+                    value={vacationForm.start_date}
+                    onChange={(e) => setVacationForm({ ...vacationForm, start_date: e.target.value })}
+                    className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="label-neutral block mb-2">Fecha Fin</label>
+                  <input 
+                    type="date"
+                    required
+                    value={vacationForm.end_date}
+                    onChange={(e) => setVacationForm({ ...vacationForm, end_date: e.target.value })}
+                    className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Días a Solicitar</label>
+                <input 
+                  type="number"
+                  required
+                  min="1"
+                  placeholder="Días solicitados"
+                  value={vacationForm.days_requested}
+                  onChange={(e) => setVacationForm({ ...vacationForm, days_requested: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowVacationModal(false)}
+                  className="flex-1 py-3 text-slate-400 hover:text-white font-bold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-white rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all font-bold"
+                >
+                  Solicitar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {showModal && (
         <WorkerForm 
           onClose={() => { setShowModal(false); setSelectedWorker(null); }} 

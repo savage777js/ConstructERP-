@@ -15,12 +15,29 @@ class ProjectBase(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     observations: Optional[str] = None
+    budget: Optional[float] = 0.0
 
 class ProjectCreate(ProjectBase):
     pass
 
 class ProjectUpdate(ProjectBase):
     name: Optional[str] = None
+
+class MiniBudgetBase(BaseModel):
+    description: str
+    amount: float
+
+class MiniBudgetCreate(MiniBudgetBase):
+    pass
+
+class MiniBudgetOut(MiniBudgetBase):
+    id: str
+    project_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
 
 class ProjectOut(ProjectBase):
     id: int
@@ -36,6 +53,7 @@ class ProjectAssignmentOut(BaseModel):
     role: Optional[str] = None
     assigned_at: datetime
     unassigned_at: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     is_active: bool
     updated_at: datetime
     approved_by_manager: bool = False
@@ -62,9 +80,11 @@ class ProjectLogCreate(BaseModel):
 class ProjectDetail(ProjectOut):
     assignments: List[ProjectAssignmentOut] = []
     logs: List[ProjectLogOut] = []
+    mini_budgets: List[MiniBudgetOut] = []
     
 class WorkerAssignment(BaseModel):
     worker_id: int
     role: Optional[str] = "Worker"
+    end_date: Optional[datetime] = None
 
 

@@ -63,3 +63,18 @@ def create_invoice(
     db.commit()
     db.refresh(invoice)
     return invoice
+
+@router.patch("/invoices/{invoice_id}/status")
+def update_invoice_status(
+    invoice_id: str,
+    status_in: str,
+    db: Session = Depends(deps.get_db),
+    current_user: core.User = Depends(deps.get_current_user),
+) -> Any:
+    invoice = db.query(core.Invoice).filter(core.Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Factura no encontrada")
+    invoice.status = status_in
+    db.commit()
+    db.refresh(invoice)
+    return invoice

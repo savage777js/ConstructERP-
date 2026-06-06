@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum, JSON, Numeric, Text, Table
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum, JSON, Numeric, Text, Table, Float
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 from sqlalchemy.types import TypeDecorator, CHAR
@@ -147,6 +147,8 @@ class Employee(Base):
     contract_end_date = Column(DateTime, nullable=True)  # Vencimiento contrato
     status = Column(Enum(EmployeeStatus), default=EmployeeStatus.ACTIVE)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    contract_type = Column(String(50), default="INDEFINIDO") # 'INDEFINIDO', 'PLAZO_FIJO'
+    vacation_balance = Column(Float, default=15.0)
     
     # Relationships
     organization = relationship("Organization", back_populates="employees")
@@ -154,6 +156,7 @@ class Employee(Base):
     assignments = relationship("ProjectAssignment", back_populates="worker")
     tasks = relationship("Task", back_populates="assigned_employee")
     documents = relationship("Document", back_populates="employee")
+    vacations = relationship("VacationRequest", back_populates="employee", cascade="all, delete-orphan")
 
     @property
     def active_project(self):
@@ -174,6 +177,7 @@ class Project(Base):
     start_date = Column(DateTime)
     end_date = Column(DateTime)
     observations = Column(String)
+    budget = Column(Numeric(15, 2), default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -184,6 +188,7 @@ class Project(Base):
     invoices = relationship("Invoice", back_populates="project")
     documents = relationship("Document", back_populates="project")
     logs = relationship("ProjectLog", back_populates="project", cascade="all, delete-orphan")
+    mini_budgets = relationship("MiniBudget", back_populates="project", cascade="all, delete-orphan")
 
 class ProjectAssignment(Base):
     __tablename__ = "project_assignments"
@@ -194,6 +199,7 @@ class ProjectAssignment(Base):
     role = Column(String)  # Especifico para la obra (ej: Capataz, Jornalero)
     assigned_at = Column(DateTime, default=datetime.utcnow)
     unassigned_at = Column(DateTime, nullable=True)
+    end_date = Column(DateTime, nullable=True) # estimated assignment end / addendum expiration date
     is_active = Column(Boolean, default=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     approved_by_manager = Column(Boolean, default=False)
@@ -328,5 +334,36 @@ class Invoice(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     project = relationship("Project", back_populates="invoices")
+
+
+class MiniBudget(Base):
+    __tablename__ = "mini_budgets"
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    description = Column(String(255), nullable=False)
+    amount = Column(Numeric(15, 2), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    project = relationship("Project", back_populates="mini_budgets")
+
+
+class VacationRequest(Base):
+    __tablename__ = "vacation_requests"
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False)
+    start_date = Column(DateTime, nullable=False)
+    end_date = Column(DateTime, nullable=False)
+    days_requested = Column(Integer, nullable=False)
+    status = Column(String(50), default="PENDING_APPROVAL")  # PENDING_APPROVAL, APPROVED, REJECTED, REBATED
+    document_path = Column(String, nullable=True)
+    approved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    rebated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    employee = relationship("Employee", back_populates="vacations")
+    approver = relationship("User", foreign_keys=[approved_by])
+    rebater = relationship("User", foreign_keys=[rebated_by])
 
 

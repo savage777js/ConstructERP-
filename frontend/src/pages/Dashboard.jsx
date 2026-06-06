@@ -67,11 +67,11 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto pb-20">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+    <div className="p-4 sm:p-8 max-w-[1600px] mx-auto pb-20">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 mb-6 sm:mb-12">
         <div className="relative">
           <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-[var(--primary)] rounded-full blur-[2px]" />
-          <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4">
+          <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tighter flex items-center gap-4">
             CENTRAL <span className="gradient-text">OPERATIVA</span>
           </h1>
           <p className="text-[var(--text-muted)] text-sm font-bold tracking-[0.2em] uppercase mt-1 opacity-70">
@@ -104,7 +104,7 @@ const Dashboard = () => {
       )}
 
       {/* KPI Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8 mb-6 sm:mb-12">
         <KPICard 
           title="Trabajadores Activos" 
           value={summary.workers.total} 
@@ -130,10 +130,10 @@ const Dashboard = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
         {/* Chart 1: Workers per Project */}
-        <div className="lg:col-span-2 glass-card p-8 min-h-[450px]">
-          <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
+        <div className="lg:col-span-2 glass-card p-4 sm:p-8 min-h-[350px] sm:min-h-[450px]">
+          <h3 className="text-xl font-bold text-white mb-6 sm:mb-8 flex items-center gap-2">
             <HardHat className="text-blue-400" size={20} /> Dotación de Personal por Proyecto
           </h3>
           <div className="h-[350px] w-full">
@@ -153,8 +153,8 @@ const Dashboard = () => {
         </div>
 
         {/* Chart 2: Alerts breakdown */}
-        <div className="glass-card p-8 min-h-[450px]">
-          <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
+        <div className="glass-card p-4 sm:p-8 min-h-[350px] sm:min-h-[450px]">
+          <h3 className="text-xl font-bold text-white mb-6 sm:mb-8 flex items-center gap-2">
             <AlertTriangle className="text-amber-500" size={20} /> Distribución de Alertas
           </h3>
           <div className="h-[300px] w-full">
@@ -181,7 +181,7 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Access Grid */}
-        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-6 mt-4">
+        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mt-4">
           {localStorage.getItem('userRole') === 'ADMIN' ? (
             // Admin Tiles: RRHH, Capataz, Reportes, Documentos/OCR, Alertas
             <>

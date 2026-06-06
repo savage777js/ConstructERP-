@@ -40,10 +40,47 @@ app.include_router(finance.router, prefix=f"{settings.API_V1_STR}/finance", tags
 app.include_router(documents.router, prefix=f"{settings.API_V1_STR}/documents", tags=["documents"])
 
 def init_db():
-    # Crear tablas si usamos SQLite local
-    if "sqlite" in settings.DATABASE_URL:
+    from sqlalchemy import text
+    # Crear tablas
+    try:
         Base.metadata.create_all(bind=engine)
-        print("✅ Tablas locales creadas en SQLite.")
+        print("✅ Tablas sincronizadas con Base.metadata.")
+    except Exception as e:
+        print(f"⚠️ Advertencia creando tablas: {e}")
+
+    db = SessionLocal()
+    try:
+        # Columna budget en projects
+        try:
+            db.execute(text("ALTER TABLE projects ADD COLUMN budget NUMERIC(15, 2) DEFAULT 0"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        # Columna contract_type en employees
+        try:
+            db.execute(text("ALTER TABLE employees ADD COLUMN contract_type VARCHAR(50) DEFAULT 'INDEFINIDO'"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        # Columna vacation_balance en employees
+        try:
+            db.execute(text("ALTER TABLE employees ADD COLUMN vacation_balance FLOAT DEFAULT 15.0"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        # Columna end_date en project_assignments
+        try:
+            db.execute(text("ALTER TABLE project_assignments ADD COLUMN end_date TIMESTAMP"))
+            db.commit()
+        except Exception:
+            db.rollback()
+    except Exception as e:
+        print(f"❌ Error aplicando migraciones: {e}")
+    finally:
+        db.close()
 
     db = SessionLocal()
     try:

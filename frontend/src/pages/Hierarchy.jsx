@@ -124,14 +124,14 @@ const Hierarchy = () => {
   };
 
   return (
-    <div className="p-8 pb-20 max-w-7xl mx-auto">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+    <div className="p-4 sm:p-8 pb-20 max-w-7xl mx-auto">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-10">
         <div>
-          <h1 className="text-4xl font-extrabold text-white flex items-center gap-3 tracking-tight">
-            <GitBranch size={36} className="text-amber-500 animate-pulse" />
+          <h1 className="text-2xl sm:text-4xl font-extrabold text-white flex items-center gap-3 tracking-tight">
+            <GitBranch size={32} className="text-amber-500 animate-pulse" />
             Jerarquía de la Empresa
           </h1>
-          <p className="text-slate-400 mt-2">
+          <p className="text-slate-400 text-sm mt-2">
             Organigrama operativo, líneas de reportes y frentes de trabajo activos.
           </p>
         </div>
@@ -251,16 +251,24 @@ const Hierarchy = () => {
 
           {/* Detailed Worker Profile Sidebar */}
           {selectedWorker && (
-            <div className="w-full lg:w-96 bg-slate-900/80 border border-white/5 rounded-3xl p-8 backdrop-blur-xl lg:sticky lg:top-8 animate-in slide-in-from-right-4 duration-300 shadow-2xl relative overflow-hidden">
-              {/* Glowing Background Accent */}
-              <div className="absolute -top-24 -left-24 w-64 h-64 rounded-full bg-amber-500/5 filter blur-3xl" />
-              
-              <button 
+            <>
+              {/* Backdrop overlay for mobile */}
+              <div 
                 onClick={() => setSelectedWorker(null)}
-                className="absolute top-6 right-6 text-slate-400 hover:text-white p-1 hover:bg-white/5 rounded-lg transition-all"
-              >
-                <X size={20} />
-              </button>
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+              />
+              
+              {/* Profile Panel: modal/drawer on mobile, sticky sidebar on desktop */}
+              <div className="fixed inset-x-4 bottom-4 md:inset-auto md:right-4 md:bottom-4 md:w-96 lg:relative lg:inset-auto z-50 lg:z-auto w-auto max-h-[85vh] lg:max-h-none overflow-y-auto lg:overflow-visible lg:w-96 bg-slate-900/90 lg:bg-slate-900/80 border border-white/5 rounded-3xl p-6 sm:p-8 backdrop-blur-xl lg:sticky lg:top-8 animate-in slide-in-from-bottom-4 lg:slide-in-from-right-4 duration-300 shadow-2xl relative">
+                {/* Glowing Background Accent */}
+                <div className="absolute -top-24 -left-24 w-64 h-64 rounded-full bg-amber-500/5 filter blur-3xl" />
+                
+                <button 
+                  onClick={() => setSelectedWorker(null)}
+                  className="absolute top-6 right-6 text-slate-400 hover:text-white p-1 hover:bg-white/5 rounded-lg transition-all"
+                >
+                  <X size={20} />
+                </button>
 
               <div className="text-center pb-8 border-b border-white/5">
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-slate-950 flex items-center justify-center font-black text-2xl shadow-xl shadow-amber-500/10 mx-auto mb-4">
@@ -326,6 +334,7 @@ const Hierarchy = () => {
                 </p>
               </div>
             </div>
+          </>
           )}
         </div>
       )}
