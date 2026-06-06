@@ -17,6 +17,9 @@ class DashboardService:
             Employee.status == "ACTIVE"
         ).count()
 
+        # Calcular sueldos totales
+        total_salary = db.query(func.sum(Employee.salary)).filter(Employee.status == "ACTIVE").scalar() or 0
+
         # 2. Proyectos
         total_projects = db.query(Project).filter(Project.status == "ACTIVE").count()
         
@@ -28,17 +31,30 @@ class DashboardService:
             Project.status == "ACTIVE"
         ).count()
 
+        # Presupuesto total de obras activas
+        total_budget = db.query(func.sum(Project.budget)).filter(Project.status == "ACTIVE").scalar() or 0
+
+        # Gastos totales y utilidad proyectada
+        from app.models.core import Expense
+        total_expenses = db.query(func.sum(Expense.amount))\
+                           .join(Project, Project.id == Expense.project_id)\
+                           .filter(Project.status == "ACTIVE").scalar() or 0
+        projected_utility = total_budget - total_expenses
+
         # 4. Notificaciones
         unread_notifications = db.query(Notification).filter(Notification.is_read == False).count()
 
         return {
             "workers": {
                 "total": total_workers,
-                "expiring": expiring_contracts
+                "expiring": expiring_contracts,
+                "total_salary": float(total_salary)
             },
             "projects": {
                 "total": total_projects,
-                "ending": ending_projects
+                "ending": ending_projects,
+                "total_budget": float(total_budget),
+                "projected_utility": float(projected_utility)
             },
             "notifications": {
                 "unread": unread_notifications

@@ -4,6 +4,32 @@ from app.models.core import Employee, Project, ProjectAssignment, Notification, 
 from datetime import datetime
 from typing import List, Optional
 
+STATUS_TRANSLATIONS = {
+    "ACTIVE": "ACTIVO",
+    "INACTIVE": "INACTIVO",
+    "ON_VACATION": "EN VACACIONES",
+    "TERMINATED": "FINIQUITADO"
+}
+
+PROJECT_STATUS_TRANSLATIONS = {
+    "ACTIVE": "EN EJECUCIÓN",
+    "INACTIVE": "CERRADO"
+}
+
+PRIORITY_TRANSLATIONS = {
+    "INFO": "INFORMATIVA",
+    "WARNING": "ADVERTENCIA",
+    "CRITICAL": "CRÍTICA"
+}
+
+TYPE_TRANSLATIONS = {
+    "CONTRACT_EXPIRING": "VENCIMIENTO CONTRATO",
+    "STOCK_ALERT": "ALERTA BODEGA",
+    "PROJECT_ENDING": "TÉRMINO PROYECTO",
+    "SYSTEM_INFO": "INFO SISTEMA",
+    "UNPAID_SALARY": "SUELDO IMPAGO"
+}
+
 class ReportService:
     @staticmethod
     def get_workers_report(db: Session, current_user_role: str):
@@ -19,7 +45,7 @@ class ReportService:
                 "RUT": w.rut,
                 "Cargo": w.role,
                 "Fecha Ingreso": w.hire_date.strftime('%d/%m/%Y') if w.hire_date else "N/A",
-                "Estado": w.status.value
+                "Estado": STATUS_TRANSLATIONS.get(w.status.value, w.status.value)
             }
             if can_see_salary:
                 item["Sueldo Base"] = f"${w.salary:,}".replace(',', '.')
@@ -68,7 +94,7 @@ class ReportService:
                 "Cliente": p.client_name,
                 "Fecha Inicio": p.start_date.strftime('%d/%m/%Y') if p.start_date else "N/A",
                 "Fecha Término Est.": p.end_date.strftime('%d/%m/%Y') if p.end_date else "N/A",
-                "Estado": p.status,
+                "Estado": PROJECT_STATUS_TRANSLATIONS.get(p.status, p.status),
                 "Dirección": p.address
             })
         return report_data
@@ -88,8 +114,8 @@ class ReportService:
         for n in notifications:
             report_data.append({
                 "Fecha": n.created_at.strftime('%d/%m/%Y %H:%M'),
-                "Prioridad": n.priority.value,
-                "Tipo": n.type.value,
+                "Prioridad": PRIORITY_TRANSLATIONS.get(n.priority.value, n.priority.value),
+                "Tipo": TYPE_TRANSLATIONS.get(n.type.value, n.type.value),
                 "Título": n.title,
                 "Mensaje": n.message,
                 "Estado": "Leída" if n.is_read else "Pendiente"

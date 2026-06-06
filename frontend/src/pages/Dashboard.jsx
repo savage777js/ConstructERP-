@@ -66,6 +66,9 @@ const Dashboard = () => {
     </div>
   );
 
+  const userRole = localStorage.getItem('userRole');
+  const isGerenteOrAdmin = ['ADMIN', 'MANAGEMENT'].includes(userRole);
+
   return (
     <div className="p-4 sm:p-8 max-w-[1600px] mx-auto pb-20">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 mb-6 sm:mb-12">
@@ -108,7 +111,16 @@ const Dashboard = () => {
         <KPICard 
           title="Trabajadores Activos" 
           value={summary.workers.total} 
-          subtitle={`${summary.workers.expiring} contratos por vencer`}
+          subtitle={
+            isGerenteOrAdmin ? (
+              <div className="space-y-1 text-left">
+                <div>{summary.workers.expiring} contratos por vencer</div>
+                <div className="text-blue-400 font-bold mt-1.5">Sueldos: ${Number(summary.workers.total_salary || 0).toLocaleString('es-CL')}</div>
+              </div>
+            ) : (
+              `${summary.workers.expiring} contratos por vencer`
+            )
+          }
           icon={Users} 
           color="blue"
           trend={summary.workers.expiring > 0 ? "down" : "up"}
@@ -117,7 +129,17 @@ const Dashboard = () => {
         <KPICard 
           title="Obras en Ejecución" 
           value={summary.projects.total} 
-          subtitle={`${summary.projects.ending} próximas a finalizar`}
+          subtitle={
+            isGerenteOrAdmin ? (
+              <div className="space-y-1 text-left">
+                <div>{summary.projects.ending} próximas a finalizar</div>
+                <div className="text-purple-400 font-bold mt-1.5">Presupuesto: ${Number(summary.projects.total_budget || 0).toLocaleString('es-CL')}</div>
+                <div className="text-emerald-400 font-bold">Utilidad Proy: ${Number(summary.projects.projected_utility || 0).toLocaleString('es-CL')}</div>
+              </div>
+            ) : (
+              `${summary.projects.ending} próximas a finalizar`
+            )
+          }
           icon={Briefcase} 
           color="purple"
         />
