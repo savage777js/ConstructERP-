@@ -2,8 +2,10 @@ import { Users, LayoutDashboard, Briefcase, Bell, LogOut, BarChart, Sun, Moon, S
 import { NavLink } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import api from '../api';
+import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ onLogout, onCloseMobile }) => {
+  const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const [isLight, setIsLight] = useState(localStorage.getItem('theme') === 'light');
@@ -133,7 +135,7 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
             </span>
           </div>
         </div>
-        {userRole && (
+        {user && (
           <div style={{
             marginTop: '1.25rem',
             padding: '0.4rem 0.75rem',
@@ -153,16 +155,12 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              background: userRole === 'ADMIN' ? '#ef4444' : userRole === 'MANAGEMENT' ? '#10b981' : '#3b82f6',
-              boxShadow: `0 0 8px ${userRole === 'ADMIN' ? '#ef4444' : userRole === 'MANAGEMENT' ? '#10b981' : '#3b82f6'}`
+              background: '#3b82f6',
+              boxShadow: `0 0 8px #3b82f6`
             }} />
-            <span style={{ color: 'var(--text-muted)' }}>Rol:</span>
+            <span style={{ color: 'var(--text-muted)' }}>Usuario:</span>
             <span style={{ color: 'var(--text)' }}>
-              {userRole === 'ADMIN' ? 'Administrador' :
-               userRole === 'MANAGEMENT' ? 'Gerente General' :
-               userRole === 'HR_MANAGER' ? 'Gerente RRHH' :
-               userRole === 'PROJECT_MANAGER' ? 'Jefe de Obra' :
-               userRole === 'INVENTORY_MANAGER' ? 'Encargado Bodega' : userRole}
+              {user.full_name}
             </span>
           </div>
         )}
@@ -223,40 +221,7 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
         ))}
       </nav>
 
-      {/* Footer Actions */}
-      <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <button
-          onClick={toggleTheme}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.75rem',
-            padding: '0.75rem 1rem', width: '100%',
-            background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
-            borderRadius: '12px', cursor: 'pointer',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem', fontWeight: 600,
-            transition: 'all 0.3s ease',
-          }}
-        >
-          {isLight ? <Moon size={18} /> : <Sun size={18} />}
-          <span>{isLight ? 'Protocolo Oscuro' : 'Protocolo Claro'}</span>
-        </button>
 
-        <button
-          onClick={onLogout}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.75rem',
-            padding: '0.75rem 1rem', width: '100%',
-            background: 'transparent', border: 'none',
-            borderRadius: '12px', cursor: 'pointer',
-            color: 'rgba(239,68,68,0.6)',
-            fontSize: '0.875rem', fontWeight: 600,
-            transition: 'all 0.3s ease',
-          }}
-        >
-          <LogOut size={18} />
-          <span>Desconectar</span>
-        </button>
-      </div>
     </aside>
   );
 };

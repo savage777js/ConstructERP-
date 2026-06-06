@@ -9,6 +9,7 @@ class ExpenseBase(BaseModel):
     description: Optional[str] = None
     amount: Decimal
     expense_date: Optional[datetime] = None
+    is_paid: Optional[bool] = False
 
 class ExpenseCreate(ExpenseBase):
     pass

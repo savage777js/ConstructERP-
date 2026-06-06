@@ -78,3 +78,18 @@ def update_invoice_status(
     db.commit()
     db.refresh(invoice)
     return invoice
+
+@router.patch("/expenses/{expense_id}/status")
+def update_expense_status(
+    expense_id: str,
+    is_paid: bool,
+    db: Session = Depends(deps.get_db),
+    current_user: core.User = Depends(deps.get_current_user),
+) -> Any:
+    expense = db.query(core.Expense).filter(core.Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Gasto no encontrado")
+    expense.is_paid = is_paid
+    db.commit()
+    db.refresh(expense)
+    return expense

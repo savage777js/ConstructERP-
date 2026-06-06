@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
+import { Sun, Moon, LogOut, User } from 'lucide-react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Workers from './pages/Workers';
@@ -34,6 +35,77 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
   }
 
   return children;
+};
+
+const TopHeader = () => {
+  const { user, logout } = useAuth();
+  const [isLight, setIsLight] = useState(localStorage.getItem('theme') === 'light');
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const toggleTheme = () => {
+    const newTheme = !isLight;
+    setIsLight(newTheme);
+    localStorage.setItem('theme', newTheme ? 'light' : 'dark');
+    if (newTheme) {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+  };
+
+  return (
+    <div className="flex justify-between items-center px-6 py-4 bg-[var(--bg-sidebar)]/50 border-b border-[var(--border)] backdrop-blur-md sticky top-0 z-30">
+      <div className="hidden md:block">
+        <span className="text-slate-400 text-xs font-semibold tracking-wider uppercase">Plataforma Operativa</span>
+      </div>
+      <div className="md:hidden">
+        {/* Mobile Spacer */}
+      </div>
+
+      <div className="flex items-center gap-4 ml-auto relative">
+        <button 
+          onClick={toggleTheme}
+          className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-all"
+          title={isLight ? 'Modo Oscuro' : 'Modo Claro'}
+        >
+          {isLight ? <Moon size={18} /> : <Sun size={18} />}
+        </button>
+
+        <div 
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="flex items-center gap-3 cursor-pointer p-1.5 px-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all select-none"
+        >
+          <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold border border-blue-500/20 text-sm">
+            {user?.full_name ? user.full_name[0] : 'U'}
+          </div>
+          <div className="hidden sm:flex flex-col text-left">
+            <span className="text-xs font-bold text-white leading-none mb-1">{user?.full_name || 'Usuario'}</span>
+            <span className="text-[9px] text-slate-500 font-medium uppercase leading-none">{user?.role || 'Invitado'}</span>
+          </div>
+        </div>
+
+        {menuOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+            
+            <div className="absolute right-0 top-full mt-2 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="px-3 py-2 border-b border-white/5 mb-1 sm:hidden">
+                <p className="text-xs font-bold text-white">{user?.full_name}</p>
+                <p className="text-[9px] text-slate-500 uppercase">{user?.role}</p>
+              </div>
+              <button
+                onClick={() => { logout(); setMenuOpen(false); }}
+                className="w-full flex items-center gap-3 px-3 py-2 text-left text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all font-bold"
+              >
+                <LogOut size={14} />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 };
 
 const MainLayout = ({ children }) => {
@@ -75,6 +147,8 @@ const MainLayout = ({ children }) => {
           <span className="font-extrabold text-sm gradient-text tracking-wider uppercase">ConstructERP</span>
           <div className="w-8" />
         </header>
+
+        <TopHeader />
 
         <main className="flex-1 p-3 sm:p-4 md:p-8 relative z-10 overflow-y-auto">
           {children}

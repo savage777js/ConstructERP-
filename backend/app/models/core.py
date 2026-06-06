@@ -314,6 +314,7 @@ class Expense(Base):
     description = Column(Text)
     amount = Column(Numeric(15, 2), nullable=False)
     expense_date = Column(DateTime, default=datetime.utcnow)
+    is_paid = Column(Boolean, default=False)
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

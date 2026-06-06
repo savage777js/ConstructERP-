@@ -158,6 +158,15 @@ const ProjectDetail = () => {
     }
   };
 
+  const handleToggleExpensePaid = async (expenseId, currentPaidStatus) => {
+    try {
+      await api.patch(`/finance/expenses/${expenseId}/status?is_paid=${!currentPaidStatus}`);
+      fetchProjectData();
+    } catch (error) {
+      alert('Error al actualizar el estado de pago del gasto.');
+    }
+  };
+
   const handleCreateNote = async (e) => {
     e.preventDefault();
     if (!newNote.trim()) return;
@@ -580,6 +589,7 @@ const ProjectDetail = () => {
                           <th className="px-4 py-3">Categoría</th>
                           <th className="px-4 py-3">Descripción</th>
                           <th className="px-4 py-3 text-right">Monto</th>
+                          <th className="px-4 py-3 text-center">Estado</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
@@ -593,11 +603,34 @@ const ProjectDetail = () => {
                             </td>
                             <td className="px-4 py-3">{exp.description}</td>
                             <td className="px-4 py-3 text-right font-bold text-white">${parseFloat(exp.amount).toLocaleString('es-CL')}</td>
+                            <td className="px-4 py-3 text-center">
+                              {['ADMIN', 'MANAGEMENT'].includes(userRole) ? (
+                                <button
+                                  onClick={() => handleToggleExpensePaid(exp.id, exp.is_paid)}
+                                  className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase transition-all border ${
+                                    exp.is_paid
+                                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                                      : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
+                                  }`}
+                                  title="Click para alternar estado de pago del gasto"
+                                >
+                                  {exp.is_paid ? 'PAGADO' : 'IMPAGO'}
+                                </button>
+                              ) : (
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                  exp.is_paid
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                }`}>
+                                  {exp.is_paid ? 'PAGADO' : 'IMPAGO'}
+                                </span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                         {expenses.length === 0 && (
                           <tr>
-                            <td colSpan="4" className="text-center py-10 text-slate-600 italic">No hay gastos registrados en esta obra.</td>
+                            <td colSpan="5" className="text-center py-10 text-slate-600 italic">No hay gastos registrados en esta obra.</td>
                           </tr>
                         )}
                       </tbody>

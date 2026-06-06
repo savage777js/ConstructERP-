@@ -77,6 +77,13 @@ def init_db():
             db.commit()
         except Exception:
             db.rollback()
+
+        # Columna is_paid en expenses
+        try:
+            db.execute(text("ALTER TABLE expenses ADD COLUMN is_paid BOOLEAN DEFAULT FALSE"))
+            db.commit()
+        except Exception:
+            db.rollback()
     except Exception as e:
         print(f"❌ Error aplicando migraciones: {e}")
     finally:
