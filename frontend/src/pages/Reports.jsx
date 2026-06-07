@@ -105,8 +105,16 @@ const Reports = () => {
   };
 
   const getStatusColor = (status) => {
-    if (status === 'ACTIVE' || status === 'EN EJECUCIÓN') return 'text-emerald-400 bg-emerald-500/10';
-    if (status === 'CRITICAL' || status === 'STOCK BAJO') return 'text-red-400 bg-red-500/10';
+    const s = String(status || '').toUpperCase();
+    if (s === 'ACTIVE' || s === 'ACTIVO' || s === 'EN EJECUCIÓN') {
+      return 'text-emerald-400 bg-emerald-500/10';
+    }
+    if (s === 'WARNING' || s === 'ADVERTENCIA' || s === 'ON_VACATION' || s === 'EN VACACIONES') {
+      return 'text-amber-400 bg-amber-500/10';
+    }
+    if (s === 'CRITICAL' || s === 'CRÍTICA' || s === 'STOCK BAJO' || s === 'ALERTA BODEGA' || s === 'SUELDO IMPAGO' || s === 'VENCIMIENTO CONTRATO') {
+      return 'text-red-400 bg-red-500/10';
+    }
     return 'text-slate-400 bg-slate-500/10';
   };
 
@@ -238,32 +246,55 @@ const Reports = () => {
                   <p>Consolidando datos operativos...</p>
                 </div>
               ) : previewData.length > 0 ? (
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="bg-slate-900/50 text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                      {Object.keys(previewData[0]).map(key => (
-                        <th key={key} className="px-4 sm:px-8 py-3 sm:py-5 border-b border-white/5">{key}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {previewData.slice(0, 15).map((row, idx) => (
-                      <tr key={idx} className="hover:bg-white/[0.02] transition-colors group">
-                        {Object.entries(row).map(([key, val], i) => (
-                            <td key={i} className="px-4 sm:px-8 py-4 sm:py-6 text-sm">
-                                <span className={
-                                    (key === 'Estado' || key === 'Prioridad') 
-                                    ? `px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusColor(val)}`
-                                    : 'text-slate-300'
-                                }>
-                                    {val}
-                                </span>
-                            </td>
+                <>
+                  {/* Vista Desktop: Tabla tradicional */}
+                  <table className="w-full text-left hidden md:table">
+                    <thead>
+                      <tr className="bg-slate-900/50 text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                        {Object.keys(previewData[0]).map(key => (
+                          <th key={key} className="px-4 sm:px-8 py-3 sm:py-5 border-b border-white/5">{key}</th>
                         ))}
                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {previewData.slice(0, 15).map((row, idx) => (
+                        <tr key={idx} className="hover:bg-white/[0.02] transition-colors group">
+                          {Object.entries(row).map(([key, val], i) => (
+                              <td key={i} className="px-4 sm:px-8 py-4 sm:py-6 text-sm">
+                                  <span className={
+                                      (key === 'Estado' || key === 'Prioridad') 
+                                      ? `px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusColor(val)}`
+                                      : 'text-slate-300'
+                                  }>
+                                      {val}
+                                  </span>
+                              </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {/* Vista Móvil: Tarjetas responsivas sin scroll horizontal */}
+                  <div className="md:hidden flex flex-col gap-4 p-4">
+                    {previewData.slice(0, 15).map((row, idx) => (
+                      <div key={idx} className="bg-slate-900/40 border border-white/5 rounded-xl p-4 space-y-2.5">
+                        {Object.entries(row).map(([key, val]) => (
+                          <div key={key} className="flex justify-between items-center text-xs border-b border-white/5 pb-1.5 last:border-0 last:pb-0">
+                            <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">{key}</span>
+                            <span className={
+                              (key === 'Estado' || key === 'Prioridad') 
+                              ? `px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${getStatusColor(val)}`
+                              : 'text-slate-200 font-semibold text-right max-w-[200px] truncate'
+                            }>
+                              {val}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </>
               ) : (
                 <div className="py-32 text-center text-slate-500 italic">
                   No se encontraron registros que coincidan con los criterios.

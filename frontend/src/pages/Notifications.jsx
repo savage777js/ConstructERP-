@@ -117,7 +117,14 @@ const Notifications = () => {
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 uppercase ${getBadgeColor(notif.type)}`}>
-                    {getTypeIcon(notif.type)} {notif.type.replace('_', ' ')}
+                    {getTypeIcon(notif.type)} {
+                      notif.type === 'UNPAID_SALARY' ? 'SUELDO IMPAGO' :
+                      notif.type === 'CONTRACT_EXPIRING' ? 'VENCIMIENTO CONTRATO' :
+                      notif.type === 'PROJECT_ENDING' ? 'TÉRMINO PROYECTO' :
+                      notif.type === 'STOCK_ALERT' ? 'ALERTA BODEGA' :
+                      notif.type === 'SYSTEM_INFO' ? 'INFO SISTEMA' :
+                      notif.type.replace('_', ' ')
+                    }
                   </span>
                   <span className="text-xs text-slate-500 font-mono">
                     {new Date(notif.created_at).toLocaleString('es-CL')}

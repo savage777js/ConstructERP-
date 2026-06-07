@@ -377,7 +377,8 @@ const Workers = () => {
       {activeTab === 'directory' && (
         <div className="glass-card p-0 overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[600px]">
+          {/* Desktop Table View */}
+          <table className="w-full text-left min-w-[600px] hidden md:table">
             <thead>
               <tr className="border-b border-white/5 text-slate-400 text-xs sm:text-sm uppercase tracking-wider">
                 <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Nombre</th>
@@ -392,96 +393,168 @@ const Workers = () => {
               {loading ? (
                 <tr>
                   <td colSpan="6" className="px-3 sm:px-6 py-10 text-center">
-                  <div className="flex items-center justify-center space-x-2 text-slate-400">
-                    <Loader2 className="animate-spin" size={20} />
-                    <span>Cargando trabajadores...</span>
-                  </div>
-                </td>
-              </tr>
+                    <div className="flex items-center justify-center space-x-2 text-slate-400">
+                      <Loader2 className="animate-spin" size={20} />
+                      <span>Cargando trabajadores...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredWorkers.map((worker) => (
+                  <tr key={worker.id} className="hover:bg-white/5 transition-colors group">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 font-medium flex items-center justify-between group-hover:pr-2">
+                      <div>
+                        <p className="font-bold text-white truncate">{worker.first_name} {worker.last_name}</p>
+                        <p className="text-[10px] text-slate-500">{worker.rut || 'Sin RUT'} · {worker.email || 'Sin Email'}</p>
+                      </div>
+                      {canManage && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setActionWorker(worker); }}
+                          className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-slate-400 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                          title="Opciones de Personal"
+                        >
+                          <MoreVertical size={14} />
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
+                      <div>
+                        <p className="text-white text-sm font-semibold">{worker.role}</p>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                          {worker.contract_type?.replace('_', ' ') || 'INDEFINIDO'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
+                      <span className={`${worker.status === 'INACTIVE' ? 'opacity-50 font-mono text-xs' : ''}`}>
+                         ${worker.salary?.toLocaleString('es-CL')}
+                      </span>
+                    </td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
+                      {worker.vacation_balance !== undefined ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className={`font-bold ${worker.vacation_balance > 30 ? 'text-amber-400 font-black' : 'text-slate-300'}`}>
+                            {worker.vacation_balance} días
+                          </span>
+                          {worker.vacation_balance > 30 && (
+                            <span 
+                              className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping" 
+                              title="Alerta: Acumulación de vacaciones > 30 días"
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-600 text-xs italic">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold border flex items-center justify-center gap-1.5 w-fit ${
+                        worker.status === 'ACTIVE' 
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                          : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                      }`}>
+                        {worker.status === 'ACTIVE' && <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />}
+                        {worker.status === 'ACTIVE' ? 'ACTIVO' : 'HISTÓRICO'}
+                      </span>
+                    </td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
+                      {worker.active_project ? (
+                        <span className="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-2.5 py-1 rounded-xl font-bold">
+                          <Briefcase size={12} /> {worker.active_project}
+                        </span>
+                      ) : (
+                        <span className="text-slate-600 text-xs italic">Sin asignar</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+              {!loading && filteredWorkers.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="px-6 py-20 text-center text-slate-500">
+                    <div className="flex flex-col items-center">
+                      <Search size={40} className="mb-4 opacity-20" />
+                      <p>No se encontraron trabajadores con esos criterios.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          {/* Mobile Card List View */}
+          <div className="md:hidden flex flex-col gap-4 p-4">
+            {loading ? (
+              <div className="flex items-center justify-center space-x-2 text-slate-400 py-10">
+                <Loader2 className="animate-spin" size={20} />
+                <span>Cargando trabajadores...</span>
+              </div>
+            ) : filteredWorkers.length === 0 ? (
+              <div className="flex flex-col items-center py-10 text-slate-500">
+                <Search size={40} className="mb-4 opacity-20" />
+                <p>No se encontraron trabajadores con esos criterios.</p>
+              </div>
             ) : (
               filteredWorkers.map((worker) => (
-                <tr key={worker.id} className="hover:bg-white/5 transition-colors group">
-                  <td className="px-3 sm:px-6 py-3 sm:py-4 font-medium flex items-center justify-between group-hover:pr-2">
+                <div key={worker.id} className="bg-slate-900/40 border border-white/5 rounded-xl p-4 space-y-3 relative">
+                  <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-bold text-white truncate">{worker.first_name} {worker.last_name}</p>
+                      <h4 className="font-bold text-white text-base">{worker.first_name} {worker.last_name}</h4>
                       <p className="text-[10px] text-slate-500">{worker.rut || 'Sin RUT'} · {worker.email || 'Sin Email'}</p>
                     </div>
                     {canManage && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); setActionWorker(worker); }}
-                        className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-slate-400 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                        className="p-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-slate-400 hover:text-white transition-all"
                         title="Opciones de Personal"
                       >
-                        <MoreVertical size={14} />
+                        <MoreVertical size={16} />
                       </button>
                     )}
-                  </td>
-                  <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5 text-xs text-slate-400">
                     <div>
-                      <p className="text-white text-sm font-semibold">{worker.role}</p>
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                        {worker.contract_type?.replace('_', ' ') || 'INDEFINIDO'}
-                      </span>
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold">Cargo</span>
+                      <span className="text-white font-semibold">{worker.role}</span>
                     </div>
-                  </td>
-                  <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
-                    <span className={`${worker.status === 'INACTIVE' ? 'opacity-50 font-mono text-xs' : ''}}`}>
-                       ${worker.salary?.toLocaleString('es-CL')}
-                    </span>
-                  </td>
-                  <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
-                    {worker.vacation_balance !== undefined ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className={`font-bold ${worker.vacation_balance > 30 ? 'text-amber-400 font-black' : 'text-slate-300'}}`}>
-                          {worker.vacation_balance} días
-                        </span>
-                        {worker.vacation_balance > 30 && (
-                          <span 
-                            className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping" 
-                            title="Alerta: Acumulación de vacaciones > 30 días"
-                          />
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-slate-600 text-xs italic">N/A</span>
-                    )}
-                  </td>
-                  <td className="px-3 sm:px-6 py-3 sm:py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border flex items-center justify-center gap-1.5 w-fit ${
+                    <div>
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold">Tipo Contrato</span>
+                      <span className="text-slate-300 font-medium uppercase">{worker.contract_type?.replace('_', ' ') || 'INDEFINIDO'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold">Sueldo Base</span>
+                      <span className="text-slate-300 font-bold">${worker.salary?.toLocaleString('es-CL')}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold">Saldo Vacaciones</span>
+                      <span className="text-slate-300 font-semibold">{worker.vacation_balance !== undefined ? `${worker.vacation_balance} días` : 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
                       worker.status === 'ACTIVE' 
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                         : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
                     }`}>
-                      {worker.status === 'ACTIVE' && <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />}
                       {worker.status === 'ACTIVE' ? 'ACTIVO' : 'HISTÓRICO'}
                     </span>
-                  </td>
-                  <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
+
                     {worker.active_project ? (
-                      <span className="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-2.5 py-1 rounded-xl font-bold">
-                        <Briefcase size={12} /> {worker.active_project}
+                      <span className="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                        <Briefcase size={10} /> {worker.active_project}
                       </span>
                     ) : (
                       <span className="text-slate-600 text-xs italic">Sin asignar</span>
                     )}
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))
             )}
-            {!loading && filteredWorkers.length === 0 && (
-              <tr>
-                <td colSpan="6" className="px-6 py-20 text-center text-slate-500">
-                  <div className="flex flex-col items-center">
-                    <Search size={40} className="mb-4 opacity-20" />
-                    <p>No se encontraron trabajadores con esos criterios.</p>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
-    </div>
     )}
 
     {/* Vacations view */}
@@ -505,7 +578,8 @@ const Workers = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[700px]">
+          {/* Desktop Table View */}
+          <table className="w-full text-left min-w-[700px] hidden md:table">
             <thead>
               <tr className="border-b border-white/5 text-slate-400 text-xs sm:text-sm uppercase tracking-wider">
                 <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Trabajador</th>
@@ -602,6 +676,98 @@ const Workers = () => {
               )}
             </tbody>
           </table>
+
+          {/* Mobile Card List View */}
+          <div className="md:hidden flex flex-col gap-4 p-4">
+            {vacationRequests.length === 0 ? (
+              <div className="py-10 text-center text-slate-500 text-sm">
+                No hay solicitudes de vacaciones registradas.
+              </div>
+            ) : (
+              vacationRequests.map((req) => (
+                <div key={req.id} className="bg-slate-900/40 border border-white/5 rounded-xl p-4 space-y-3 text-sm">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold text-white">
+                        {req.employee ? `${req.employee.first_name} ${req.employee.last_name}` : `ID: ${req.employee_id}`}
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        {new Date(req.start_date).toLocaleDateString('es-CL')} - {new Date(req.end_date).toLocaleDateString('es-CL')}
+                      </p>
+                    </div>
+                    <span className="font-bold text-slate-300 bg-white/5 px-2.5 py-1 rounded-lg text-xs">
+                      {req.days_requested} días
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                      req.status === 'REBATED' 
+                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
+                        : req.status === 'APPROVED'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    }`}>
+                      {req.status === 'PENDING_APPROVAL' && 'Pendiente'}
+                      {req.status === 'APPROVED' && 'Autorizado'}
+                      {req.status === 'REBATED' && 'Rebajado'}
+                      {req.status === 'REJECTED' && 'Rechazado'}
+                    </span>
+
+                    <div>
+                      {req.document_path ? (
+                        <a 
+                          href={api.defaults.baseURL ? `${api.defaults.baseURL.replace('/api/v1', '')}${req.document_path}` : req.document_path}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1 font-bold"
+                        >
+                          <FileText size={12} /> Descargar Solicitud
+                        </a>
+                      ) : (
+                        <span className="text-slate-600 text-xs italic">Sin documento</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile Actions */}
+                  {((req.status === 'PENDING_APPROVAL' && ['ADMIN', 'MANAGEMENT'].includes(userRole)) || (req.status === 'APPROVED')) && (
+                    <div className="flex gap-2 pt-2 border-t border-white/5 justify-end">
+                      {req.status === 'PENDING_APPROVAL' && ['ADMIN', 'MANAGEMENT'].includes(userRole) && (
+                        <button
+                          onClick={() => handleApproveVacation(req.id)}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all uppercase flex-1 text-center"
+                        >
+                          Autorizar
+                        </button>
+                      )}
+                      {req.status === 'APPROVED' && (
+                        <>
+                          {['ADMIN', 'HR_MANAGER'].includes(userRole) && (
+                            <button
+                              onClick={() => handleRebateVacation(req.id)}
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all uppercase flex-1 text-center"
+                            >
+                              Rebajar
+                            </button>
+                          )}
+                          <label className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold transition-all uppercase cursor-pointer flex-1 text-center">
+                            Cargar Firmado
+                            <input 
+                              type="file" 
+                              accept="application/pdf,image/*" 
+                              onChange={(e) => handleUploadVacationDoc(req.id, e.target.files[0])} 
+                              className="hidden" 
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     )}

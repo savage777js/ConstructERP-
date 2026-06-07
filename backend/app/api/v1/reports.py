@@ -41,8 +41,17 @@ async def analyze_report(
     import json
     report_json = json.dumps(data[:50]) # Limitamos a los primeros 50 registros por tokens
     
+    title_map = {
+        "workers": "Listado de Trabajadores",
+        "assignments": "Asignaciones por Obra",
+        "projects": "Proyectos Activos",
+        "notifications": "Historial de Alertas",
+        "contracts_expiring": "Contratos por Vencer"
+    }
+    report_title = title_map.get(report_type, report_type)
+
     prompt = f"""
-    Como Analista Senior, analiza los siguientes datos del reporte '{report_type}':
+    Como Analista Senior, analiza los siguientes datos del reporte '{report_title}':
     {report_json}
     
     Entrega un análisis breve (máximo 3 párrafos) que incluya:

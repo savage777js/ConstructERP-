@@ -582,7 +582,8 @@ const ProjectDetail = () => {
                     Detalle de Gastos de Obra
                   </h3>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left">
+                    {/* Desktop Table View */}
+                    <table className="w-full text-left hidden md:table">
                       <thead>
                         <tr className="bg-slate-900/50 text-slate-500 text-[10px] font-black uppercase tracking-wider">
                           <th className="px-4 py-3">Fecha</th>
@@ -628,13 +629,61 @@ const ProjectDetail = () => {
                             </td>
                           </tr>
                         ))}
-                        {expenses.length === 0 && (
-                          <tr>
-                            <td colSpan="5" className="text-center py-10 text-slate-600 italic">No hay gastos registrados en esta obra.</td>
-                          </tr>
-                        )}
                       </tbody>
                     </table>
+
+                    {/* Mobile Card List View */}
+                    <div className="md:hidden flex flex-col gap-4">
+                      {expenses.map(exp => (
+                        <div key={exp.id} className="bg-slate-900/40 border border-white/5 rounded-xl p-4 space-y-2 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500 font-bold uppercase text-[10px]">Fecha</span>
+                            <span className="text-slate-200">{new Date(exp.expense_date || exp.created_at).toLocaleDateString('es-CL')}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500 font-bold uppercase text-[10px]">Categoría</span>
+                            <span className="px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full font-bold uppercase text-[9px]">
+                              {exp.category?.replace('_', ' ')}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500 font-bold uppercase text-[10px]">Descripción</span>
+                            <span className="text-slate-200 font-medium text-right truncate max-w-[200px]">{exp.description}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500 font-bold uppercase text-[10px]">Monto</span>
+                            <span className="text-white font-bold">${parseFloat(exp.amount).toLocaleString('es-CL')}</span>
+                          </div>
+                          <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                            <span className="text-slate-500 font-bold uppercase text-[10px]">Estado</span>
+                            {['ADMIN', 'MANAGEMENT'].includes(userRole) ? (
+                              <button
+                                onClick={() => handleToggleExpensePaid(exp.id, exp.is_paid)}
+                                className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase transition-all border ${
+                                  exp.is_paid
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                }`}
+                              >
+                                {exp.is_paid ? 'PAGADO' : 'IMPAGO'}
+                              </button>
+                            ) : (
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                exp.is_paid
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                              }`}>
+                                {exp.is_paid ? 'PAGADO' : 'IMPAGO'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {expenses.length === 0 && (
+                      <div className="text-center py-10 text-slate-600 italic">No hay gastos registrados en esta obra.</div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -729,7 +778,8 @@ const ProjectDetail = () => {
             </div>
             
             <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[650px]">
+              {/* Desktop Table View */}
+              <table className="w-full text-left min-w-[650px] hidden md:table">
                 <thead>
                   <tr className="bg-slate-900/50 text-slate-500 text-xs font-bold uppercase tracking-wider">
                     <th className="px-3 sm:px-8 py-3 sm:py-5">Trabajador</th>
@@ -844,16 +894,124 @@ const ProjectDetail = () => {
                       </td>
                     </tr>
                   ))}
-                  {(!project.assignments || project.assignments.length === 0) && (
-                    <tr>
-                      <td colSpan="6" className="px-8 py-20 text-center">
-                        <Users size={40} className="mx-auto mb-3 text-slate-700" />
-                        <p className="text-slate-500 italic">No hay personal asignado actualmente.</p>
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
+
+              {/* Mobile Card List View */}
+              <div className="md:hidden flex flex-col gap-4 p-2">
+                {project.assignments?.map(a => (
+                  <div key={a.id} className="bg-slate-900/40 border border-white/5 rounded-xl p-4 space-y-3 text-xs">
+                    <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold border border-blue-500/20 shrink-0 text-xs">
+                          {a.worker.first_name[0]}{a.worker.last_name[0]}
+                        </div>
+                        <div>
+                          <p className="text-white font-bold">{a.worker.first_name} {a.worker.last_name}</p>
+                          <p className="text-[10px] text-slate-500">{a.worker.email}</p>
+                        </div>
+                      </div>
+                      {canAssignWorker && a.is_active && (
+                        <button 
+                          onClick={() => {
+                            if (confirm(`¿Liberar a ${a.worker.first_name} ${a.worker.last_name} de esta obra?`)) {
+                              api.post(`/projects/${id}/unassign-worker/${a.worker.id}`).then(() => fetchProjectData());
+                            }
+                          }}
+                          className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                          title="Liberar de Obra"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 font-bold uppercase text-[10px]">Rol en Obra</span>
+                        <span className="flex items-center gap-1.5 text-slate-200 font-semibold">
+                          <HardHat size={12} className="text-blue-400" />
+                          {a.role || 'Operario'}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 font-bold uppercase text-[10px]">Visto Bueno</span>
+                        {a.approved_by_manager ? (
+                          <span className="flex items-center gap-1 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/10 w-fit">
+                            <Check size={10} /> Dado
+                          </span>
+                        ) : (
+                          <div className="flex flex-col gap-1 items-end">
+                            <span className="text-slate-500 text-[10px] font-semibold italic">Pendiente</span>
+                            {['ADMIN', 'MANAGEMENT'].includes(userRole) && a.is_active && (
+                              <button
+                                onClick={() => handleApproveAssignment(a.id)}
+                                className="px-2 py-0.5 bg-amber-500/10 hover:bg-amber-400 text-white rounded text-[9px] font-black transition-all uppercase"
+                              >
+                                Dar Visto Bueno
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 font-bold uppercase text-[10px]">Notas Gerenciales</span>
+                        {notesForm.assignmentId === a.id ? (
+                          <div className="flex gap-1.5 items-center">
+                            <input 
+                              type="text"
+                              value={notesForm.notes}
+                              onChange={(e) => setNotesForm({...notesForm, notes: e.target.value})}
+                              className="bg-slate-800 border border-white/10 rounded px-2 py-0.5 text-[11px] text-white outline-none"
+                              placeholder="Nota..."
+                            />
+                            <button 
+                              onClick={() => handleSaveNotes(a.id, notesForm.notes)}
+                              className="p-1 bg-emerald-600 rounded text-white"
+                            >
+                              <Check size={10} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] text-slate-300 font-medium max-w-[150px] truncate block">
+                              {a.manager_notes || <span className="text-slate-600 italic">Sin notas</span>}
+                            </span>
+                            {['ADMIN', 'MANAGEMENT'].includes(userRole) && a.is_active && (
+                              <button 
+                                onClick={() => setNotesForm({ assignmentId: a.id, notes: a.manager_notes || '' })}
+                                className="p-1 hover:bg-white/5 rounded text-slate-500 hover:text-white transition-all"
+                                title="Editar Nota"
+                              >
+                                <MessageSquare size={10} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                        <span className="text-slate-500 font-bold uppercase text-[10px]">Expediente</span>
+                        <button 
+                           onClick={() => handleViewWorkerDocs(a.worker)}
+                           className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded-lg text-slate-300 text-[10px] font-bold transition-all"
+                        >
+                          <Folder size={10} className="text-amber-500" /> Ver Carpeta
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {(!project.assignments || project.assignments.length === 0) && (
+                <div className="text-center py-20">
+                  <Users size={40} className="mx-auto mb-3 text-slate-700" />
+                  <p className="text-slate-500 italic">No hay personal asignado actualmente.</p>
+                </div>
+              )}
             </div>
           </div>
         )}

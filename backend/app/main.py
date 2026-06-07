@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
@@ -5,11 +6,36 @@ from app.api.v1 import auth, workers, projects, notifications, dashboard, report
 from app.db.session import engine, Base, SessionLocal
 from fastapi.staticfiles import StaticFiles
 import os
+import threading
+from sqlalchemy import text
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Pre-warm connection pool by opening a few connections in parallel
+    def warm():
+        db = SessionLocal()
+        try:
+            db.execute(text("SELECT 1"))
+            print("⚡ Connection pool warmed up successfully.")
+        except Exception as e:
+            print(f"⚠️ Connection warmup failed: {e}")
+        finally:
+            db.close()
+    
+    # Spawn 4 threads to pre-warm the pool
+    threads = []
+    for _ in range(4):
+        t = threading.Thread(target=warm)
+        threads.append(t)
+        t.start()
+        
+    yield
 
 app = FastAPI(
     title="ConstructERP API",
     description="Sistema ERP Modular para la Gestión de Obras",
     version="1.0.0",
+    lifespan=lifespan
 )
 
 # Asegurar directorios de uploads

@@ -37,7 +37,7 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
   return children;
 };
 
-const TopHeader = () => {
+const TopHeader = ({ onOpenSidebar }) => {
   const { user, logout } = useAuth();
   const [isLight, setIsLight] = useState(localStorage.getItem('theme') === 'light');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -54,12 +54,21 @@ const TopHeader = () => {
   };
 
   return (
-    <div className="flex justify-between items-center px-6 py-4 bg-[var(--bg-sidebar)]/50 border-b border-[var(--border)] backdrop-blur-md sticky top-0 z-30">
-      <div className="hidden md:block">
-        <span className="text-slate-400 text-xs font-semibold tracking-wider uppercase">Plataforma Operativa</span>
-      </div>
-      <div className="md:hidden">
-        {/* Mobile Spacer */}
+    <div className="flex justify-between items-center px-4 sm:px-6 py-4 bg-[var(--bg-sidebar)]/50 border-b border-[var(--border)] backdrop-blur-md sticky top-0 z-30">
+      <div className="flex items-center gap-2">
+        <button 
+          onClick={onOpenSidebar}
+          className="p-2 text-slate-400 hover:text-white transition-colors md:hidden"
+          title="Abrir menú"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
+        <span className="font-extrabold text-sm gradient-text tracking-wider uppercase md:hidden">ConstructERP</span>
+        <div className="hidden md:block">
+          <span className="text-slate-400 text-xs font-semibold tracking-wider uppercase">Plataforma Operativa</span>
+        </div>
       </div>
 
       <div className="flex items-center gap-4 ml-auto relative">
@@ -133,22 +142,7 @@ const MainLayout = ({ children }) => {
 
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Sticky Mobile Header */}
-        <header className="flex md:hidden items-center justify-between p-4 bg-[var(--bg-sidebar)] border-b border-[var(--border)] sticky top-0 z-30">
-          <button 
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 text-slate-400 hover:text-white transition-colors"
-            title="Abrir menú"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
-          </button>
-          <span className="font-extrabold text-sm gradient-text tracking-wider uppercase">ConstructERP</span>
-          <div className="w-8" />
-        </header>
-
-        <TopHeader />
+        <TopHeader onOpenSidebar={() => setSidebarOpen(true)} />
 
         <main className="flex-1 p-3 sm:p-4 md:p-8 relative z-10 overflow-y-auto">
           {children}

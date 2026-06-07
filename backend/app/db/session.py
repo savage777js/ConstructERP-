@@ -14,6 +14,9 @@ if db_url.startswith("sqlite"):
 engine = create_engine(
     db_url, 
     pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=5,
+    pool_recycle=60,
     connect_args=connect_args
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
