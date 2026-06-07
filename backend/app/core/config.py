@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional, List
+from typing import Optional, List, Any
 import os
 
 class Settings(BaseSettings):
@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     
     # Origins permitidos
-    ALLOWED_ORIGINS: List[str] = []
+    ALLOWED_ORIGINS: Any = []
     
     # Database - FORZAMOS LOCAL PARA EVITAR BLOQUEOS
     # Ignoramos lo que venga del entorno para asegurar que funcione en el instituto
