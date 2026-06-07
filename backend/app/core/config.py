@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     
+    # Origins permitidos
+    ALLOWED_ORIGINS: List[str] = []
+    
     # Database - FORZAMOS LOCAL PARA EVITAR BLOQUEOS
     # Ignoramos lo que venga del entorno para asegurar que funcione en el instituto
     DATABASE_URL: str = "sqlite:///./local_erp.db"
@@ -39,5 +42,16 @@ class Settings(BaseSettings):
             self.SECRET_KEY = env_secret_key
         else:
             self.SECRET_KEY = "construct_erp_2026_fixed_key"
+
+        env_allowed_origins = os.environ.get("ALLOWED_ORIGINS")
+        if env_allowed_origins:
+            self.ALLOWED_ORIGINS = [origin.strip() for origin in env_allowed_origins.split(",") if origin.strip()]
+        else:
+            self.ALLOWED_ORIGINS = [
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+            ]
 
 settings = Settings()

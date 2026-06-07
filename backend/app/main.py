@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1 import auth, workers, projects, notifications, dashboard, reports, ai, tasks, finance, documents
@@ -38,16 +38,29 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Middleware de cabeceras de seguridad HTTP
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # Solo agregar HSTS en conexiones seguras HTTPS (para no romper localhost por HTTP)
+    if request.url.scheme == "https":
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+    return response
+
 # Asegurar directorios de uploads
 os.makedirs("uploads/documents", exist_ok=True)
 
 # Static files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# CORS - Permitir todo para desarrollo local
+# CORS - Configuración segura de orígenes permitidos
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Simplificado para evitar problemas en el instituto
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

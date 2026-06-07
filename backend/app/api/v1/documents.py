@@ -31,8 +31,9 @@ async def ocr_invoice(
         # Leer contenido
         contents = await file.read()
         
-        # Guardar archivo localmente (opcional, para registro)
-        file_path = os.path.join(UPLOAD_DIR, f"{current_user.id}_{file.filename}")
+        # Guardar archivo localmente usando un nombre único seguro (previene Path Traversal)
+        unique_filename = f"ocr_{uuid.uuid4()}{ext}"
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
         with open(file_path, "wb") as f:
             f.write(contents)
 
@@ -51,7 +52,7 @@ async def ocr_invoice(
         return {
             "filename": file.filename,
             "data": ocr_data,
-            "preview_url": f"/uploads/documents/{current_user.id}_{file.filename}"
+            "preview_url": f"/uploads/documents/{unique_filename}"
         }
 
     except Exception as e:
