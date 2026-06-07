@@ -135,6 +135,7 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
             </span>
           </div>
         </div>
+      </div>
 
       <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, var(--border), transparent)', margin: '0 2rem 1.5rem' }} />
 
