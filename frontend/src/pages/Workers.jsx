@@ -619,14 +619,23 @@ const Workers = () => {
                   <td className="px-3 sm:px-6 py-4">
                     <div className="flex flex-col gap-1.5">
                       {req.document_path ? (
-                        <a 
-                          href={api.defaults.baseURL ? `${api.defaults.baseURL.replace('/api/v1', '')}${req.document_path}` : req.document_path}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1 font-bold"
-                        >
-                          <FileText size={12} /> Solicitud Autorizada / Firmada
-                        </a>
+                        <div className="flex flex-col gap-1">
+                          <a 
+                            href={api.defaults.baseURL ? `${api.defaults.baseURL.replace('/api/v1', '')}${req.document_path}` : req.document_path}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1 font-bold"
+                          >
+                            <FileText size={12} /> Ver Comprobante
+                          </a>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full w-fit font-bold ${
+                            req.is_signed 
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          }`}>
+                            {req.is_signed ? 'Firmado' : 'Pendiente Firma'}
+                          </span>
+                        </div>
                       ) : (
                         <span className="text-slate-600 text-xs italic">Sin documento disponible</span>
                       )}
@@ -634,7 +643,7 @@ const Workers = () => {
                   </td>
                   <td className="px-3 sm:px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      {req.status === 'PENDING_APPROVAL' && ['ADMIN', 'MANAGEMENT'].includes(userRole) && (
+                      {req.status === 'PENDING_APPROVAL' && ['ADMIN', 'MANAGEMENT', 'PROJECT_MANAGER'].includes(userRole) && (
                         <button
                           onClick={() => handleApproveVacation(req.id)}
                           className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all uppercase"
@@ -647,7 +656,13 @@ const Workers = () => {
                           {['ADMIN', 'HR_MANAGER'].includes(userRole) && (
                             <button
                               onClick={() => handleRebateVacation(req.id)}
-                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all uppercase"
+                              disabled={!req.is_signed}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all uppercase ${
+                                req.is_signed 
+                                  ? 'bg-blue-600 hover:bg-blue-500 text-white cursor-pointer' 
+                                  : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                              }`}
+                              title={req.is_signed ? "Efectuar la deducción de días de vacaciones" : "Debe cargar el documento firmado primero"}
                             >
                               Procesar Rebaja
                             </button>
@@ -716,14 +731,23 @@ const Workers = () => {
 
                     <div>
                       {req.document_path ? (
-                        <a 
-                          href={api.defaults.baseURL ? `${api.defaults.baseURL.replace('/api/v1', '')}${req.document_path}` : req.document_path}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1 font-bold"
-                        >
-                          <FileText size={12} /> Descargar Solicitud
-                        </a>
+                        <div className="flex flex-col gap-1">
+                          <a 
+                            href={api.defaults.baseURL ? `${api.defaults.baseURL.replace('/api/v1', '')}${req.document_path}` : req.document_path}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1 font-bold"
+                          >
+                            <FileText size={12} /> Descargar Solicitud
+                          </a>
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full w-fit font-bold ${
+                            req.is_signed 
+                              ? 'bg-emerald-500/10 text-emerald-400' 
+                              : 'bg-amber-500/10 text-amber-400'
+                          }`}>
+                            {req.is_signed ? 'Firmado' : 'Pendiente Firma'}
+                          </span>
+                        </div>
                       ) : (
                         <span className="text-slate-600 text-xs italic">Sin documento</span>
                       )}
@@ -731,9 +755,9 @@ const Workers = () => {
                   </div>
 
                   {/* Mobile Actions */}
-                  {((req.status === 'PENDING_APPROVAL' && ['ADMIN', 'MANAGEMENT'].includes(userRole)) || (req.status === 'APPROVED')) && (
+                  {((req.status === 'PENDING_APPROVAL' && ['ADMIN', 'MANAGEMENT', 'PROJECT_MANAGER'].includes(userRole)) || (req.status === 'APPROVED')) && (
                     <div className="flex gap-2 pt-2 border-t border-white/5 justify-end">
-                      {req.status === 'PENDING_APPROVAL' && ['ADMIN', 'MANAGEMENT'].includes(userRole) && (
+                      {req.status === 'PENDING_APPROVAL' && ['ADMIN', 'MANAGEMENT', 'PROJECT_MANAGER'].includes(userRole) && (
                         <button
                           onClick={() => handleApproveVacation(req.id)}
                           className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all uppercase flex-1 text-center"
@@ -746,7 +770,12 @@ const Workers = () => {
                           {['ADMIN', 'HR_MANAGER'].includes(userRole) && (
                             <button
                               onClick={() => handleRebateVacation(req.id)}
-                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all uppercase flex-1 text-center"
+                              disabled={!req.is_signed}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all uppercase flex-1 text-center ${
+                                req.is_signed 
+                                  ? 'bg-blue-600 hover:bg-blue-500 text-white' 
+                                  : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                              }`}
                             >
                               Rebajar
                             </button>

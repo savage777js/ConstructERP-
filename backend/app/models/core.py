@@ -44,6 +44,10 @@ class NotificationType(str, enum.Enum):
     PROJECT_ENDING = "PROJECT_ENDING"
     SYSTEM_INFO = "SYSTEM_INFO"
     UNPAID_SALARY = "UNPAID_SALARY"
+    VACATION_ALERT = "VACATION_ALERT"
+    VACATION_REQUEST = "VACATION_REQUEST"
+    VACATION_APPROVED = "VACATION_APPROVED"
+    PROFITABILITY_ALERT = "PROFITABILITY_ALERT"
 
 class NotificationPriority(str, enum.Enum):
     INFO = "INFO"
@@ -358,6 +362,7 @@ class VacationRequest(Base):
     days_requested = Column(Integer, nullable=False)
     status = Column(String(50), default="PENDING_APPROVAL")  # PENDING_APPROVAL, APPROVED, REJECTED, REBATED
     document_path = Column(String, nullable=True)
+    is_signed = Column(Boolean, default=False)
     approved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     rebated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

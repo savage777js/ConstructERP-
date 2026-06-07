@@ -378,7 +378,7 @@ def create_vacation_request(
     from app.models.core import NotificationType, NotificationPriority
     NotificationService._create_notification_if_not_exists(
         db,
-        NotificationType.SYSTEM_INFO,
+        NotificationType.VACATION_REQUEST,
         worker.id,
         title="Nueva Solicitud de Vacaciones",
         message=f"El trabajador {worker.first_name} {worker.last_name} solicita {req_in.days_requested} días de vacaciones desde el {req_in.start_date.strftime('%Y-%m-%d')}.",
@@ -414,7 +414,7 @@ def approve_vacation_request(
     from app.models.core import NotificationType, NotificationPriority
     NotificationService._create_notification_if_not_exists(
         db,
-        NotificationType.SYSTEM_INFO,
+        NotificationType.VACATION_APPROVED,
         req.employee_id,
         title="Deducción de Vacaciones Pendiente",
         message=f"Las vacaciones de {req.employee.first_name} {req.employee.last_name} han sido AUTORIZADAS por {current_user.full_name}. Proceda con la firma del documento y la rebaja de {req.days_requested} días.",
@@ -467,6 +467,9 @@ def rebate_vacation_request(
     if req.status != "APPROVED":
         raise HTTPException(status_code=400, detail="La solicitud debe estar AUTORIZADA previamente para efectuar la rebaja.")
         
+    if not req.is_signed:
+        raise HTTPException(status_code=400, detail="El documento debe estar firmado por el trabajador antes de realizar la rebaja.")
+        
     employee = req.employee
     if employee.vacation_balance < req.days_requested:
         raise HTTPException(status_code=400, detail=f"El saldo actual del trabajador ({employee.vacation_balance} días) es menor al solicitado.")
@@ -504,6 +507,7 @@ async def upload_signed_vacation_doc(
         f.write(contents)
         
     req.document_path = f"/uploads/documents/{unique_filename}"
+    req.is_signed = True
     
     db_doc = Document(
         organization_id=req.employee.organization_id,

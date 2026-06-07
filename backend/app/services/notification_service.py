@@ -18,13 +18,17 @@ class NotificationService:
                 query = query.filter(Notification.type.in_([
                     NotificationType.CONTRACT_EXPIRING,
                     NotificationType.UNPAID_SALARY,
-                    NotificationType.SYSTEM_INFO
+                    NotificationType.SYSTEM_INFO,
+                    NotificationType.VACATION_ALERT,
+                    NotificationType.VACATION_APPROVED
                 ]))
             elif role == "PROJECT_MANAGER":
                 query = query.filter(Notification.type.in_([
                     NotificationType.PROJECT_ENDING,
                     NotificationType.STOCK_ALERT,
-                    NotificationType.SYSTEM_INFO
+                    NotificationType.SYSTEM_INFO,
+                    NotificationType.VACATION_REQUEST,
+                    NotificationType.PROFITABILITY_ALERT
                 ]))
             elif role == "INVENTORY_MANAGER":
                 query = query.filter(Notification.type.in_([
@@ -162,7 +166,7 @@ class NotificationService:
                     priority = NotificationPriority.CRITICAL if expenses_float >= budget_float else NotificationPriority.WARNING
                     NotificationService._create_notification_if_not_exists(
                         db,
-                        NotificationType.STOCK_ALERT,
+                        NotificationType.PROFITABILITY_ALERT,
                         proj.id,
                         title=f"Margen Crítico: {proj.name}",
                         message=f"Los gastos de la obra '{proj.name}' (${expenses_float:,.0f}) representan el {expenses_float/budget_float*100:.1f}% del presupuesto (${budget_float:,.0f}). El margen de utilidad proyectado es del {margin:.1f}% (menor al 15%).",
@@ -204,7 +208,7 @@ class NotificationService:
         for emp in workers:
             NotificationService._create_notification_if_not_exists(
                 db,
-                NotificationType.CONTRACT_EXPIRING,
+                NotificationType.VACATION_ALERT,
                 emp.id,
                 title=f"Vacaciones Acumuladas: {emp.first_name} {emp.last_name}",
                 message=f"El trabajador tiene {emp.vacation_balance} días de vacaciones acumulados (límite recomendado: 30 días). Se sugiere coordinar descanso.",

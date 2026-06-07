@@ -51,6 +51,7 @@ class VacationRequestOut(VacationRequestBase):
     id: str
     status: str
     document_path: Optional[str] = None
+    is_signed: bool = False
     approved_by: Optional[int] = None
     rebated_by: Optional[int] = None
     created_at: datetime

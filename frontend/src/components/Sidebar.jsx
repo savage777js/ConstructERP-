@@ -135,36 +135,6 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
             </span>
           </div>
         </div>
-        {user && (
-          <div style={{
-            marginTop: '1.25rem',
-            padding: '0.4rem 0.75rem',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid var(--border)',
-            borderRadius: '10px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            fontSize: '11px',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.02em',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
-          }}>
-            <span style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: '#3b82f6',
-              boxShadow: `0 0 8px #3b82f6`
-            }} />
-            <span style={{ color: 'var(--text-muted)' }}>Usuario:</span>
-            <span style={{ color: 'var(--text)' }}>
-              {user.full_name}
-            </span>
-          </div>
-        )}
-      </div>
 
       <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, var(--border), transparent)', margin: '0 2rem 1.5rem' }} />
 
