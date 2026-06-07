@@ -152,15 +152,20 @@ class NotificationService:
                 from sqlalchemy import func
                 from app.models.core import Expense
                 expenses = db.query(func.sum(Expense.amount)).filter(Expense.project_id == proj.id).scalar() or 0
-                if expenses > (proj.budget * 0.85):
-                    margin = ((proj.budget - expenses) / proj.budget) * 100
-                    priority = NotificationPriority.CRITICAL if expenses >= proj.budget else NotificationPriority.WARNING
+                
+                # Convertir a float para evitar TypeError entre decimal.Decimal y float con PostgreSQL
+                budget_float = float(proj.budget)
+                expenses_float = float(expenses)
+                
+                if expenses_float > (budget_float * 0.85):
+                    margin = ((budget_float - expenses_float) / budget_float) * 100
+                    priority = NotificationPriority.CRITICAL if expenses_float >= budget_float else NotificationPriority.WARNING
                     NotificationService._create_notification_if_not_exists(
                         db,
                         NotificationType.STOCK_ALERT,
                         proj.id,
                         title=f"Margen Crítico: {proj.name}",
-                        message=f"Los gastos de la obra '{proj.name}' (${expenses:,.0f}) representan el {expenses/proj.budget*100:.1f}% del presupuesto (${proj.budget:,.0f}). El margen de utilidad proyectado es del {margin:.1f}% (menor al 15%).",
+                        message=f"Los gastos de la obra '{proj.name}' (${expenses_float:,.0f}) representan el {expenses_float/budget_float*100:.1f}% del presupuesto (${budget_float:,.0f}). El margen de utilidad proyectado es del {margin:.1f}% (menor al 15%).",
                         priority=priority,
                         link=f"/projects/{proj.id}"
                     )
