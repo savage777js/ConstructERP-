@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
         env_allowed_origins = os.environ.get("ALLOWED_ORIGINS")
         if env_allowed_origins:
-            self.ALLOWED_ORIGINS = [origin.strip() for origin in env_allowed_origins.split(",") if origin.strip()]
+            self.ALLOWED_ORIGINS = [origin.strip().rstrip("/") for origin in env_allowed_origins.split(",") if origin.strip()]
         else:
             self.ALLOWED_ORIGINS = [
                 "http://localhost:3000",
