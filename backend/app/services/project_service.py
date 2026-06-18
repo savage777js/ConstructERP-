@@ -10,21 +10,29 @@ import os
 
 class ProjectService:
     @staticmethod
-    def list_projects(db: Session, skip: int = 0, limit: int = 100):
-        # Ordenar por id descendente, u operar sobre todos para mostrar historial
-        return db.query(Project).order_by(Project.id.desc()).offset(skip).limit(limit).all()
+    def list_projects(db: Session, skip: int = 0, limit: int = 100, organization_id: str = None):
+        query = db.query(Project)
+        if organization_id:
+            query = query.filter(Project.organization_id == organization_id)
+        return query.order_by(Project.id.desc()).offset(skip).limit(limit).all()
 
     @staticmethod
-    def get_project(db: Session, project_id: int):
-        project = db.query(Project).filter(Project.id == project_id).first()
+    def get_project(db: Session, project_id: int, organization_id: str = None):
+        query = db.query(Project).filter(Project.id == project_id)
+        if organization_id:
+            query = query.filter(Project.organization_id == organization_id)
+        project = query.first()
         if not project:
             raise HTTPException(status_code=404, detail="Proyecto no encontrado")
         return project
 
     @staticmethod
-    def create_project(db: Session, project_in: ProjectCreate):
+    def create_project(db: Session, project_in: ProjectCreate, organization_id: str = None):
         if project_in.code:
-            db_project = db.query(Project).filter(Project.code == project_in.code).first()
+            query_code = db.query(Project).filter(Project.code == project_in.code)
+            if organization_id:
+                query_code = query_code.filter(Project.organization_id == organization_id)
+            db_project = query_code.first()
             if db_project:
                 raise HTTPException(status_code=400, detail="El código de obra ya existe")
         
@@ -37,6 +45,7 @@ class ProjectService:
                 )
 
         new_project = Project(**project_in.model_dump())
+        new_project.organization_id = organization_id
         db.add(new_project)
         db.commit()
         db.refresh(new_project)
@@ -53,8 +62,8 @@ class ProjectService:
         return new_project
 
     @staticmethod
-    def update_project(db: Session, project_id: int, project_in: ProjectUpdate, user_id: int = None):
-        project = ProjectService.get_project(db, project_id)
+    def update_project(db: Session, project_id: int, project_in: ProjectUpdate, user_id: int = None, organization_id: str = None):
+        project = ProjectService.get_project(db, project_id, organization_id)
         update_data = project_in.model_dump(exclude_unset=True)
 
         # Validar fechas
@@ -107,8 +116,8 @@ class ProjectService:
         return project
 
     @staticmethod
-    def delete_project(db: Session, project_id: int, user_id: int = None):
-        project = ProjectService.get_project(db, project_id)
+    def delete_project(db: Session, project_id: int, user_id: int = None, organization_id: str = None):
+        project = ProjectService.get_project(db, project_id, organization_id)
         project.status = "INACTIVE"
         
         # También podríamos dar de baja las asignaciones activas de trabajadores
@@ -133,12 +142,16 @@ class ProjectService:
         return project
 
     @staticmethod
-    def assign_worker(db: Session, project_id: int, assignment: WorkerAssignment, user_id: int = None):
-        project = ProjectService.get_project(db, project_id)
-        worker = db.query(Employee).filter(Employee.id == assignment.worker_id).first()
+    def assign_worker(db: Session, project_id: int, assignment: WorkerAssignment, user_id: int = None, organization_id: str = None):
+        project = ProjectService.get_project(db, project_id, organization_id)
+        
+        query_worker = db.query(Employee).filter(Employee.id == assignment.worker_id)
+        if organization_id:
+            query_worker = query_worker.filter(Employee.organization_id == organization_id)
+        worker = query_worker.first()
         
         if not worker:
-            raise HTTPException(status_code=404, detail="Trabajador no encontrado")
+            raise HTTPException(status_code=404, detail="Trabajador no encontrado en su organización")
         
         # Verificar si ya está asignado activamente a esta obra
         existing = db.query(ProjectAssignment).filter(
@@ -224,8 +237,8 @@ class ProjectService:
         return {"message": f"Trabajador {worker.first_name} asignado como {assignment.role} a {project.name}"}
 
     @staticmethod
-    def create_project_log(db: Session, project_id: int, content: str, user_id: int, log_type: str = "NOTE"):
-        project = ProjectService.get_project(db, project_id)
+    def create_project_log(db: Session, project_id: int, content: str, user_id: int, log_type: str = "NOTE", organization_id: str = None):
+        project = ProjectService.get_project(db, project_id, organization_id)
         new_log = ProjectLog(
             project_id=project_id,
             user_id=user_id,
@@ -238,8 +251,11 @@ class ProjectService:
         return new_log
 
     @staticmethod
-    def approve_assignment(db: Session, project_id: int, assignment_id: int, user_id: int):
+    def approve_assignment(db: Session, project_id: int, assignment_id: int, user_id: int, organization_id: str = None):
         from app.models.core import User
+        # Validar proyecto pertenencia a la org
+        project = ProjectService.get_project(db, project_id, organization_id)
+        
         assignment = db.query(ProjectAssignment).filter(
             ProjectAssignment.id == assignment_id,
             ProjectAssignment.project_id == project_id
@@ -251,8 +267,6 @@ class ProjectService:
         
         user = db.query(User).filter(User.id == user_id).first()
         worker = db.query(Employee).filter(Employee.id == assignment.worker_id).first()
-        user_name = user.full_name if user else "Usuario"
-        user_rut = user.rut if user and user.rut else "S/R"
         
         # Log approval
         log = ProjectLog(
@@ -267,8 +281,11 @@ class ProjectService:
         return assignment
 
     @staticmethod
-    def update_assignment_notes(db: Session, project_id: int, assignment_id: int, notes: str, user_id: int):
+    def update_assignment_notes(db: Session, project_id: int, assignment_id: int, notes: str, user_id: int, organization_id: str = None):
         from app.models.core import User
+        # Validar proyecto pertenencia a la org
+        project = ProjectService.get_project(db, project_id, organization_id)
+        
         assignment = db.query(ProjectAssignment).filter(
             ProjectAssignment.id == assignment_id,
             ProjectAssignment.project_id == project_id
@@ -294,11 +311,15 @@ class ProjectService:
         return assignment
 
     @staticmethod
-    def unassign_worker(db: Session, project_id: int, worker_id: int, user_id: int = None):
-        project = ProjectService.get_project(db, project_id)
-        worker = db.query(Employee).filter(Employee.id == worker_id).first()
+    def unassign_worker(db: Session, project_id: int, worker_id: int, user_id: int = None, organization_id: str = None):
+        project = ProjectService.get_project(db, project_id, organization_id)
+        
+        query_worker = db.query(Employee).filter(Employee.id == worker_id)
+        if organization_id:
+            query_worker = query_worker.filter(Employee.organization_id == organization_id)
+        worker = query_worker.first()
         if not worker:
-            raise HTTPException(status_code=404, detail="Trabajador no encontrado")
+            raise HTTPException(status_code=404, detail="Trabajador no encontrado en su organización")
             
         assignment = db.query(ProjectAssignment).filter(
             ProjectAssignment.project_id == project_id,
@@ -367,12 +388,12 @@ class ProjectService:
         return {"message": "Sub-presupuesto eliminado"}
 
     @staticmethod
-    def download_project_folder(db: Session, project_id: int):
+    def download_project_folder(db: Session, project_id: int, organization_id: str = None):
         import io
         import zipfile
         from app.models.core import Document
         
-        project = ProjectService.get_project(db, project_id)
+        project = ProjectService.get_project(db, project_id, organization_id)
         
         # 1. Fetch direct project documents
         proj_docs = db.query(Document).filter(Document.project_id == project_id).all()

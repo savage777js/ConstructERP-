@@ -17,10 +17,17 @@ allow_manage_hr = RoleChecker([UserRole.ADMIN, UserRole.HR_MANAGER])
 allow_read_hr = RoleChecker([UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.PROJECT_MANAGER, UserRole.MANAGEMENT])
 
 @router.get("/{worker_id}/contract", dependencies=[Depends(allow_manage_hr)])
-def get_worker_contract(worker_id: int, db: Session = Depends(get_db)):
-    worker = db.query(Employee).filter(Employee.id == worker_id).first()
+def get_worker_contract(
+    worker_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    query = db.query(Employee).filter(Employee.id == worker_id)
+    if current_user.organization_id:
+        query = query.filter(Employee.organization_id == current_user.organization_id)
+    worker = query.first()
     if not worker:
-        raise HTTPException(status_code=404, detail="Trabajador no encontrado")
+        raise HTTPException(status_code=404, detail="Trabajador no encontrado o no pertenece a su organización")
     
     # Preparamos los datos para el servicio de PDF
     worker_data = {
@@ -43,39 +50,71 @@ def get_worker_contract(worker_id: int, db: Session = Depends(get_db)):
     )
 
 @router.get("/", response_model=List[EmployeeOut], dependencies=[Depends(allow_read_hr)])
-def read_workers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    workers = db.query(Employee).offset(skip).limit(limit).all()
+def read_workers(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    query = db.query(Employee)
+    if current_user.organization_id:
+        query = query.filter(Employee.organization_id == current_user.organization_id)
+    workers = query.offset(skip).limit(limit).all()
     return workers
 
 @router.post("/", response_model=EmployeeOut, dependencies=[Depends(allow_manage_hr)])
-def create_worker(worker_in: EmployeeCreate, db: Session = Depends(get_db)):
+def create_worker(
+    worker_in: EmployeeCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     if not validate_rut(worker_in.rut):
         raise HTTPException(status_code=400, detail="RUT inválido")
     
     worker_in.rut = format_rut(worker_in.rut)
     
+    # Validar RUT duplicado global o por organización (los RUTs son únicos globales usualmente)
     db_worker = db.query(Employee).filter(Employee.rut == worker_in.rut).first()
     if db_worker:
         raise HTTPException(status_code=400, detail="El trabajador ya está registrado")
     
-    new_worker = Employee(**worker_in.model_dump())
+    # Filtrar solo los campos que existen en la tabla de la BD
+    db_keys = {c.key for c in Employee.__table__.columns}
+    worker_dict = {k: v for k, v in worker_in.model_dump().items() if k in db_keys}
+    new_worker = Employee(**worker_dict)
+    new_worker.organization_id = current_user.organization_id
     db.add(new_worker)
     db.commit()
     db.refresh(new_worker)
     return new_worker
 
 @router.get("/{worker_id}", response_model=EmployeeOut, dependencies=[Depends(allow_read_hr)])
-def read_worker(worker_id: int, db: Session = Depends(get_db)):
-    worker = db.query(Employee).filter(Employee.id == worker_id).first()
+def read_worker(
+    worker_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    query = db.query(Employee).filter(Employee.id == worker_id)
+    if current_user.organization_id:
+        query = query.filter(Employee.organization_id == current_user.organization_id)
+    worker = query.first()
     if not worker:
-        raise HTTPException(status_code=404, detail="Trabajador no encontrado")
+        raise HTTPException(status_code=404, detail="Trabajador no encontrado o no pertenece a su organización")
     return worker
 
 @router.put("/{worker_id}", response_model=EmployeeOut, dependencies=[Depends(allow_manage_hr)])
-def update_worker(worker_id: int, worker_in: EmployeeUpdate, db: Session = Depends(get_db)):
-    db_worker = db.query(Employee).filter(Employee.id == worker_id).first()
+def update_worker(
+    worker_id: int,
+    worker_in: EmployeeUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    query = db.query(Employee).filter(Employee.id == worker_id)
+    if current_user.organization_id:
+        query = query.filter(Employee.organization_id == current_user.organization_id)
+    db_worker = query.first()
     if not db_worker:
-        raise HTTPException(status_code=404, detail="Trabajador no encontrado")
+        raise HTTPException(status_code=404, detail="Trabajador no encontrado o no pertenece a su organización")
     
     update_data = worker_in.model_dump(exclude_unset=True)
     
@@ -92,10 +131,18 @@ def update_worker(worker_id: int, worker_in: EmployeeUpdate, db: Session = Depen
     return db_worker
 
 @router.delete("/{worker_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(allow_manage_hr)])
-def delete_worker(worker_id: int, force: bool = False, db: Session = Depends(get_db)):
-    db_worker = db.query(Employee).filter(Employee.id == worker_id).first()
+def delete_worker(
+    worker_id: int,
+    force: bool = False,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    query = db.query(Employee).filter(Employee.id == worker_id)
+    if current_user.organization_id:
+        query = query.filter(Employee.organization_id == current_user.organization_id)
+    db_worker = query.first()
     if not db_worker:
-        raise HTTPException(status_code=404, detail="Trabajador no encontrado")
+        raise HTTPException(status_code=404, detail="Trabajador no encontrado o no pertenece a su organización")
         
     # Verificar si tiene asignaciones activas
     active_assignments = db.query(ProjectAssignment).filter(
@@ -298,7 +345,8 @@ async def import_workers_excel(
             "success": len(errors) == 0
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error leyendo archivo Excel: {e}")
+        print(f"Error importando Excel: {e}")
+        raise HTTPException(status_code=500, detail="Error interno al procesar el archivo Excel. Asegúrese de que el formato sea correcto.")
 
 def generate_vacation_document_pdf(employee, request) -> bytes:
     from app.services.pdf_service import BasePDFService
@@ -355,9 +403,12 @@ def create_vacation_request(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    worker = db.query(Employee).filter(Employee.id == req_in.employee_id).first()
+    query = db.query(Employee).filter(Employee.id == req_in.employee_id)
+    if current_user.organization_id:
+        query = query.filter(Employee.organization_id == current_user.organization_id)
+    worker = query.first()
     if not worker:
-        raise HTTPException(status_code=404, detail="Trabajador no encontrado")
+        raise HTTPException(status_code=404, detail="Trabajador no encontrado en su organización")
         
     if worker.vacation_balance < req_in.days_requested:
         raise HTTPException(
@@ -400,9 +451,12 @@ def approve_vacation_request(
     if current_user.role not in [UserRole.ADMIN, UserRole.MANAGEMENT, UserRole.PROJECT_MANAGER]:
         raise HTTPException(status_code=403, detail="No tiene permisos para autorizar vacaciones.")
         
-    req = db.query(VacationRequest).filter(VacationRequest.id == request_id).first()
+    query = db.query(VacationRequest).join(Employee).filter(VacationRequest.id == request_id)
+    if current_user.organization_id:
+        query = query.filter(Employee.organization_id == current_user.organization_id)
+    req = query.first()
     if not req:
-        raise HTTPException(status_code=404, detail="Solicitud de vacaciones no encontrada")
+        raise HTTPException(status_code=404, detail="Solicitud de vacaciones no encontrada o no pertenece a su organización")
         
     if req.status != "PENDING_APPROVAL":
         raise HTTPException(status_code=400, detail=f"La solicitud no se encuentra pendiente. Estado actual: {req.status}")
@@ -460,9 +514,12 @@ def rebate_vacation_request(
     if current_user.role not in [UserRole.ADMIN, UserRole.HR_MANAGER]:
         raise HTTPException(status_code=403, detail="No tiene permisos para efectuar la rebaja de vacaciones.")
         
-    req = db.query(VacationRequest).filter(VacationRequest.id == request_id).first()
+    query = db.query(VacationRequest).join(Employee).filter(VacationRequest.id == request_id)
+    if current_user.organization_id:
+        query = query.filter(Employee.organization_id == current_user.organization_id)
+    req = query.first()
     if not req:
-        raise HTTPException(status_code=404, detail="Solicitud de vacaciones no encontrada")
+        raise HTTPException(status_code=404, detail="Solicitud de vacaciones no encontrada o no pertenece a su organización")
         
     if req.status != "APPROVED":
         raise HTTPException(status_code=400, detail="La solicitud debe estar AUTORIZADA previamente para efectuar la rebaja.")
@@ -490,9 +547,12 @@ async def upload_signed_vacation_doc(
     current_user = Depends(get_current_user)
 ):
     from app.models.core import Document
-    req = db.query(VacationRequest).filter(VacationRequest.id == request_id).first()
+    query = db.query(VacationRequest).join(Employee).filter(VacationRequest.id == request_id)
+    if current_user.organization_id:
+        query = query.filter(Employee.organization_id == current_user.organization_id)
+    req = query.first()
     if not req:
-        raise HTTPException(status_code=404, detail="Solicitud de vacaciones no encontrada")
+        raise HTTPException(status_code=404, detail="Solicitud de vacaciones no encontrada o no pertenece a su organización")
         
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in [".pdf", ".jpg", ".jpeg", ".png"]:
@@ -525,5 +585,11 @@ async def upload_signed_vacation_doc(
     return {"message": "Documento firmado subido exitosamente", "document_path": req.document_path}
 
 @router.get("/vacations/requests", response_model=List[VacationRequestOut], dependencies=[Depends(allow_read_hr)])
-def list_vacation_requests(db: Session = Depends(get_db)):
-    return db.query(VacationRequest).order_by(VacationRequest.created_at.desc()).all()
+def list_vacation_requests(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    query = db.query(VacationRequest).join(Employee)
+    if current_user.organization_id:
+        query = query.filter(Employee.organization_id == current_user.organization_id)
+    return query.order_by(VacationRequest.created_at.desc()).all()

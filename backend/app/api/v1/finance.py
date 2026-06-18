@@ -18,6 +18,8 @@ def read_expenses(
     current_user: core.User = Depends(deps.get_current_user),
 ) -> Any:
     query = db.query(core.Expense)
+    if current_user.organization_id:
+        query = query.filter(core.Expense.organization_id == current_user.organization_id)
     if project_id:
         query = query.filter(core.Expense.project_id == project_id)
     return query.offset(skip).limit(limit).all()
@@ -31,7 +33,8 @@ def create_expense(
 ) -> Any:
     expense = core.Expense(
         **expense_in.dict(),
-        created_by=current_user.id
+        created_by=current_user.id,
+        organization_id=current_user.organization_id
     )
     db.add(expense)
     db.commit()
@@ -47,6 +50,8 @@ def read_invoices(
     current_user: core.User = Depends(deps.get_current_user),
 ) -> Any:
     query = db.query(core.Invoice)
+    if current_user.organization_id:
+        query = query.filter(core.Invoice.organization_id == current_user.organization_id)
     if project_id:
         query = query.filter(core.Invoice.project_id == project_id)
     return query.offset(skip).limit(limit).all()
@@ -58,37 +63,46 @@ def create_invoice(
     invoice_in: InvoiceCreate,
     current_user: core.User = Depends(deps.get_current_user),
 ) -> Any:
-    invoice = core.Invoice(**invoice_in.dict())
+    invoice = core.Invoice(
+        **invoice_in.dict(),
+        organization_id=current_user.organization_id
+    )
     db.add(invoice)
     db.commit()
     db.refresh(invoice)
     return invoice
 
-@router.patch("/invoices/{invoice_id}/status")
+@router.patch("/invoices/{invoice_id}/status", dependencies=[Depends(allow_write_finance)])
 def update_invoice_status(
     invoice_id: str,
     status_in: str,
     db: Session = Depends(deps.get_db),
     current_user: core.User = Depends(deps.get_current_user),
 ) -> Any:
-    invoice = db.query(core.Invoice).filter(core.Invoice.id == invoice_id).first()
+    query = db.query(core.Invoice).filter(core.Invoice.id == invoice_id)
+    if current_user.organization_id:
+        query = query.filter(core.Invoice.organization_id == current_user.organization_id)
+    invoice = query.first()
     if not invoice:
-        raise HTTPException(status_code=404, detail="Factura no encontrada")
+        raise HTTPException(status_code=404, detail="Factura no encontrada o no pertenece a su organización")
     invoice.status = status_in
     db.commit()
     db.refresh(invoice)
     return invoice
 
-@router.patch("/expenses/{expense_id}/status")
+@router.patch("/expenses/{expense_id}/status", dependencies=[Depends(allow_write_finance)])
 def update_expense_status(
     expense_id: str,
     is_paid: bool,
     db: Session = Depends(deps.get_db),
     current_user: core.User = Depends(deps.get_current_user),
 ) -> Any:
-    expense = db.query(core.Expense).filter(core.Expense.id == expense_id).first()
+    query = db.query(core.Expense).filter(core.Expense.id == expense_id)
+    if current_user.organization_id:
+        query = query.filter(core.Expense.organization_id == current_user.organization_id)
+    expense = query.first()
     if not expense:
-        raise HTTPException(status_code=404, detail="Gasto no encontrado")
+        raise HTTPException(status_code=404, detail="Gasto no encontrado o no pertenece a su organización")
     expense.is_paid = is_paid
     db.commit()
     db.refresh(expense)

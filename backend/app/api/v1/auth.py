@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.db.session import get_db
 from app.core import security
-from app.models.core import User, Role, Permission, UserRoleRel, role_permissions
+from app.models.core import User, Role, Permission, UserRoleRel, role_permissions, UserRole
 from app.schemas.user import Token, UserOut, UserCreate, UserMe
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, RoleChecker
 
 router = APIRouter()
 
@@ -90,13 +90,15 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
             }
         }
         
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         import traceback
         print("!!! ERROR CRÍTICO EN LOGIN !!!")
         print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Error interno del servidor al procesar el inicio de sesión")
 
-@router.post("/register", response_model=UserOut)
+@router.post("/register", response_model=UserOut, dependencies=[Depends(RoleChecker([UserRole.ADMIN]))])
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_in.email).first()
     if user:

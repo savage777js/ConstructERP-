@@ -328,7 +328,10 @@ const Documents = () => {
 
                             <div className="flex gap-2 mt-5 pt-3 border-t border-white/5">
                               <a 
-                                href={api.defaults.baseURL ? `${api.defaults.baseURL.replace('/api/v1', '')}${doc.file_path}` : doc.file_path}
+                                href={api.defaults.baseURL 
+                                  ? `${api.defaults.baseURL.replace('/api/v1', '')}${doc.file_path}?token=${localStorage.getItem('token')}` 
+                                  : `${doc.file_path}?token=${localStorage.getItem('token')}`
+                                }
                                 target="_blank"
                                 rel="noreferrer"
                                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all text-xs"

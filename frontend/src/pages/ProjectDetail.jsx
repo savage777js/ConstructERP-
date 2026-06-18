@@ -1237,7 +1237,10 @@ const ProjectDetail = () => {
                       <span className="text-[10px] text-slate-500 font-semibold uppercase">{doc.category}</span>
                     </div>
                     <a 
-                      href={api.defaults.baseURL ? `${api.defaults.baseURL.replace('/api/v1', '')}${doc.file_path}` : doc.file_path}
+                      href={api.defaults.baseURL 
+                        ? `${api.defaults.baseURL.replace('/api/v1', '')}${doc.file_path}?token=${localStorage.getItem('token')}` 
+                        : `${doc.file_path}?token=${localStorage.getItem('token')}`
+                      }
                       target="_blank"
                       rel="noreferrer"
                       className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold transition-all text-center"

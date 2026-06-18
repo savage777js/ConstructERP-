@@ -120,6 +120,14 @@ def list_employee_documents(
     current_user: core.User = Depends(deps.get_current_user),
 ):
     """Lista todos los documentos cargados para un trabajador específico."""
+    # Verificar pertenencia a la organización
+    query_emp = db.query(core.Employee).filter(core.Employee.id == employee_id)
+    if current_user.organization_id:
+        query_emp = query_emp.filter(core.Employee.organization_id == current_user.organization_id)
+    employee = query_emp.first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Trabajador no encontrado en su organización")
+
     docs = db.query(core.Document).filter(core.Document.employee_id == employee_id).all()
     return [{
         "id": str(d.id),
@@ -139,9 +147,12 @@ def delete_document(
     current_user: core.User = Depends(deps.get_current_user),
 ):
     """Elimina un documento."""
-    doc = db.query(core.Document).filter(core.Document.id == document_id).first()
+    query = db.query(core.Document).filter(core.Document.id == document_id)
+    if current_user.organization_id:
+        query = query.filter(core.Document.organization_id == current_user.organization_id)
+    doc = query.first()
     if not doc:
-        raise HTTPException(status_code=404, detail="Documento no encontrado")
+        raise HTTPException(status_code=404, detail="Documento no encontrado o no pertenece a su organización")
         
     db.delete(doc)
     db.commit()
@@ -154,9 +165,12 @@ async def process_document_ocr(
     current_user: core.User = Depends(deps.get_current_user),
 ):
     """Procesa mediante OCR un documento ya existente en la base de datos."""
-    doc = db.query(core.Document).filter(core.Document.id == document_id).first()
+    query = db.query(core.Document).filter(core.Document.id == document_id)
+    if current_user.organization_id:
+        query = query.filter(core.Document.organization_id == current_user.organization_id)
+    doc = query.first()
     if not doc:
-        raise HTTPException(status_code=404, detail="Documento no encontrado")
+        raise HTTPException(status_code=404, detail="Documento no encontrado o no pertenece a su organización")
         
     # Verificar que el archivo sea una imagen
     ext = os.path.splitext(doc.file_path)[1].lower()

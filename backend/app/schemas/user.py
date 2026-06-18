@@ -6,7 +6,7 @@ from app.models.core import UserRole
 class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
-    role: UserRole = UserRole.ADMIN
+    role: UserRole = UserRole.PROJECT_MANAGER
     rut: Optional[str] = None
 
 class UserCreate(UserBase):
