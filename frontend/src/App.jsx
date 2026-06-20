@@ -13,6 +13,7 @@ import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
 import Capataz from './pages/Capataz';
 import Hierarchy from './pages/Hierarchy';
+import Admin from './pages/Admin';
 import Can from './components/Can';
 
 const ProtectedRoute = ({ children, requiredPermission }) => {
@@ -38,7 +39,7 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
 };
 
 const TopHeader = ({ onOpenSidebar }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, roleLabel } = useAuth();
   const [isLight, setIsLight] = useState(localStorage.getItem('theme') === 'light');
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -89,7 +90,7 @@ const TopHeader = ({ onOpenSidebar }) => {
           </div>
           <div className="hidden sm:flex flex-col text-left">
             <span className="text-xs font-bold text-white leading-none mb-1">{user?.full_name || 'Usuario'}</span>
-            <span className="text-[9px] text-slate-500 font-medium uppercase leading-none">{user?.role || 'Invitado'}</span>
+            <span className="text-[9px] text-slate-500 font-medium uppercase leading-none">{roleLabel || user?.role || 'Invitado'}</span>
           </div>
         </div>
 
@@ -153,7 +154,15 @@ const MainLayout = ({ children }) => {
 };
 
 function AppRoutes() {
-  const { user, login } = useAuth();
+  const { user, loading, login } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-main)' }}>
+        <div className="loader">Cargando...</div>
+      </div>
+    );
+  }
 
   return (
     <Router>
@@ -261,6 +270,17 @@ function AppRoutes() {
             <ProtectedRoute>
               <MainLayout>
                 <Capataz />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Admin />
               </MainLayout>
             </ProtectedRoute>
           } 

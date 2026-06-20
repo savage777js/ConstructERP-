@@ -13,8 +13,9 @@ import io
 router = APIRouter()
 
 # Dependencias de rol
-allow_manage_hr = RoleChecker([UserRole.ADMIN, UserRole.HR_MANAGER])
-allow_read_hr = RoleChecker([UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.PROJECT_MANAGER, UserRole.MANAGEMENT])
+# Gerente General (MANAGEMENT) solo puede leer — no puede crear/editar/eliminar
+allow_manage_hr = RoleChecker([UserRole.HR_MANAGER, UserRole.PROJECT_MANAGER])
+allow_read_hr = RoleChecker([UserRole.HR_MANAGER, UserRole.PROJECT_MANAGER, UserRole.MANAGEMENT, UserRole.INVENTORY_MANAGER])
 
 @router.get("/{worker_id}/contract", dependencies=[Depends(allow_manage_hr)])
 def get_worker_contract(
@@ -448,7 +449,7 @@ def approve_vacation_request(
     current_user = Depends(get_current_user)
 ):
     from app.models.core import UserRole
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGEMENT, UserRole.PROJECT_MANAGER]:
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGEMENT, UserRole.PROJECT_MANAGER, UserRole.HR_MANAGER]:
         raise HTTPException(status_code=403, detail="No tiene permisos para autorizar vacaciones.")
         
     query = db.query(VacationRequest).join(Employee).filter(VacationRequest.id == request_id)
@@ -511,7 +512,7 @@ def rebate_vacation_request(
     current_user = Depends(get_current_user)
 ):
     from app.models.core import UserRole
-    if current_user.role not in [UserRole.ADMIN, UserRole.HR_MANAGER]:
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.PROJECT_MANAGER]:
         raise HTTPException(status_code=403, detail="No tiene permisos para efectuar la rebaja de vacaciones.")
         
     query = db.query(VacationRequest).join(Employee).filter(VacationRequest.id == request_id)

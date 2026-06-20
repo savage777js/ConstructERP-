@@ -40,12 +40,13 @@ class ReportService:
         can_see_salary = current_user_role in [UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.MANAGEMENT]
         
         for w in workers:
+            status_val = w.status.value if hasattr(w.status, "value") else str(w.status) if w.status else "ACTIVE"
             item = {
                 "Nombre": f"{w.first_name} {w.last_name}",
                 "RUT": w.rut,
                 "Cargo": w.role,
                 "Fecha Ingreso": w.hire_date.strftime('%d/%m/%Y') if w.hire_date else "N/A",
-                "Estado": STATUS_TRANSLATIONS.get(w.status.value, w.status.value)
+                "Estado": STATUS_TRANSLATIONS.get(status_val, status_val)
             }
             if can_see_salary:
                 item["Sueldo Base"] = f"${w.salary:,}".replace(',', '.')

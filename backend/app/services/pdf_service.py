@@ -172,3 +172,56 @@ class ContractService:
 
         # Generate as bytes
         return pdf.output()
+
+
+class ReportPDFService:
+    @staticmethod
+    def generate_executive_report(markdown_text: str) -> bytes:
+        pdf = BasePDFService()
+        pdf.alias_nb_pages()
+        pdf.add_page()
+        
+        pdf.set_font("helvetica", 'B', 16)
+        pdf.cell(0, 10, "INFORME EJECUTIVO DE GESTION GERENCIAL", ln=True, align='C')
+        pdf.set_font("helvetica", 'I', 10)
+        pdf.cell(0, 5, f"Fecha de Emision: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=True, align='C')
+        pdf.ln(8)
+        
+        lines = markdown_text.split('\n')
+        pdf.set_font("helvetica", size=10)
+        
+        for line in lines:
+            line_str = line.strip()
+            if not line_str:
+                pdf.ln(3)
+                continue
+                
+            # Cabeceras
+            if line_str.startswith('# '):
+                pdf.ln(5)
+                pdf.set_font("helvetica", 'B', 13)
+                pdf.cell(0, 8, line_str[2:].replace('**', ''), ln=True)
+                pdf.set_font("helvetica", size=10)
+            elif line_str.startswith('## '):
+                pdf.ln(4)
+                pdf.set_font("helvetica", 'B', 11)
+                pdf.cell(0, 7, line_str[3:].replace('**', ''), ln=True)
+                pdf.set_font("helvetica", size=10)
+            elif line_str.startswith('### '):
+                pdf.ln(3)
+                pdf.set_font("helvetica", 'B', 10)
+                pdf.cell(0, 6, line_str[4:].replace('**', ''), ln=True)
+                pdf.set_font("helvetica", size=10)
+            # Viñetas
+            elif line_str.startswith('* ') or line_str.startswith('- ') or line_str.startswith('• '):
+                content = line_str[2:].replace('**', '')
+                pdf.set_x(15)
+                pdf.write(5, "- ")
+                pdf.multi_cell(0, 5, content)
+            else:
+                # Párrafos normales
+                content = line_str.replace('**', '')
+                pdf.multi_cell(0, 5, content)
+                
+        return pdf.output()
+

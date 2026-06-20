@@ -32,11 +32,12 @@ def generate_uuid():
 
 # --- Enums ---
 class UserRole(str, enum.Enum):
-    ADMIN = "ADMIN"
-    HR_MANAGER = "HR_MANAGER"
-    PROJECT_MANAGER = "PROJECT_MANAGER"
+    SUPER_ADMIN = "SUPER_ADMIN"
+    ADMIN = "ADMIN"               # Legacy — same as SUPER_ADMIN
+    HR_MANAGER = "HR_MANAGER"     # Recursos Humanos
+    PROJECT_MANAGER = "PROJECT_MANAGER"  # Encargado de Proyecto
     INVENTORY_MANAGER = "INVENTORY_MANAGER"
-    MANAGEMENT = "MANAGEMENT"
+    MANAGEMENT = "MANAGEMENT"     # Gerente General (solo lectura)
 
 class NotificationType(str, enum.Enum):
     CONTRACT_EXPIRING = "CONTRACT_EXPIRING"
@@ -371,5 +372,18 @@ class VacationRequest(Base):
     employee = relationship("Employee", back_populates="vacations")
     approver = relationship("User", foreign_keys=[approved_by])
     rebater = relationship("User", foreign_keys=[rebated_by])
+
+
+class AIAuditLog(Base):
+    __tablename__ = "ai_audit_logs"
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    query = Column(Text, nullable=False)
+    response = Column(Text, nullable=True)
+    tool_calls = Column(JSON, default=[])  # Lista de herramientas invocadas, argumentos y retornos
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")
+
 
 

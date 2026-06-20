@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { Search, Plus, Briefcase, Calendar, MapPin, ChevronRight, Loader2, User, Archive, AlertTriangle, DollarSign } from 'lucide-react';
 import ProjectForm from '../components/ProjectForm';
+import { useAuth } from '../context/AuthContext';
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
@@ -12,10 +13,11 @@ const Projects = () => {
   const [closingProjectId, setClosingProjectId] = useState(null);
   const [closingLoading, setClosingLoading] = useState(false);
   const navigate = useNavigate();
+  const { canWrite } = useAuth();
   
-  const userRole = localStorage.getItem('userRole');
-  const canCreate = ['ADMIN', 'PROJECT_MANAGER'].includes(userRole);
-  const canClose = ['ADMIN', 'PROJECT_MANAGER'].includes(userRole);
+  // Solo roles operativos pueden crear/cerrar proyectos
+  const canCreate = canWrite();
+  const canClose = canWrite();
 
   useEffect(() => {
     fetchProjects();

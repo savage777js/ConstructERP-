@@ -54,6 +54,9 @@ class RoleChecker:
         self.allowed_roles = allowed_roles
 
     def __call__(self, user: User = Depends(get_current_user)):
+        # Super Admin and legacy Admin bypass all role checks
+        if user.role in [UserRole.SUPER_ADMIN, UserRole.ADMIN]:
+            return True
         if user.role not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

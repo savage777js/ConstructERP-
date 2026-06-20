@@ -7,7 +7,7 @@ from app.models import core
 
 router = APIRouter()
 
-allow_write_finance = deps.RoleChecker([core.UserRole.ADMIN, core.UserRole.PROJECT_MANAGER, core.UserRole.INVENTORY_MANAGER])
+allow_write_finance = deps.RoleChecker([core.UserRole.ADMIN, core.UserRole.PROJECT_MANAGER, core.UserRole.INVENTORY_MANAGER, core.UserRole.MANAGEMENT])
 
 @router.get("/expenses", response_model=List[ExpenseOut])
 def read_expenses(

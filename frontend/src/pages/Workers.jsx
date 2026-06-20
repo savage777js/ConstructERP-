@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { Plus, Search, MoreVertical, Edit2, Trash2, UserPlus, UserMinus, Loader2, FileText, AlertTriangle, CheckCircle2, Users, Calendar, DollarSign, Download, Briefcase } from 'lucide-react';
 import WorkerForm from '../components/WorkerForm';
+import { useAuth } from '../context/AuthContext';
 
 const Workers = () => {
   const [workers, setWorkers] = useState([]);
@@ -11,13 +12,13 @@ const Workers = () => {
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [salaryFilter, setSalaryFilter] = useState('ALL');
-  const [actionWorker, setActionWorker] = useState(null); // Worker selected for hover action menu
+  const [actionWorker, setActionWorker] = useState(null);
   
   const [closingWorkerId, setClosingWorkerId] = useState(null);
   const [activeAssignmentsWarning, setActiveAssignmentsWarning] = useState(null);
   const [closingLoading, setClosingLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState('directory'); // 'directory' or 'vacations'
+  const [activeTab, setActiveTab] = useState('directory');
   const [vacationRequests, setVacationRequests] = useState([]);
   const [showVacationModal, setShowVacationModal] = useState(false);
   const [vacationForm, setVacationForm] = useState({
@@ -28,11 +29,12 @@ const Workers = () => {
   });
 
   const navigate = useNavigate();
+  const { canWrite, isReadOnly, role: userRole } = useAuth();
 
-  const userRole = localStorage.getItem('userRole');
-  const canManage = ['ADMIN', 'HR_MANAGER'].includes(userRole);
-
-  const canReadHR = ['ADMIN', 'HR_MANAGER', 'MANAGEMENT', 'PROJECT_MANAGER'].includes(userRole);
+  // canManage = puede crear/editar/eliminar
+  const canManage = canWrite();
+  // canReadHR = puede ver módulo de RRHH
+  const canReadHR = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'MANAGEMENT', 'PROJECT_MANAGER'].includes(userRole);
 
   useEffect(() => {
     fetchWorkers();

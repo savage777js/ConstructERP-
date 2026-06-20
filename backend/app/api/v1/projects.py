@@ -11,10 +11,10 @@ from app.api.deps import RoleChecker, get_current_user, RoleChecker as role_chec
 
 router = APIRouter()
 
-# Dependencias de rol
-allow_manage_proj = RoleChecker([UserRole.ADMIN, UserRole.PROJECT_MANAGER])
-allow_read_proj = RoleChecker([UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.MANAGEMENT, UserRole.HR_MANAGER, UserRole.INVENTORY_MANAGER])
-allow_assign_worker = RoleChecker([UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.HR_MANAGER])
+# Dependencias de rol — MANAGEMENT (Gerente General) es solo lectura
+allow_manage_proj = RoleChecker([UserRole.PROJECT_MANAGER])
+allow_read_proj = RoleChecker([UserRole.PROJECT_MANAGER, UserRole.MANAGEMENT, UserRole.HR_MANAGER, UserRole.INVENTORY_MANAGER])
+allow_assign_worker = RoleChecker([UserRole.PROJECT_MANAGER, UserRole.HR_MANAGER])
 
 @router.get("/", response_model=List[ProjectOut], dependencies=[Depends(allow_read_proj)])
 def list_projects(
@@ -84,8 +84,8 @@ def approve_worker_assignment(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    # Solo ADMIN o MANAGEMENT pueden dar visto bueno
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGEMENT]:
+    # Solo ADMIN, SUPER_ADMIN o MANAGEMENT pueden dar visto bueno
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGEMENT, UserRole.PROJECT_MANAGER]:
          raise HTTPException(status_code=403, detail="No tiene permisos para dar visto bueno")
     return ProjectService.approve_assignment(db, project_id, assignment_id, current_user.id, current_user.organization_id)
 
@@ -100,8 +100,8 @@ def update_worker_assignment_notes(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    # Solo ADMIN o MANAGEMENT pueden editar notas de asignación
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGEMENT]:
+    # Solo ADMIN, SUPER_ADMIN o MANAGEMENT pueden editar notas de asignación
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGEMENT, UserRole.PROJECT_MANAGER]:
          raise HTTPException(status_code=403, detail="No tiene permisos para modificar notas de gerencia")
     return ProjectService.update_assignment_notes(db, project_id, assignment_id, notes_in.notes, current_user.id, current_user.organization_id)
 
