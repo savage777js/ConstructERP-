@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
-import { Sun, Moon, LogOut, User } from 'lucide-react';
+import { LogOut, User, ChevronDown } from 'lucide-react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Workers from './pages/Workers';
@@ -40,19 +40,7 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
 
 const TopHeader = ({ onOpenSidebar }) => {
   const { user, logout, roleLabel } = useAuth();
-  const [isLight, setIsLight] = useState(localStorage.getItem('theme') === 'light');
   const [menuOpen, setMenuOpen] = useState(false);
-
-  const toggleTheme = () => {
-    const newTheme = !isLight;
-    setIsLight(newTheme);
-    localStorage.setItem('theme', newTheme ? 'light' : 'dark');
-    if (newTheme) {
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
-    }
-  };
 
   return (
     <div className="flex justify-between items-center px-4 sm:px-6 py-4 bg-[var(--bg-sidebar)]/50 border-b border-[var(--border)] backdrop-blur-md sticky top-0 z-30">
@@ -73,13 +61,6 @@ const TopHeader = ({ onOpenSidebar }) => {
       </div>
 
       <div className="flex items-center gap-4 ml-auto relative">
-        <button 
-          onClick={toggleTheme}
-          className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-all"
-          title={isLight ? 'Modo Oscuro' : 'Modo Claro'}
-        >
-          {isLight ? <Moon size={18} /> : <Sun size={18} />}
-        </button>
 
         <div 
           onClick={() => setMenuOpen(!menuOpen)}
@@ -92,6 +73,7 @@ const TopHeader = ({ onOpenSidebar }) => {
             <span className="text-xs font-bold text-white leading-none mb-1">{user?.full_name || 'Usuario'}</span>
             <span className="text-[9px] text-slate-500 font-medium uppercase leading-none">{roleLabel || user?.role || 'Invitado'}</span>
           </div>
+          <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`} />
         </div>
 
         {menuOpen && (

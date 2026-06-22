@@ -589,14 +589,15 @@ const Capataz = () => {
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               disabled={isTyping || isUploading}
             />
+            <button 
+              className="capataz-send-btn" 
+              onClick={() => handleSend()}
+              disabled={!inputValue.trim() || isTyping || isUploading}
+              title="Enviar consulta"
+            >
+              <Send size={18} />
+            </button>
           </div>
-          <button 
-            className="capataz-send-btn" 
-            onClick={() => handleSend()}
-            disabled={!inputValue.trim() || isTyping || isUploading}
-          >
-            <Send size={20} />
-          </button>
         </footer>
 
       </main>

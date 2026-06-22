@@ -35,7 +35,9 @@ const Hierarchy = () => {
   };
 
   const getWorkerRank = (role = "") => {
-    const r = role.toLowerCase();
+    const r = role.toLowerCase()
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "");
     if (r.includes('gerente') || r.includes('director') || r.includes('ceo') || r.includes('general')) return 1;
     if (r.includes('ingenier') || r.includes('civil') || r.includes('admin') || r.includes('oficina') || r.includes('prevencion') || r.includes('compras') || r.includes('encargado') || r.includes('proyecto')) return 2;
     if (r.includes('topograf') || r.includes('capataz') || r.includes('supervis') || r.includes('jefe')) return 3;

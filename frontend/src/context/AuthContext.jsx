@@ -76,7 +76,12 @@ export const AuthProvider = ({ children }) => {
 
     // Gerente General solo puede ver — nunca crear, editar o eliminar
     if (role === 'MANAGEMENT') {
-      return permissionSlug.startsWith('view:') || permissionSlug.startsWith('read:');
+      return permissionSlug.startsWith('view:') || 
+             permissionSlug.startsWith('read:') ||
+             permissionSlug.endsWith(':view') ||
+             permissionSlug.endsWith(':read') ||
+             permissionSlug.includes(':view') ||
+             permissionSlug.includes(':read');
     }
 
     // HR_MANAGER: gestión de personal, sin acceso a inventario ni configuraciones

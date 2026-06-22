@@ -1,4 +1,4 @@
-import { Users, LayoutDashboard, Briefcase, Bell, LogOut, BarChart, Sun, Moon, Sparkles, GitBranch, FileText, Settings, ShieldCheck } from 'lucide-react';
+import { Users, LayoutDashboard, Briefcase, Bell, LogOut, BarChart, Sparkles, GitBranch, FileText, Settings, ShieldCheck, Lock, HardHat } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import api from '../api';
@@ -16,21 +16,10 @@ const ROLE_COLORS = {
 const Sidebar = ({ onLogout, onCloseMobile }) => {
   const { user, role, isSuperAdmin } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isLight, setIsLight] = useState(localStorage.getItem('theme') === 'light');
-
   useEffect(() => {
-    if (isLight) {
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
-    }
-  }, [isLight]);
-
-  const toggleTheme = () => {
-    const newTheme = !isLight;
-    setIsLight(newTheme);
-    localStorage.setItem('theme', newTheme ? 'light' : 'dark');
-  };
+    document.documentElement.classList.remove('light');
+    localStorage.setItem('theme', 'dark');
+  }, []);
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -113,7 +102,10 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
     },
   ];
 
-  const navItems = allNavItems.filter(item => item.roles.includes(currentRole));
+  const navItems = allNavItems.map(item => ({
+    ...item,
+    isLocked: !item.roles.includes(currentRole),
+  }));
 
   const getNavStyle = (item, isActive) => {
     if (item.special === 'admin') {
@@ -163,17 +155,13 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.25rem' }}>
           <div style={{
             width: '44px', height: '44px', minWidth: '44px', minHeight: '44px',
-            background: 'white', borderRadius: '12px',
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(234, 88, 12, 0.15))',
+            borderRadius: '12px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-            overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.1)'
+            boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15)',
+            border: '1px solid rgba(245, 158, 11, 0.25)'
           }}>
-            <img
-              src="/logo.jpg"
-              alt="Serconind Logo"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
+            <HardHat size={22} style={{ color: '#f59e0b' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <h2 style={{
@@ -184,94 +172,66 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
             }}>
               ConstructERP
             </h2>
-            <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px', opacity: 0.6 }}>
-              Tech Division
+            <span style={{ fontSize: '8px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px', opacity: 0.6, letterSpacing: '0.03em', lineHeight: 1.2 }}>
+              Empresa: Constructora Serconind
             </span>
           </div>
         </div>
       </div>
 
-      {/* User Role Badge */}
-      <div style={{ padding: '0 1.5rem 1.25rem' }}>
-        <div style={{
-          background: roleColor.bg,
-          border: `1px solid ${roleColor.border}`,
-          borderRadius: '10px',
-          padding: '0.625rem 0.875rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-        }}>
-          <div style={{
-            width: '7px', height: '7px', borderRadius: '50%',
-            background: roleColor.text,
-            boxShadow: `0 0 6px ${roleColor.text}`,
-            flexShrink: 0,
-          }} />
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: '10px', fontWeight: 800, color: roleColor.text, textTransform: 'uppercase', letterSpacing: '0.06em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {roleLabel}
-            </p>
-            <p style={{ fontSize: '9px', color: 'var(--text-muted)', opacity: 0.7, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {user?.full_name || user?.email || 'Usuario'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, var(--border), transparent)', margin: '0 2rem 1.25rem' }} />
+      {/* Removed User Role Badge for better vertical space */}
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '0 1rem', display: 'flex', flexDirection: 'column', gap: '3px', overflowY: 'auto' }}>
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            onClick={() => onCloseMobile && onCloseMobile()}
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.7rem 1rem',
-              borderRadius: '12px',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-              ...getNavStyle(item, isActive),
-            })}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <item.icon size={18} />
-              <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{item.name}</span>
-            </div>
-            {item.count > 0 && (
-              <span style={{
-                background: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 900,
-                padding: '2px 8px', borderRadius: '99px', boxShadow: '0 4px 12px rgba(239,68,68,0.2)'
-              }}>
-                {item.count > 99 ? '99+' : item.count}
-              </span>
-            )}
-          </NavLink>
-        ))}
+        {navItems.map((item) => {
+          const isLocked = item.isLocked;
+          return (
+            <NavLink
+              key={item.path}
+              to={isLocked ? '#' : item.path}
+              onClick={(e) => {
+                if (isLocked) {
+                  e.preventDefault();
+                  return;
+                }
+                if (onCloseMobile) onCloseMobile();
+              }}
+              style={({ isActive }) => ({
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.7rem 1rem',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+                opacity: isLocked ? 0.45 : 1,
+                cursor: isLocked ? 'not-allowed' : 'pointer',
+                ...getNavStyle(item, isActive && !isLocked),
+              })}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <item.icon size={18} style={{ color: isLocked ? '#64748b' : 'inherit' }} />
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: isLocked ? '#64748b' : 'inherit' }}>{item.name}</span>
+              </div>
+              {isLocked ? (
+                <Lock size={12} style={{ color: '#64748b' }} />
+              ) : (
+                item.count > 0 && (
+                  <span style={{
+                    background: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 900,
+                    padding: '2px 8px', borderRadius: '99px', boxShadow: '0 4px 12px rgba(239,68,68,0.2)'
+                  }}>
+                    {item.count > 99 ? '99+' : item.count}
+                  </span>
+                )
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
-      {/* Footer: Theme toggle + Logout */}
+      {/* Footer: Logout */}
       <div style={{ padding: '1rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <button
-          onClick={toggleTheme}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.75rem',
-            padding: '0.6rem 1rem', borderRadius: '10px',
-            background: 'transparent', border: '1px solid transparent',
-            color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s',
-            fontSize: '0.8rem', fontWeight: 600, width: '100%', textAlign: 'left',
-          }}
-          onMouseOver={e => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.color = 'var(--text)'; }}
-          onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-        >
-          {isLight ? <Moon size={16} /> : <Sun size={16} />}
-          <span>{isLight ? 'Modo Oscuro' : 'Modo Claro'}</span>
-        </button>
         <button
           onClick={onLogout}
           style={{

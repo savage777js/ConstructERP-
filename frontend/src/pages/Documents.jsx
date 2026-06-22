@@ -239,8 +239,8 @@ const Documents = () => {
                     <Upload size={18} className="text-amber-500" />
                     Cargar Nuevo Documento
                   </h3>
-                  <form onSubmit={handleUploadSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                    <div>
+                  <form onSubmit={handleUploadSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                    <div className="md:col-span-4">
                       <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase">Nombre/Título</label>
                       <input 
                         type="text"
@@ -248,15 +248,17 @@ const Documents = () => {
                         value={uploadForm.title}
                         onChange={(e) => setUploadForm({...uploadForm, title: e.target.value})}
                         className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-amber-500 transition-all text-sm"
+                        style={{ height: '38px' }}
                         required
                       />
                     </div>
-                    <div>
+                    <div className="md:col-span-3">
                       <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase">Categoría</label>
                       <select 
                         value={uploadForm.category}
                         onChange={(e) => setUploadForm({...uploadForm, category: e.target.value})}
                         className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-amber-500 transition-all text-sm cursor-pointer"
+                        style={{ height: '38px' }}
                         required
                       >
                         <option value="Contrato">Contrato de Trabajo</option>
@@ -266,27 +268,30 @@ const Documents = () => {
                         <option value="Otros">Otros Documentos</option>
                       </select>
                     </div>
-                    <div className="flex gap-2">
-                      <div className="flex-1 relative">
-                        <input 
-                          type="file"
-                          id="file-upload"
-                          className="hidden"
-                          onChange={handleFileChange}
-                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                          required
-                        />
-                        <label 
-                          htmlFor="file-upload"
-                          className="flex items-center justify-center gap-2 w-full bg-slate-800/50 hover:bg-slate-800/80 border border-dashed border-white/15 rounded-xl px-4 py-2.5 text-slate-300 text-sm cursor-pointer transition-all truncate"
-                        >
-                          {uploadForm.file ? uploadForm.file.name : 'Seleccionar Archivo'}
-                        </label>
-                      </div>
+                    <div className="md:col-span-3 relative">
+                      <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase">Archivo</label>
+                      <input 
+                        type="file"
+                        id="file-upload"
+                        className="hidden"
+                        onChange={handleFileChange}
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        required
+                      />
+                      <label 
+                        htmlFor="file-upload"
+                        className="flex items-center justify-center gap-2 w-full bg-slate-800/50 hover:bg-slate-800/80 border border-dashed border-white/15 rounded-xl px-4 text-slate-300 text-sm cursor-pointer transition-all truncate"
+                        style={{ height: '38px', display: 'flex', alignItems: 'center' }}
+                      >
+                        {uploadForm.file ? uploadForm.file.name : 'Seleccionar Archivo'}
+                      </label>
+                    </div>
+                    <div className="md:col-span-2">
                       <button
                         type="submit"
                         disabled={uploading}
-                        className="btn-primary py-2.5 px-6 font-bold shadow-lg shadow-amber-500/10 text-sm flex items-center justify-center"
+                        className="btn-primary w-full font-bold shadow-lg shadow-amber-500/10 text-sm flex items-center justify-center"
+                        style={{ height: '38px' }}
                       >
                         {uploading ? <Loader2 size={16} className="animate-spin" /> : 'Subir'}
                       </button>
