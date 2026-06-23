@@ -414,6 +414,7 @@ class ProjectService:
         with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
             # Write project specific docs
             for doc in proj_docs:
+                doc.ensure_local_file(db)
                 local_path = doc.file_path.lstrip('/')
                 if os.path.exists(local_path):
                     filename = os.path.basename(local_path)
@@ -432,6 +433,7 @@ class ProjectService:
                         
             # Write worker specific docs
             for doc in worker_docs:
+                doc.ensure_local_file(db)
                 local_path = doc.file_path.lstrip('/')
                 if os.path.exists(local_path):
                     worker_name = "desconocido"

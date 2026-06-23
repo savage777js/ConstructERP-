@@ -183,10 +183,10 @@ async def process_document_ocr(
     if ext not in [".jpg", ".jpeg", ".png", ".pdf"]:
         raise HTTPException(status_code=400, detail="El procesamiento OCR mediante IA solo es soportado para imágenes (JPG, PNG) y archivos PDF.")
 
-    # Leer el archivo local
+    # Recuperar archivo local (auto-curación desde BD si fue borrado por Render)
     local_path = doc.file_path.lstrip('/')
-    if not os.path.exists(local_path):
-        raise HTTPException(status_code=404, detail="El archivo físico del documento no existe en el servidor.")
+    if not doc.ensure_local_file(db):
+        raise HTTPException(status_code=404, detail="El archivo físico del documento no existe en el servidor ni en la base de datos.")
 
     text_content = None
     image_base64 = None

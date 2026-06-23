@@ -114,7 +114,26 @@ def get_uploaded_file(
         raise HTTPException(status_code=403, detail="Acceso denegado")
         
     if not os.path.exists(full_path) or os.path.isdir(full_path):
-        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+        # Auto-recuperación de caché desde la base de datos (Supabase)
+        from app.db.session import SessionLocal
+        from app.models.core import Document
+        
+        db = SessionLocal()
+        try:
+            db_path = f"/{full_path.replace(os.path.sep, '/')}"
+            doc = db.query(Document).filter(Document.file_path == db_path).first()
+            if doc and doc.ensure_local_file(db):
+                # Archivo restaurado de forma exitosa en el disco local
+                pass
+            else:
+                raise HTTPException(status_code=404, detail="Archivo no encontrado en el servidor.")
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"❌ Error recuperando archivo autocurable {file_path}: {e}")
+            raise HTTPException(status_code=404, detail="Archivo no encontrado")
+        finally:
+            db.close()
         
     return FileResponse(full_path)
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum, JSON, Numeric, Text, Table, Float
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum, JSON, Numeric, Text, Table, Float, LargeBinary
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 from sqlalchemy.types import TypeDecorator, CHAR
@@ -6,6 +6,8 @@ from sqlalchemy.dialects.postgresql import UUID as pgUUID
 import enum
 from datetime import datetime
 import uuid
+import os
+from sqlalchemy import event, text
 
 class GUID(TypeDecorator):
     impl = CHAR
@@ -253,6 +255,50 @@ class Document(Base):
     organization = relationship("Organization", back_populates="documents")
     employee = relationship("Employee", back_populates="documents")
     project = relationship("Project", back_populates="documents")
+
+    def ensure_local_file(self, db) -> bool:
+        """Asegura que el archivo físico exista localmente en el servidor, recuperándolo de la base de datos si es necesario."""
+        local_path = self.file_path.lstrip('/')
+        if os.path.exists(local_path):
+            return True
+            
+        try:
+            doc_data = db.query(DocumentData).filter(DocumentData.document_id == self.id).first()
+            if doc_data:
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                with open(local_path, "wb") as f:
+                    f.write(doc_data.content)
+                print(f"🔄 Archivo recuperado exitosamente de la BD a {local_path}")
+                return True
+        except Exception as e:
+            print(f"❌ Error recuperando archivo {self.file_path} de la BD: {e}")
+            
+        return False
+
+class DocumentData(Base):
+    __tablename__ = "document_data"
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    document_id = Column(GUID, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, unique=True)
+    content = Column(LargeBinary, nullable=False)
+
+    document = relationship("Document", backref="binary_data")
+
+@event.listens_for(Document, 'after_insert')
+def save_document_binary(mapper, connection, target):
+    """Event listener que detecta cuando un documento es creado en BD y almacena su contenido binario si el archivo existe en disco."""
+    local_path = target.file_path.lstrip('/')
+    if os.path.exists(local_path):
+        try:
+            with open(local_path, "rb") as f:
+                content = f.read()
+            
+            connection.execute(
+                text("INSERT INTO document_data (id, document_id, content) VALUES (:id, :doc_id, :content)"),
+                {"id": generate_uuid(), "doc_id": str(target.id), "content": content}
+            )
+            print(f"💾 Contenido binario del documento '{target.title}' guardado en la base de datos.")
+        except Exception as e:
+            print(f"❌ Error en event listener save_document_binary: {e}")
 
 class Notification(Base):
     __tablename__ = "notifications"
