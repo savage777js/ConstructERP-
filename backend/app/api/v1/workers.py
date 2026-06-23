@@ -23,32 +23,42 @@ def get_worker_contract(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    query = db.query(Employee).filter(Employee.id == worker_id)
-    if current_user.organization_id:
-        query = query.filter(Employee.organization_id == current_user.organization_id)
-    worker = query.first()
-    if not worker:
-        raise HTTPException(status_code=404, detail="Trabajador no encontrado o no pertenece a su organización")
-    
-    # Preparamos los datos para el servicio de PDF
-    worker_data = {
-        "first_name": worker.first_name,
-        "last_name": worker.last_name,
-        "rut": worker.rut,
-        "role": worker.role,
-        "salary": worker.salary,
-        "hire_date": worker.hire_date
-    }
-    
-    pdf_content = ContractService.generate_worker_contract(worker_data)
-    
-    return Response(
-        content=pdf_content,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f"attachment; filename=contrato_{worker.rut}.pdf"
+    try:
+        query = db.query(Employee).filter(Employee.id == worker_id)
+        if current_user.organization_id:
+            query = query.filter(Employee.organization_id == current_user.organization_id)
+        worker = query.first()
+        if not worker:
+            raise HTTPException(status_code=404, detail="Trabajador no encontrado o no pertenece a su organización")
+        
+        # Preparamos los datos para el servicio de PDF
+        worker_data = {
+            "first_name": worker.first_name,
+            "last_name": worker.last_name,
+            "rut": worker.rut,
+            "role": worker.role,
+            "salary": worker.salary,
+            "hire_date": worker.hire_date
         }
-    )
+        
+        pdf_content = ContractService.generate_worker_contract(worker_data)
+        
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=contrato_{worker.rut}.pdf"
+            }
+        )
+    except Exception as e:
+        import traceback
+        import json
+        tb = traceback.format_exc()
+        return Response(
+            content=json.dumps({"error": str(e), "traceback": tb}),
+            media_type="application/json",
+            status_code=500
+        )
 
 @router.get("/", response_model=List[EmployeeOut], dependencies=[Depends(allow_read_hr)])
 def read_workers(
