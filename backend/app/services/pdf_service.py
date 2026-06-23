@@ -105,7 +105,7 @@ class ContractService:
         pdf.cell(70, 5, f"{worker_data['rut']}", align='C')
 
         # Generate as bytes
-        return pdf.output()
+        return bytes(pdf.output())
 
     @staticmethod
     def generate_contract_addendum(worker_data: dict, project_data: dict, assignment_role: str, start_date: datetime, end_date: datetime = None) -> bytes:
@@ -171,7 +171,7 @@ class ContractService:
         pdf.cell(70, 5, f"{worker_data['rut'] or ''}", align='C')
 
         # Generate as bytes
-        return pdf.output()
+        return bytes(pdf.output())
 
 
 class ReportPDFService:
@@ -223,5 +223,5 @@ class ReportPDFService:
                 content = line_str.replace('**', '')
                 pdf.multi_cell(0, 5, content)
                 
-        return pdf.output()
+        return bytes(pdf.output())
 

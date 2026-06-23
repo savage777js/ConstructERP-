@@ -93,4 +93,4 @@ class ExportService:
                 for datum in data_row:
                     row.cell(datum)
 
-        return pdf.output()
+        return bytes(pdf.output())
