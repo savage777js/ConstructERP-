@@ -164,7 +164,13 @@ async def process_document_ocr(
     db: Session = Depends(deps.get_db),
     current_user: core.User = Depends(deps.get_current_user),
 ):
-    """Procesa mediante OCR un documento ya existente en la base de datos."""
+    """Procesa mediante OCR un documento ya existente en la base de datos (imagen o PDF)."""
+    import json
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        PdfReader = None
+
     query = db.query(core.Document).filter(core.Document.id == document_id)
     if current_user.organization_id:
         query = query.filter(core.Document.organization_id == current_user.organization_id)
@@ -172,26 +178,53 @@ async def process_document_ocr(
     if not doc:
         raise HTTPException(status_code=404, detail="Documento no encontrado o no pertenece a su organización")
         
-    # Verificar que el archivo sea una imagen
+    # Verificar que el archivo sea una imagen o PDF
     ext = os.path.splitext(doc.file_path)[1].lower()
-    if ext not in [".jpg", ".jpeg", ".png"]:
-        raise HTTPException(status_code=400, detail="El procesamiento OCR mediante IA solo es soportado para imágenes (JPG, PNG).")
+    if ext not in [".jpg", ".jpeg", ".png", ".pdf"]:
+        raise HTTPException(status_code=400, detail="El procesamiento OCR mediante IA solo es soportado para imágenes (JPG, PNG) y archivos PDF.")
 
     # Leer el archivo local
     local_path = doc.file_path.lstrip('/')
     if not os.path.exists(local_path):
         raise HTTPException(status_code=404, detail="El archivo físico del documento no existe en el servidor.")
 
-    with open(local_path, "rb") as f:
-        contents = f.read()
+    text_content = None
+    image_base64 = None
 
-    image_base64 = base64.b64encode(contents).decode("utf-8")
-    
     try:
-        ocr_data = await ai_service.process_document(image_base64)
+        if ext == ".pdf":
+            if not PdfReader:
+                raise HTTPException(status_code=500, detail="El motor de lectura PDF (pypdf) no está instalado.")
+            
+            reader = PdfReader(local_path)
+            pages_text = []
+            for page in reader.pages:
+                text = page.extract_text()
+                if text:
+                    pages_text.append(text)
+            
+            text_content = "\n".join(pages_text).strip()
+            if not text_content:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El archivo PDF no contiene texto digital extraíble (podría ser un documento escaneado). Por favor, suba una versión con texto digital o una imagen JPG/PNG."
+                )
+        else:
+            with open(local_path, "rb") as f:
+                contents = f.read()
+            image_base64 = base64.b64encode(contents).decode("utf-8")
+
+        # Invocar servicio de IA con el contenido del documento y su categoría
+        ocr_data = await ai_service.process_document(
+            image_base64=image_base64,
+            text_content=text_content,
+            category=doc.category
+        )
+
         if ocr_data:
             doc.ocr_status = "COMPLETED"
-            doc.ocr_content = str(ocr_data.get("raw_text", ""))
+            # Guardamos el JSON formateado de forma legible en ocr_content
+            doc.ocr_content = json.dumps(ocr_data, indent=2, ensure_ascii=False)
             doc.extracted_data = ocr_data
             db.commit()
             db.refresh(doc)
@@ -204,6 +237,9 @@ async def process_document_ocr(
             doc.ocr_status = "FAILED"
             db.commit()
             raise HTTPException(status_code=500, detail="La IA no pudo extraer datos del documento.")
+            
+    except HTTPException:
+        raise
     except Exception as e:
         doc.ocr_status = "FAILED"
         db.commit()

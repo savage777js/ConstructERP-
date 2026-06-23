@@ -91,13 +91,59 @@ class AIService:
             "Content-Type": "application/json"
         }
 
-    async def process_document(self, image_base64: str) -> Optional[Dict]:
-        """Procesa una imagen de documento para extraer datos usando OCR con IA."""
+    async def process_document(
+        self,
+        image_base64: Optional[str] = None,
+        text_content: Optional[str] = None,
+        category: Optional[str] = None
+    ) -> Optional[Dict]:
+        """Procesa un documento (imagen base64 o texto extraído) para extraer datos usando OCR con IA."""
         if not self.api_key:
             return None
 
-        prompt = CHATBOT_PROMPTS.get('ocr_invoice')
+        # Determinar el prompt adecuado según la categoría del documento
+        prompt_key = 'ocr_invoice'
+        if category:
+            cat_lower = category.lower()
+            if 'contrato' in cat_lower:
+                prompt_key = 'ocr_contrato'
+            elif 'licencia' in cat_lower:
+                prompt_key = 'ocr_licencia'
+            elif 'cédula' in cat_lower or 'cedula' in cat_lower:
+                prompt_key = 'ocr_cedula'
+            elif 'certificado' in cat_lower:
+                prompt_key = 'ocr_certificado'
+            else:
+                prompt_key = 'ocr_otros'
+
+        prompt = CHATBOT_PROMPTS.get(prompt_key, CHATBOT_PROMPTS['ocr_invoice'])
         
+        # Construir mensajes según el tipo de entrada
+        if text_content:
+            messages = [
+                {
+                    "role": "user",
+                    "content": f"{prompt}\n\nAquí está el texto extraído del documento:\n{text_content}"
+                }
+            ]
+        elif image_base64:
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        }
+                    ]
+                }
+            ]
+        else:
+            return None
+
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(
@@ -105,20 +151,7 @@ class AIService:
                     headers=self.headers,
                     json={
                         "model": settings.OPENROUTER_MODEL,
-                        "messages": [
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "text", "text": prompt},
-                                    {
-                                        "type": "image_url",
-                                        "image_url": {
-                                            "url": f"data:image/jpeg;base64,{image_base64}"
-                                        }
-                                    }
-                                ]
-                            }
-                        ],
+                        "messages": messages,
                         "response_format": { "type": "json_object" },
                         "max_tokens": 4000
                     },
@@ -128,7 +161,7 @@ class AIService:
                 content = response.json()["choices"][0]["message"]["content"]
                 return json.loads(content)
             except Exception as e:
-                print(f"Error in process_document: {e}")
+                print(f"Error in process_document (category={category}): {e}")
                 return None
 
     async def get_chat_response(

@@ -311,7 +311,7 @@ const Documents = () => {
                   ) : documents.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {documents.map(doc => {
-                        const isImage = doc.file_path.toLowerCase().match(/\.(jpg|jpeg|png)$/);
+                        const canOCR = doc.file_path.toLowerCase().match(/\.(jpg|jpeg|png|pdf)$/);
                         return (
                           <div key={doc.id} className="border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] p-5 rounded-2xl flex flex-col justify-between transition-all group">
                             <div>
@@ -343,7 +343,7 @@ const Documents = () => {
                               >
                                 <Eye size={12} /> Ver Original
                               </a>
-                              {isImage && (
+                              {canOCR && (
                                 <button 
                                   onClick={() => handleRunOCR(doc)}
                                   disabled={ocrRunning === doc.id}
