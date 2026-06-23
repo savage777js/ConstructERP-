@@ -133,8 +133,17 @@ def get_ai_dashboard(
         }
 
         # 6. Fase 1: Redactar mensaje de bienvenida estructurado
+        role_titles = {
+            "SUPER_ADMIN": "Super Administrador",
+            "ADMIN": "Administrador",
+            "HR_MANAGER": "Director de Recursos Humanos",
+            "PROJECT_MANAGER": "Encargado de Proyecto",
+            "INVENTORY_MANAGER": "Jefe de Inventario",
+            "MANAGEMENT": "Gerente General"
+        }
+        friendly_role = role_titles.get(user_role, "Usuario")
         welcome_msg = (
-            f"Buenos días, Gerente General.\n\n"
+            f"Buenos días, {current_user.full_name} ({friendly_role}).\n\n"
             f"He analizado el estado actual del ERP.\n\n"
             f"**Resumen Ejecutivo:**\n"
             f"• 👷 **{resumen['trabajadores_activos']}** trabajadores activos\n"
@@ -147,7 +156,7 @@ def get_ai_dashboard(
         if dotacion.get("ocr_pendiente", 0) > 0:
             welcome_msg += f"• 📑 **{dotacion['ocr_pendiente']}** documentos OCR pendientes de validación\n"
             
-        welcome_msg += f"\nHe detectado {len(situaciones)} situaciones que requieren atención hoy.\n\n¿Qué desea revisar primero, señor?"
+        welcome_msg += f"\nHe detectado {len(situaciones)} situaciones que requieren atención hoy.\n\n¿Qué desea revisar primero?"
 
         return {
             "resumen": resumen,

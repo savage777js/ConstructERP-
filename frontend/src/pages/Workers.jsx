@@ -97,7 +97,7 @@ const Workers = () => {
   };
 
   const handleDownloadContract = async (workerId, rut) => {
-    if (!canManage) return;
+    if (!canReadHR) return;
     try {
       const response = await api.get(`/workers/${workerId}/contract`, {
         responseType: 'blob'

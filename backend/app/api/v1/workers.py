@@ -17,7 +17,7 @@ router = APIRouter()
 allow_manage_hr = RoleChecker([UserRole.HR_MANAGER, UserRole.PROJECT_MANAGER])
 allow_read_hr = RoleChecker([UserRole.HR_MANAGER, UserRole.PROJECT_MANAGER, UserRole.MANAGEMENT, UserRole.INVENTORY_MANAGER])
 
-@router.get("/{worker_id}/contract", dependencies=[Depends(allow_manage_hr)])
+@router.get("/{worker_id}/contract", dependencies=[Depends(allow_read_hr)])
 def get_worker_contract(
     worker_id: int,
     db: Session = Depends(get_db),

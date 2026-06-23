@@ -152,6 +152,28 @@ class AIService:
         # Obtener prompt de sistema
         system_prompt = CHATBOT_PROMPTS.get(bot_id, CHATBOT_PROMPTS['hr_agent'])
         
+        user_role = current_user.role.value if (current_user and hasattr(current_user.role, 'value')) else str(current_user.role) if current_user else "GUEST"
+
+        # Personalizar el system prompt con datos del usuario logueado
+        if current_user:
+            role_titles = {
+                "SUPER_ADMIN": "Super Administrador",
+                "ADMIN": "Administrador",
+                "HR_MANAGER": "Director de Recursos Humanos",
+                "PROJECT_MANAGER": "Encargado de Proyecto",
+                "INVENTORY_MANAGER": "Jefe de Inventario",
+                "MANAGEMENT": "Gerente General"
+            }
+            friendly_role = role_titles.get(user_role, "Usuario")
+            user_context = (
+                f"\n\n[CONTEXTO DEL USUARIO LOGUEADO ACTUALMENTE]\n"
+                f"- Nombre del Usuario: {current_user.full_name}\n"
+                f"- Email: {current_user.email}\n"
+                f"- Rol en el Sistema: {friendly_role} ({user_role})\n"
+                f"IMPORTANTE: Dirígete a este usuario por su nombre o cargo cuando sea pertinente y adapta tus análisis o recomendaciones según su nivel de acceso e interés operacional."
+            )
+            system_prompt += user_context
+
         # Historial completo de mensajes para enviar al LLM
         full_messages = [
             {"role": "system", "content": system_prompt}
@@ -159,7 +181,6 @@ class AIService:
 
         # Setup del DataFetcher y mapeo de herramientas
         fetcher = AIDataFetcher(db, organization_id)
-        user_role = current_user.role.value if (current_user and hasattr(current_user.role, 'value')) else str(current_user.role) if current_user else "GUEST"
 
         # Mapeo de nombres de funciones a llamadas en data fetcher
         tool_mapping = {
