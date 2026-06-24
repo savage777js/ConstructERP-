@@ -13,11 +13,11 @@ const Projects = () => {
   const [closingProjectId, setClosingProjectId] = useState(null);
   const [closingLoading, setClosingLoading] = useState(false);
   const navigate = useNavigate();
-  const { canWrite } = useAuth();
+  const { canWrite, role: userRole } = useAuth();
   
   // Solo roles operativos pueden crear/cerrar proyectos
-  const canCreate = canWrite();
-  const canClose = canWrite();
+  const canCreate = ['SUPER_ADMIN', 'ADMIN', 'PROJECT_MANAGER'].includes(userRole);
+  const canClose = ['SUPER_ADMIN', 'ADMIN', 'PROJECT_MANAGER'].includes(userRole);
 
   useEffect(() => {
     fetchProjects();

@@ -32,9 +32,9 @@ const Workers = () => {
   const { canWrite, isReadOnly, role: userRole } = useAuth();
 
   // canManage = puede crear/editar/eliminar
-  const canManage = canWrite();
+  const canManage = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER'].includes(userRole);
   // canReadHR = puede ver módulo de RRHH
-  const canReadHR = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'MANAGEMENT', 'PROJECT_MANAGER'].includes(userRole);
+  const canReadHR = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER'].includes(userRole);
 
   useEffect(() => {
     fetchWorkers();
@@ -645,7 +645,7 @@ const Workers = () => {
                   </td>
                   <td className="px-3 sm:px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      {req.status === 'PENDING_APPROVAL' && ['ADMIN', 'MANAGEMENT', 'PROJECT_MANAGER'].includes(userRole) && (
+                      {req.status === 'PENDING_APPROVAL' && ['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'].includes(userRole) && (
                         <button
                           onClick={() => handleApproveVacation(req.id)}
                           className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all uppercase"
@@ -655,7 +655,7 @@ const Workers = () => {
                       )}
                       {req.status === 'APPROVED' && (
                         <>
-                          {['ADMIN', 'HR_MANAGER'].includes(userRole) && (
+                          {['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'].includes(userRole) && (
                             <button
                               onClick={() => handleRebateVacation(req.id)}
                               disabled={!req.is_signed}
@@ -757,9 +757,9 @@ const Workers = () => {
                   </div>
 
                   {/* Mobile Actions */}
-                  {((req.status === 'PENDING_APPROVAL' && ['ADMIN', 'MANAGEMENT', 'PROJECT_MANAGER'].includes(userRole)) || (req.status === 'APPROVED')) && (
+                  {((req.status === 'PENDING_APPROVAL' && ['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'].includes(userRole)) || (req.status === 'APPROVED')) && (
                     <div className="flex gap-2 pt-2 border-t border-white/5 justify-end">
-                      {req.status === 'PENDING_APPROVAL' && ['ADMIN', 'MANAGEMENT', 'PROJECT_MANAGER'].includes(userRole) && (
+                      {req.status === 'PENDING_APPROVAL' && ['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'].includes(userRole) && (
                         <button
                           onClick={() => handleApproveVacation(req.id)}
                           className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all uppercase flex-1 text-center"
@@ -769,7 +769,7 @@ const Workers = () => {
                       )}
                       {req.status === 'APPROVED' && (
                         <>
-                          {['ADMIN', 'HR_MANAGER'].includes(userRole) && (
+                          {['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'].includes(userRole) && (
                             <button
                               onClick={() => handleRebateVacation(req.id)}
                               disabled={!req.is_signed}

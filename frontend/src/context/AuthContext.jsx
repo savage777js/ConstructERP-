@@ -13,6 +13,11 @@ export const ROLE_LABELS = {
   INVENTORY_MANAGER: 'Inventario',
 };
 
+export const getDefaultRoute = (role) => {
+  if (role === 'HR_MANAGER') return '/workers';
+  return '/dashboard';
+};
+
 // Roles que pueden escribir (crear/editar/eliminar)
 const WRITE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER'];
 // Roles que son solo lectura
@@ -20,9 +25,9 @@ const READONLY_ROLES = ['MANAGEMENT'];
 // Roles con acceso a administración del sistema
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN'];
 // Roles con acceso a RR.HH.
-const HR_ROLES = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER', 'MANAGEMENT'];
+const HR_ROLES = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER'];
 // Roles con acceso a proyectos
-const PROJECT_ROLES = ['SUPER_ADMIN', 'ADMIN', 'PROJECT_MANAGER', 'HR_MANAGER', 'MANAGEMENT'];
+const PROJECT_ROLES = ['SUPER_ADMIN', 'ADMIN', 'PROJECT_MANAGER', 'MANAGEMENT'];
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -74,25 +79,40 @@ export const AuthProvider = ({ children }) => {
     // Super Admin y Admin legacy tienen acceso absoluto
     if (ADMIN_ROLES.includes(role)) return true;
 
-    // Gerente General solo puede ver — nunca crear, editar o eliminar
+    // Gerente General solo puede ver cosas de números, estadísticas, plata (Dashboard, Proyectos, Reportes, Finanzas). No ve RR.HH. ni OCR.
     if (role === 'MANAGEMENT') {
+      // Bloqueamos RR.HH. y OCR completamente
+      if (permissionSlug.startsWith('employees:') || permissionSlug.includes('ocr') || permissionSlug.startsWith('hr:')) {
+        return false;
+      }
+      // Solo permitimos lectura/vista
       return permissionSlug.startsWith('view:') || 
              permissionSlug.startsWith('read:') ||
              permissionSlug.endsWith(':view') ||
              permissionSlug.endsWith(':read') ||
              permissionSlug.includes(':view') ||
-             permissionSlug.includes(':read');
+             permissionSlug.includes(':read') ||
+             permissionSlug === 'dashboard:view' ||
+             permissionSlug === 'projects:view' ||
+             permissionSlug === 'reports:view' ||
+             permissionSlug === 'finance:view';
     }
 
-    // HR_MANAGER: gestión de personal, sin acceso a inventario ni configuraciones
+    // HR_MANAGER: gestión de personal, sin acceso a proyectos, finanzas, reportes, ocr ni dashboard
     if (role === 'HR_MANAGER') {
-      const blocked = ['inventory:manage', 'system:config', 'users:manage', 'integrations:manage'];
-      if (blocked.some(b => permissionSlug.startsWith(b))) return false;
-      return true;
+      // Solo permitimos employees, notificaciones y AI
+      return permissionSlug.startsWith('employees:') || 
+             permissionSlug.startsWith('notifications:') || 
+             permissionSlug.startsWith('ai:') || 
+             permissionSlug === 'ai:chat' ||
+             permissionSlug === 'notifications:view';
     }
 
-    // PROJECT_MANAGER: operativo completo en proyectos, workers, expenses, ocr
+    // PROJECT_MANAGER: operativo en proyectos, finanzas, ocr, ia y vista en trabajadores
     if (role === 'PROJECT_MANAGER') {
+      if (permissionSlug.startsWith('employees:')) {
+        return permissionSlug === 'employees:view';
+      }
       return true;
     }
 

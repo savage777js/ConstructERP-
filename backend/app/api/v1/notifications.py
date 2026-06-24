@@ -46,14 +46,14 @@ def get_unread_count(
                 NotificationType.UNPAID_SALARY,
                 NotificationType.SYSTEM_INFO,
                 NotificationType.VACATION_ALERT,
-                NotificationType.VACATION_APPROVED
+                NotificationType.VACATION_APPROVED,
+                NotificationType.VACATION_REQUEST
             ]))
         elif role == "PROJECT_MANAGER":
             query = query.filter(Notification.type.in_([
                 NotificationType.PROJECT_ENDING,
                 NotificationType.STOCK_ALERT,
                 NotificationType.SYSTEM_INFO,
-                NotificationType.VACATION_REQUEST,
                 NotificationType.PROFITABILITY_ALERT
             ]))
         elif role == "INVENTORY_MANAGER":

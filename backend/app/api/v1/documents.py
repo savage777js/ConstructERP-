@@ -14,7 +14,9 @@ router = APIRouter()
 UPLOAD_DIR = "uploads/documents"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-@router.post("/ocr/invoice")
+allow_ocr = deps.RoleChecker([core.UserRole.ADMIN, core.UserRole.PROJECT_MANAGER])
+
+@router.post("/ocr/invoice", dependencies=[Depends(allow_ocr)])
 async def ocr_invoice(
     file: UploadFile = File(...),
     db: Session = Depends(deps.get_db),
@@ -158,7 +160,7 @@ def delete_document(
     db.commit()
     return {"message": "Documento eliminado correctamente"}
 
-@router.post("/{document_id}/ocr")
+@router.post("/{document_id}/ocr", dependencies=[Depends(allow_ocr)])
 async def process_document_ocr(
     document_id: str,
     db: Session = Depends(deps.get_db),

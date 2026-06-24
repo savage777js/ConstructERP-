@@ -43,8 +43,8 @@ const ProjectDetail = () => {
   const [notesForm, setNotesForm] = useState({ assignmentId: null, notes: '' });
 
   const userRole = localStorage.getItem('userRole');
-  const canAssignWorker = ['ADMIN', 'PROJECT_MANAGER', 'HR_MANAGER'].includes(userRole);
-  const canManageProject = ['ADMIN', 'PROJECT_MANAGER'].includes(userRole);
+  const canAssignWorker = ['ADMIN', 'SUPER_ADMIN', 'PROJECT_MANAGER'].includes(userRole);
+  const canManageProject = ['ADMIN', 'SUPER_ADMIN', 'PROJECT_MANAGER'].includes(userRole);
 
   useEffect(() => {
     fetchProjectData();
@@ -605,7 +605,7 @@ const ProjectDetail = () => {
                             <td className="px-4 py-3">{exp.description}</td>
                             <td className="px-4 py-3 text-right font-bold text-white">${parseFloat(exp.amount).toLocaleString('es-CL')}</td>
                             <td className="px-4 py-3 text-center">
-                              {['ADMIN', 'MANAGEMENT'].includes(userRole) ? (
+                              {['ADMIN', 'SUPER_ADMIN'].includes(userRole) ? (
                                 <button
                                   onClick={() => handleToggleExpensePaid(exp.id, exp.is_paid)}
                                   className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase transition-all border ${
@@ -656,7 +656,7 @@ const ProjectDetail = () => {
                           </div>
                           <div className="flex justify-between items-center pt-2 border-t border-white/5">
                             <span className="text-slate-500 font-bold uppercase text-[10px]">Estado</span>
-                            {['ADMIN', 'MANAGEMENT'].includes(userRole) ? (
+                            {['ADMIN', 'SUPER_ADMIN'].includes(userRole) ? (
                               <button
                                 onClick={() => handleToggleExpensePaid(exp.id, exp.is_paid)}
                                 className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase transition-all border ${
@@ -729,7 +729,7 @@ const ProjectDetail = () => {
                         
                         <div className="flex justify-between items-center pt-2 border-t border-white/5">
                           <span className="text-sm font-extrabold text-white">${parseFloat(inv.total_amount).toLocaleString('es-CL')}</span>
-                          {['ADMIN', 'MANAGEMENT'].includes(userRole) && (
+                          {['ADMIN', 'SUPER_ADMIN'].includes(userRole) && (
                             <button
                               onClick={() => handleUpdateInvoiceStatus(inv.id, inv.status)}
                               className={`px-2.5 py-1 rounded text-[10px] font-black transition-all uppercase ${
@@ -818,7 +818,7 @@ const ProjectDetail = () => {
                         ) : (
                           <div className="flex flex-col gap-1">
                             <span className="text-slate-500 text-xs font-semibold italic">Pendiente de Visto Bueno</span>
-                            {['ADMIN', 'MANAGEMENT'].includes(userRole) && a.is_active && (
+                            {['ADMIN', 'SUPER_ADMIN'].includes(userRole) && a.is_active && (
                               <button
                                 onClick={() => handleApproveAssignment(a.id)}
                                 className="px-2 py-1 bg-amber-500/10 hover:bg-amber-400 text-white rounded-lg text-[10px] font-black transition-all w-fit uppercase"
@@ -857,7 +857,7 @@ const ProjectDetail = () => {
                             <span className="text-xs text-slate-300 font-medium max-w-[200px] truncate block">
                               {a.manager_notes || <span className="text-slate-600 italic">Sin notas</span>}
                             </span>
-                            {['ADMIN', 'MANAGEMENT'].includes(userRole) && a.is_active && (
+                            {['ADMIN', 'SUPER_ADMIN'].includes(userRole) && a.is_active && (
                               <button 
                                 onClick={() => setNotesForm({ assignmentId: a.id, notes: a.manager_notes || '' })}
                                 className="p-1 hover:bg-white/5 rounded text-slate-500 hover:text-white transition-all"
@@ -944,7 +944,7 @@ const ProjectDetail = () => {
                         ) : (
                           <div className="flex flex-col gap-1 items-end">
                             <span className="text-slate-500 text-[10px] font-semibold italic">Pendiente</span>
-                            {['ADMIN', 'MANAGEMENT'].includes(userRole) && a.is_active && (
+                            {['ADMIN', 'SUPER_ADMIN'].includes(userRole) && a.is_active && (
                               <button
                                 onClick={() => handleApproveAssignment(a.id)}
                                 className="px-2 py-0.5 bg-amber-500/10 hover:bg-amber-400 text-white rounded text-[9px] font-black transition-all uppercase"
@@ -979,7 +979,7 @@ const ProjectDetail = () => {
                             <span className="text-[11px] text-slate-300 font-medium max-w-[150px] truncate block">
                               {a.manager_notes || <span className="text-slate-600 italic">Sin notas</span>}
                             </span>
-                            {['ADMIN', 'MANAGEMENT'].includes(userRole) && a.is_active && (
+                            {['ADMIN', 'SUPER_ADMIN'].includes(userRole) && a.is_active && (
                               <button 
                                 onClick={() => setNotesForm({ assignmentId: a.id, notes: a.manager_notes || '' })}
                                 className="p-1 hover:bg-white/5 rounded text-slate-500 hover:text-white transition-all"

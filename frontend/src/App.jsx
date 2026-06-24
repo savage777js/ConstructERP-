@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth, getDefaultRoute } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import { LogOut, User, ChevronDown } from 'lucide-react';
 import Login from './pages/Login';
@@ -32,7 +32,7 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
   }
 
   if (requiredPermission && !hasPermission(requiredPermission)) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to={getDefaultRoute(user?.role)} />;
   }
 
   return children;
@@ -151,13 +151,13 @@ function AppRoutes() {
       <Routes>
         <Route 
           path="/login" 
-          element={!user ? <Login onLoginSuccess={login} /> : <Navigate to="/dashboard" />} 
+          element={!user ? <Login onLoginSuccess={login} /> : <Navigate to={getDefaultRoute(user?.role)} />} 
         />
         
         <Route 
           path="/dashboard" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPermission="dashboard:view">
               <MainLayout>
                 <Dashboard />
               </MainLayout>
@@ -179,7 +179,7 @@ function AppRoutes() {
         <Route 
           path="/documents" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPermission="ocr:use">
               <MainLayout>
                 <Documents />
               </MainLayout>
@@ -238,7 +238,7 @@ function AppRoutes() {
         <Route 
           path="/hierarchy" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPermission="employees:view">
               <MainLayout>
                 <Hierarchy />
               </MainLayout>
@@ -268,7 +268,7 @@ function AppRoutes() {
           } 
         />
 
-        <Route path="/" element={<Navigate to="/dashboard" />} />
+        <Route path="/" element={<Navigate to={user ? getDefaultRoute(user.role) : "/login"} />} />
       </Routes>
     </Router>
   );

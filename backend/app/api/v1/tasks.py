@@ -7,9 +7,10 @@ from app.models import core
 
 router = APIRouter()
 
-allow_write_tasks = deps.RoleChecker([core.UserRole.ADMIN, core.UserRole.PROJECT_MANAGER, core.UserRole.HR_MANAGER])
+allow_write_tasks = deps.RoleChecker([core.UserRole.ADMIN, core.UserRole.PROJECT_MANAGER])
+allow_read_tasks = deps.RoleChecker([core.UserRole.ADMIN, core.UserRole.PROJECT_MANAGER, core.UserRole.MANAGEMENT])
 
-@router.get("/", response_model=List[TaskOut])
+@router.get("/", response_model=List[TaskOut], dependencies=[Depends(allow_read_tasks)])
 def read_tasks(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
@@ -38,7 +39,7 @@ def create_task(
     db.refresh(task)
     return task
 
-@router.get("/{task_id}", response_model=TaskDetail)
+@router.get("/{task_id}", response_model=TaskDetail, dependencies=[Depends(allow_read_tasks)])
 def read_task(
     *,
     db: Session = Depends(deps.get_db),
