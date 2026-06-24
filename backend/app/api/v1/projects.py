@@ -31,7 +31,7 @@ def create_project(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    return ProjectService.create_project(db, project_in, current_user.organization_id)
+    return ProjectService.create_project(db, project_in, current_user.id, current_user.organization_id)
 
 @router.get("/{project_id}", response_model=ProjectDetail, dependencies=[Depends(allow_read_proj)])
 def get_project(

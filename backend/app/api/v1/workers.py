@@ -87,6 +87,17 @@ def create_worker(
     db.add(new_worker)
     db.commit()
     db.refresh(new_worker)
+    
+    from app.utils.audit import log_audit
+    log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="CREATE",
+        table_name="employees",
+        record_id=str(new_worker.id),
+        new_values=worker_dict
+    )
+    
     return new_worker
 
 @router.get("/{worker_id}", response_model=EmployeeOut, dependencies=[Depends(allow_read_hr)])
@@ -124,11 +135,28 @@ def update_worker(
             raise HTTPException(status_code=400, detail="RUT inválido")
         update_data["rut"] = format_rut(update_data["rut"])
     
+    # Capturar valores anteriores antes de modificar
+    old_values = {}
+    for field in update_data.keys():
+        old_values[field] = getattr(db_worker, field)
+    
     for field, value in update_data.items():
         setattr(db_worker, field, value)
     
     db.commit()
     db.refresh(db_worker)
+    
+    from app.utils.audit import log_audit
+    log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="UPDATE",
+        table_name="employees",
+        record_id=str(db_worker.id),
+        old_values=old_values,
+        new_values=update_data
+    )
+    
     return db_worker
 
 @router.delete("/{worker_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(allow_manage_hr)])
@@ -169,8 +197,21 @@ def delete_worker(
         assignment.unassigned_at = datetime.utcnow()
     
     # Desactivación lógica en lugar de borrado físico
+    old_status = getattr(db_worker, "status", "ACTIVE")
     db_worker.status = "INACTIVE"
     db.commit()
+    
+    from app.utils.audit import log_audit
+    log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="DELETE",
+        table_name="employees",
+        record_id=str(db_worker.id),
+        old_values={"status": old_status},
+        new_values={"status": "INACTIVE"}
+    )
+    
     return None
 
 @router.get("/template-excel")

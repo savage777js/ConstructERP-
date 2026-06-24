@@ -829,3 +829,93 @@ h1, h2, h3 {
   from { opacity: 0; transform: scale(0.95) translateY(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
+
+/* --- Floating QR Code (Evaluators) --- */
+.login-qr-floating {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.qr-trigger-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(12, 12, 16, 0.85);
+  border: 1px solid var(--border-active);
+  color: var(--primary);
+  border-radius: 999px;
+  font-size: 0.825rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.qr-trigger-btn:hover {
+  background: var(--primary);
+  color: #0c0c0f;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.3);
+}
+
+.qr-dropdown-card {
+  width: 240px;
+  background: rgba(12, 12, 16, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-active);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(245, 158, 11, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.qr-dropdown-card h4 {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 6px;
+}
+
+.qr-dropdown-card p {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.qr-code-img-container {
+  background: white;
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.qr-code-img-container img {
+  width: 140px;
+  height: 140px;
+  display: block;
+}
+
+.qr-url {
+  font-size: 0.68rem;
+  color: var(--primary);
+  font-weight: 500;
+  word-break: break-all;
+}
+

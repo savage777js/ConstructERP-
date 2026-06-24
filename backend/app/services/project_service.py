@@ -27,7 +27,7 @@ class ProjectService:
         return project
 
     @staticmethod
-    def create_project(db: Session, project_in: ProjectCreate, organization_id: str = None):
+    def create_project(db: Session, project_in: ProjectCreate, user_id: int = None, organization_id: str = None):
         if project_in.code:
             query_code = db.query(Project).filter(Project.code == project_in.code)
             if organization_id:
@@ -59,6 +59,17 @@ class ProjectService:
         db.add(log)
         db.commit()
         db.refresh(new_project)
+
+        from app.utils.audit import log_audit
+        log_audit(
+            db=db,
+            user_id=user_id,
+            action="CREATE",
+            table_name="projects",
+            record_id=str(new_project.id),
+            new_values=project_in.model_dump()
+        )
+
         return new_project
 
     @staticmethod
@@ -75,6 +86,12 @@ class ProjectService:
                     status_code=400,
                     detail="La fecha de término no puede ser anterior a la fecha de inicio"
                 )
+
+        # Capturar valores anteriores antes de modificar
+        old_values = {}
+        for field in update_data.keys():
+            old_val = getattr(project, field)
+            old_values[field] = old_val.strftime("%Y-%m-%d") if isinstance(old_val, datetime) else old_val
 
         # Rastrear cambios
         changes = []
@@ -113,11 +130,25 @@ class ProjectService:
 
         db.commit()
         db.refresh(project)
+
+        if changes:
+            from app.utils.audit import log_audit
+            log_audit(
+                db=db,
+                user_id=user_id,
+                action="UPDATE",
+                table_name="projects",
+                record_id=str(project.id),
+                old_values=old_values,
+                new_values=update_data
+            )
+
         return project
 
     @staticmethod
     def delete_project(db: Session, project_id: int, user_id: int = None, organization_id: str = None):
         project = ProjectService.get_project(db, project_id, organization_id)
+        old_status = getattr(project, "status", "ACTIVE")
         project.status = "INACTIVE"
         
         # También podríamos dar de baja las asignaciones activas de trabajadores
@@ -139,6 +170,18 @@ class ProjectService:
         db.add(log)
             
         db.commit()
+
+        from app.utils.audit import log_audit
+        log_audit(
+            db=db,
+            user_id=user_id,
+            action="DELETE",
+            table_name="projects",
+            record_id=str(project.id),
+            old_values={"status": old_status},
+            new_values={"status": "INACTIVE"}
+        )
+
         return project
 
     @staticmethod

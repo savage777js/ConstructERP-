@@ -6,6 +6,7 @@ from app.db.session import get_db
 from app.core import security
 from app.models.core import User, Role, Permission, UserRoleRel, role_permissions, UserRole, Organization
 from app.schemas.user import Token, UserOut, UserCreate, UserMe, UserUpdate
+from app.schemas.audit import AuditLogOut
 from app.api.deps import get_current_user, RoleChecker
 
 router = APIRouter()
@@ -194,3 +195,40 @@ def toggle_user_active(
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.get("/audit-logs", response_model=List[AuditLogOut])
+def list_audit_logs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Listar los logs de auditoría de la organización. Solo Super Administrador o Administrador."""
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para ver los logs de auditoría")
+    
+    from app.models.core import AuditLog
+    
+    query = db.query(AuditLog, User.email, User.full_name).outerjoin(User, AuditLog.user_id == User.id)
+    if current_user.organization_id:
+        query = query.filter(User.organization_id == current_user.organization_id)
+        
+    logs = query.order_by(AuditLog.created_at.desc()).limit(200).all()
+    
+    out_logs = []
+    for log, email, full_name in logs:
+        out_logs.append(
+            AuditLogOut(
+                id=str(log.id),
+                user_id=log.user_id,
+                action=log.action,
+                table_name=log.table_name,
+                record_id=log.record_id,
+                old_values=log.old_values,
+                new_values=log.new_values,
+                created_at=log.created_at,
+                user_email=email,
+                user_full_name=full_name
+            )
+        )
+    return out_logs
+

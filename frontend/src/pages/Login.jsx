@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { LogIn, Loader2, Eye, EyeOff, ShieldCheck, HardHat, Building2, BarChart3, Phone, Mail, X, HelpCircle } from 'lucide-react';
+import { LogIn, Loader2, Eye, EyeOff, ShieldCheck, HardHat, Building2, BarChart3, Phone, Mail, X, HelpCircle, QrCode } from 'lucide-react';
 
 const Login = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
@@ -11,6 +11,7 @@ const Login = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showQR, setShowQR] = useState(false);
   
   // Limpiar basura solo cuando se entra a la página de login por primera vez
   useEffect(() => {
@@ -291,6 +292,31 @@ const Login = ({ onLoginSuccess }) => {
           </div>
         </div>
       )}
+      {/* Código QR Flotante para Evaluadores (Acceso Móvil) */}
+      <div className="login-qr-floating">
+        {showQR && (
+          <div className="qr-dropdown-card">
+            <h4>Acceso Móvil Docentes</h4>
+            <p>Escanea este código con tu celular para evaluar el diseño responsivo en tiempo real.</p>
+            <div className="qr-code-img-container">
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin)}`} 
+                alt="Código QR de Acceso Móvil" 
+              />
+            </div>
+            <span className="qr-url">{window.location.origin}</span>
+          </div>
+        )}
+        <button 
+          type="button"
+          onClick={() => setShowQR(!showQR)} 
+          className="qr-trigger-btn"
+          title="Acceso Móvil para Evaluadores"
+        >
+          <QrCode size={18} />
+          <span>Acceso Móvil</span>
+        </button>
+      </div>
     </div>
   );
 };

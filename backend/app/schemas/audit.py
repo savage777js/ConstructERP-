@@ -11,6 +11,8 @@ class AuditLogOut(BaseModel):
     old_values: Optional[Any] = None
     new_values: Optional[Any] = None
     created_at: datetime
+    user_email: Optional[str] = None
+    user_full_name: Optional[str] = None
 
     class Config:
         from_attributes = True
