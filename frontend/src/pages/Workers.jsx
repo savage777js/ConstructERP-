@@ -204,10 +204,11 @@ const Workers = () => {
     e.preventDefault();
     if (!vacationForm.employee_id || !vacationForm.start_date || !vacationForm.end_date || !vacationForm.days_requested) return;
     try {
+      // Send naive date strings with time parts directly to prevent local timezone shifts and pass Pydantic validation
       await api.post('/workers/vacations/request', {
         employee_id: parseInt(vacationForm.employee_id),
-        start_date: new Date(vacationForm.start_date).toISOString(),
-        end_date: new Date(vacationForm.end_date).toISOString(),
+        start_date: `${vacationForm.start_date}T00:00:00`,
+        end_date: `${vacationForm.end_date}T00:00:00`,
         days_requested: parseInt(vacationForm.days_requested)
       });
       alert('Solicitud de vacaciones creada con éxito.');
@@ -215,7 +216,12 @@ const Workers = () => {
       setVacationForm({ employee_id: '', start_date: '', end_date: '', days_requested: '' });
       fetchVacationRequests();
     } catch (error) {
-      alert(error.response?.data?.detail || 'Error al crear solicitud de vacaciones.');
+      const errorMsg = error.response?.data?.detail
+        ? (typeof error.response.data.detail === 'string'
+            ? error.response.data.detail
+            : JSON.stringify(error.response.data.detail))
+        : 'Error al crear solicitud de vacaciones.';
+      alert(errorMsg);
     }
   };
 

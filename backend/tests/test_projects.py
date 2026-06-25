@@ -57,3 +57,46 @@ def test_projects_multi_tenant_isolation(client, test_data, db):
     # 5. Admin B intenta dar de baja la obra -> Debe devolver 404
     response_del = client.delete(f"/api/v1/projects/{proj_a.id}", headers=test_data["headers_b"])
     assert response_del.status_code == 404
+
+def test_create_project_auto_code(client, test_data, db):
+    # 1. Admin A crea un proyecto sin código
+    proj_data = {
+        "name": "Proyecto Sin Codigo",
+        "client_name": "Cliente Auto",
+        "description": "Edificación sin código inicial",
+        "address": "Av. Principal 123",
+        "status": "ACTIVE",
+        "budget": 50000000.00
+    }
+    response = client.post(
+        "/api/v1/projects/",
+        json=proj_data,
+        headers=test_data["headers_a"]
+    )
+    assert response.status_code == 200, f"Error: {response.text}"
+    data = response.json()
+    assert data["name"] == "Proyecto Sin Codigo"
+    assert data["code"] is not None
+    assert data["code"].startswith("OBRA-2026-")
+
+    # 2. Crear otro proyecto sin código y verificar secuencia
+    proj_data_2 = {
+        "name": "Proyecto Sin Codigo 2",
+        "client_name": "Cliente Auto 2",
+        "budget": 20000000.00
+    }
+    response_2 = client.post(
+        "/api/v1/projects/",
+        json=proj_data_2,
+        headers=test_data["headers_a"]
+    )
+    assert response_2.status_code == 200, f"Error: {response_2.text}"
+    data_2 = response_2.json()
+    assert data_2["code"] is not None
+    assert data_2["code"] != data["code"]
+    
+    # 3. Comprobar que en base de datos quedó asignado el código autogenerado
+    proj_db = db.query(Project).filter(Project.name == "Proyecto Sin Codigo").first()
+    assert proj_db is not None
+    assert proj_db.code == data["code"]
+

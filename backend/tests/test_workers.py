@@ -62,3 +62,34 @@ def test_workers_multi_tenant_isolation(client, test_data, db):
     # 5. Admin B intenta eliminar a Juan de forma directa (IDOR) -> Debe devolver 404
     response_del = client.delete(f"/api/v1/workers/{worker_a.id}", headers=test_data["headers_b"])
     assert response_del.status_code == 404
+
+def test_create_vacation_request(client, test_data, db):
+    # 1. Crear un trabajador en la Org A
+    worker_a = Employee(
+        first_name="Juan",
+        last_name="Perez",
+        rut="15.432.109-8",
+        role="Pintor",
+        salary=600000,
+        organization_id=test_data["org_a"].id,
+        vacation_balance=15.0
+    )
+    db.add(worker_a)
+    db.commit()
+
+    # 2. Intentar crear solicitud de vacaciones con token_a (usando formato simple de fecha YYYY-MM-DDT00:00:00)
+    vacation_data = {
+        "employee_id": worker_a.id,
+        "start_date": "2026-06-25T00:00:00",
+        "end_date": "2026-06-30T00:00:00",
+        "days_requested": 5
+    }
+    response = client.post(
+        "/api/v1/workers/vacations/request",
+        json=vacation_data,
+        headers=test_data["headers_a"]
+    )
+    assert response.status_code == 200, f"Error: {response.text}"
+    data = response.json()
+    assert data["status"] == "PENDING_APPROVAL"
+

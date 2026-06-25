@@ -28,7 +28,27 @@ class ProjectService:
 
     @staticmethod
     def create_project(db: Session, project_in: ProjectCreate, user_id: int = None, organization_id: str = None):
-        if project_in.code:
+        if not project_in.code:
+            current_year = datetime.utcnow().year
+            prefix = f"OBRA-{current_year}-"
+            query_existing = db.query(Project).filter(Project.code.like(f"{prefix}%"))
+            if organization_id:
+                query_existing = query_existing.filter(Project.organization_id == organization_id)
+            existing_projects = query_existing.all()
+            
+            max_num = 0
+            for proj in existing_projects:
+                try:
+                    num_str = proj.code.replace(prefix, "")
+                    num = int(num_str)
+                    if num > max_num:
+                        max_num = num
+                except ValueError:
+                    continue
+            
+            next_num = max_num + 1
+            project_in.code = f"{prefix}{next_num:03d}"
+        else:
             query_code = db.query(Project).filter(Project.code == project_in.code)
             if organization_id:
                 query_code = query_code.filter(Project.organization_id == organization_id)

@@ -22,7 +22,6 @@ const ProjectForm = ({ onClose, onSuccess, projectData = null }) => {
   const validate = () => {
     const newErrors = {};
     if (!formData.name) newErrors.name = 'El nombre de la obra es obligatorio';
-    if (!formData.code) newErrors.code = 'El código de obra es obligatorio';
     if (!formData.start_date) newErrors.start_date = 'La fecha de inicio es obligatoria';
     if (formData.start_date && formData.end_date) {
       if (new Date(formData.end_date) < new Date(formData.start_date)) {
@@ -101,14 +100,14 @@ const ProjectForm = ({ onClose, onSuccess, projectData = null }) => {
 
             {/* Código y Cliente */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Código de Obra</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Código de Obra (Opcional)</label>
               <input
                 type="text"
                 name="code"
                 value={formData.code}
                 onChange={handleChange}
                 className={`w-full bg-slate-800/50 border ${errors.code ? 'border-red-500' : 'border-white/10'} rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all`}
-                placeholder="Ej: OBRA-2024-001"
+                placeholder="Dejar en blanco para autogenerar"
               />
               {errors.code && <p className="text-red-400 text-xs mt-1">{errors.code}</p>}
             </div>
