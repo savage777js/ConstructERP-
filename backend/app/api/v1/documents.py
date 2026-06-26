@@ -8,11 +8,66 @@ import os
 import uuid
 from typing import Any
 
+try:
+    from pypdf import PdfReader
+except ImportError:
+    PdfReader = None
+
+try:
+    import docx
+except ImportError:
+    docx = None
+
 router = APIRouter()
 
 # Asegurar que el directorio de uploads existe
 UPLOAD_DIR = "uploads/documents"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+def extract_text_from_docx(file_path: str) -> str:
+    """Extrae texto de un archivo Word (.docx)."""
+    if not docx:
+        return "Error: python-docx no está instalado en el servidor."
+    try:
+        doc = docx.Document(file_path)
+        full_text = []
+        for para in doc.paragraphs:
+            if para.text.strip():
+                full_text.append(para.text)
+        
+        # También extraer texto de tablas
+        for table in doc.tables:
+            for row in table.rows:
+                row_text = []
+                for cell in row.cells:
+                    cell_text = " ".join([p.text.strip() for p in cell.paragraphs if p.text.strip()])
+                    if cell_text:
+                        row_text.append(cell_text)
+                if row_text:
+                    full_text.append(" | ".join(row_text))
+                    
+        return "\n".join(full_text).strip()
+    except Exception as e:
+        return f"Error leyendo archivo Word (.docx): {str(e)}"
+
+def extract_text_from_doc_fallback(file_path: str) -> str:
+    """Intenta extraer texto legible de un archivo .doc binario como fallback."""
+    try:
+        with open(file_path, 'rb') as f:
+            content = f.read()
+        import re
+        strings = re.findall(rb'[a-zA-Z0-9\s\.,;:!\?\-\(\)@_]{4,}', content)
+        text_lines = []
+        for s in strings:
+            try:
+                decoded = s.decode('utf-8', errors='ignore').strip()
+                if len(decoded) > 5:
+                    text_lines.append(decoded)
+            except Exception:
+                pass
+        return "\n".join(text_lines)
+    except Exception as e:
+        return f"Error en fallback de lectura .doc: {str(e)}"
 
 allow_ocr = deps.RoleChecker([core.UserRole.ADMIN, core.UserRole.PROJECT_MANAGER])
 
@@ -22,12 +77,12 @@ async def ocr_invoice(
     db: Session = Depends(deps.get_db),
     current_user: core.User = Depends(deps.get_current_user),
 ) -> Any:
-    """Sube una imagen de factura y extrae sus datos usando IA."""
+    """Sube una factura (imagen, PDF o Word) y extrae sus datos usando IA."""
     
     # Validar extensión
     ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in [".jpg", ".jpeg", ".png", ".pdf"]:
-        raise HTTPException(status_code=400, detail="Formato de archivo no soportado. Use JPG, PNG o PDF.")
+    if ext not in [".jpg", ".jpeg", ".png", ".pdf", ".docx", ".doc"]:
+        raise HTTPException(status_code=400, detail="Formato de archivo no soportado. Use JPG, PNG, PDF o Word (DOCX/DOC).")
 
     try:
         # Leer contenido
@@ -39,14 +94,46 @@ async def ocr_invoice(
         with open(file_path, "wb") as f:
             f.write(contents)
 
-        # Convertir a base64 para la IA (Solo para imágenes por ahora)
+        text_content = None
+        image_base64 = None
+
         if ext == ".pdf":
-             raise HTTPException(status_code=400, detail="El OCR de PDF requiere procesamiento adicional. Por ahora use imágenes (JPG/PNG).")
-        
-        image_base64 = base64.b64encode(contents).decode("utf-8")
+            if not PdfReader:
+                raise HTTPException(status_code=500, detail="El motor de lectura PDF (pypdf) no está instalado en el servidor.")
+            
+            reader = PdfReader(file_path)
+            pages_text = []
+            for page in reader.pages:
+                text = page.extract_text()
+                if text:
+                    pages_text.append(text)
+            
+            text_content = "\n".join(pages_text).strip()
+            if not text_content:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El archivo PDF no contiene texto digital extraíble (podría ser un documento escaneado). Por favor, suba una versión con texto digital o una imagen JPG/PNG."
+                )
+        elif ext in [".docx", ".doc"]:
+            if ext == ".docx":
+                text_content = extract_text_from_docx(file_path)
+            else:
+                text_content = extract_text_from_doc_fallback(file_path)
+                
+            if not text_content or not text_content.strip():
+                raise HTTPException(
+                    status_code=400,
+                    detail="No se pudo extraer texto legible del documento Word. Verifique que no esté vacío."
+                )
+        else:
+            image_base64 = base64.b64encode(contents).decode("utf-8")
         
         # Llamar al servicio de IA
-        ocr_data = await ai_service.process_document(image_base64)
+        ocr_data = await ai_service.process_document(
+            image_base64=image_base64,
+            text_content=text_content,
+            category="invoice"
+        )
         
         if not ocr_data:
             raise HTTPException(status_code=500, detail="La IA no pudo procesar el documento.")
@@ -57,6 +144,8 @@ async def ocr_invoice(
             "preview_url": f"/uploads/documents/{unique_filename}"
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error en OCR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -166,12 +255,8 @@ async def process_document_ocr(
     db: Session = Depends(deps.get_db),
     current_user: core.User = Depends(deps.get_current_user),
 ):
-    """Procesa mediante OCR un documento ya existente en la base de datos (imagen o PDF)."""
+    """Procesa mediante OCR un documento ya existente en la base de datos (imagen, PDF o Word)."""
     import json
-    try:
-        from pypdf import PdfReader
-    except ImportError:
-        PdfReader = None
 
     query = db.query(core.Document).filter(core.Document.id == document_id)
     if current_user.organization_id:
@@ -180,10 +265,10 @@ async def process_document_ocr(
     if not doc:
         raise HTTPException(status_code=404, detail="Documento no encontrado o no pertenece a su organización")
         
-    # Verificar que el archivo sea una imagen o PDF
+    # Verificar que el archivo sea una imagen, PDF o Word
     ext = os.path.splitext(doc.file_path)[1].lower()
-    if ext not in [".jpg", ".jpeg", ".png", ".pdf"]:
-        raise HTTPException(status_code=400, detail="El procesamiento OCR mediante IA solo es soportado para imágenes (JPG, PNG) y archivos PDF.")
+    if ext not in [".jpg", ".jpeg", ".png", ".pdf", ".docx", ".doc"]:
+        raise HTTPException(status_code=400, detail="El procesamiento OCR mediante IA solo es soportado para imágenes, archivos PDF y Word (DOCX/DOC).")
 
     # Recuperar archivo local (auto-curación desde BD si fue borrado por Render)
     local_path = doc.file_path.lstrip('/')
@@ -196,7 +281,7 @@ async def process_document_ocr(
     try:
         if ext == ".pdf":
             if not PdfReader:
-                raise HTTPException(status_code=500, detail="El motor de lectura PDF (pypdf) no está instalado.")
+                raise HTTPException(status_code=500, detail="El motor de lectura PDF (pypdf) no está instalado en el servidor.")
             
             reader = PdfReader(local_path)
             pages_text = []
@@ -210,6 +295,17 @@ async def process_document_ocr(
                 raise HTTPException(
                     status_code=400,
                     detail="El archivo PDF no contiene texto digital extraíble (podría ser un documento escaneado). Por favor, suba una versión con texto digital o una imagen JPG/PNG."
+                )
+        elif ext in [".docx", ".doc"]:
+            if ext == ".docx":
+                text_content = extract_text_from_docx(local_path)
+            else:
+                text_content = extract_text_from_doc_fallback(local_path)
+            
+            if not text_content or not text_content.strip():
+                raise HTTPException(
+                    status_code=400,
+                    detail="No se pudo extraer texto legible del documento Word. Verifique que no esté vacío."
                 )
         else:
             with open(local_path, "rb") as f:

@@ -66,12 +66,7 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
       count: unreadCount,
       roles: ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER', 'MANAGEMENT'],
     },
-    {
-      name: 'Reportes',
-      path: '/reports',
-      icon: BarChart,
-      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGEMENT'],
-    },
+
     {
       name: 'Jerarquía',
       path: '/hierarchy',

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import api from '../api';
 import { 
   Send, ShieldCheck, Zap, Paperclip, FileText, 
-  Loader2, AlertCircle, X, Save, Copy, Download
+  Loader2, AlertCircle, X, Save, Copy, Download,
+  BarChart2, FileSpreadsheet, Sparkles
 } from 'lucide-react';
 import './Capataz.css';
 import { useAuth } from '../context/AuthContext';
@@ -66,6 +67,57 @@ const Capataz = () => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const { user } = useAuth();
+
+  const [exportingReportId, setExportingReportId] = useState(null);
+
+  const biReports = [
+    { id: 'workers', title: 'Nómina de Trabajadores', desc: 'Personal contratado, RUT, cargos y salarios.' },
+    { id: 'assignments', title: 'Asignaciones de Obras', desc: 'Trabajadores asignados por frente de trabajo.' },
+    { id: 'projects', title: 'Estado de Proyectos', desc: 'Avances, presupuestos e hitos de obras.' },
+    { id: 'notifications', title: 'Historial de Alertas', desc: 'Registro histórico de incidencias de seguridad y operativas.' },
+    { id: 'contracts_expiring', title: 'Contratos por Vencer', desc: 'Personal próximo a finalizar periodo contractual.' },
+  ];
+
+  const handleExportBI = async (reportId, format) => {
+    setExportingReportId(`${reportId}_${format}`);
+    try {
+      const response = await api.get(`/reports/${reportId}/export?format=${format}`, {
+        responseType: 'blob'
+      });
+      
+      const file = new Blob([response.data], {
+        type: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const fileURL = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = fileURL;
+      const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+      
+      const titleMap = {
+        workers: 'Listado_Trabajadores',
+        assignments: 'Asignaciones_Obra',
+        projects: 'Proyectos_Activos',
+        notifications: 'Historial_Alertas',
+        contracts_expiring: 'Contratos_Por_Vencer'
+      };
+      const reportName = titleMap[reportId] || reportId;
+      link.download = `Reporte_${reportName}_${new Date().toISOString().split('T')[0]}.${ext}`;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(fileURL);
+    } catch (error) {
+      console.error('Error al exportar reporte BI:', error);
+      alert('No se pudo exportar el reporte en este momento.');
+    } finally {
+      setExportingReportId(null);
+    }
+  };
+
+  const handleAskAIAboutReport = (reportTitle, reportId) => {
+    handleSend(`Analiza el reporte "${reportTitle}" (ID: ${reportId}) del ERP y haz un análisis de la situación con anomalías y recomendaciones.`);
+  };
   const canManageExpenses = ['ADMIN', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT'].includes(user?.role);
 
   const scrollToBottom = () => {
@@ -196,14 +248,15 @@ const Capataz = () => {
       }, 400);
       return () => clearTimeout(timer);
     } else if (generatingReport && reportStep === reportLogs.length) {
+      setReportStep((prev) => prev + 1);
       const fetchReport = async () => {
         try {
           const response = await api.post('/ai/report');
           setReportMarkdown(response.data.report);
-          setGeneratingReport(false);
         } catch (error) {
           console.error('Error al generar informe ejecutivo:', error);
           alert('No se pudo generar el informe en este momento.');
+        } finally {
           setGeneratingReport(false);
         }
       };
@@ -466,7 +519,7 @@ const Capataz = () => {
   }
 
   return (
-    <div className="capataz-container">
+    <div className="capataz-container flex flex-col lg:flex-row h-full">
       {/* SECCIÓN PRINCIPAL DE CHAT */}
       <main className="chat-workspace flex-1 flex flex-col overflow-hidden">
         
@@ -578,7 +631,7 @@ const Capataz = () => {
               hidden 
               ref={fileInputRef} 
               onChange={handleFileUpload}
-              accept="image/*"
+              accept="image/*,.pdf,.doc,.docx"
             />
             <input 
               type="text" 
@@ -601,6 +654,65 @@ const Capataz = () => {
         </footer>
 
       </main>
+
+      {/* PANEL DERECHO: CENTRO DE REPORTES & BI */}
+      <aside className="reports-bi-panel w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 bg-slate-950/40 p-5 flex flex-col overflow-y-auto shrink-0 select-none">
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/5">
+          <BarChart2 className="text-amber-500" size={18} />
+          <h3 className="text-sm font-black text-white uppercase tracking-wider">Centro de Reportes & BI</h3>
+        </div>
+        <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+          Descarga listados de datos consolidados en Excel o PDF, o solicita análisis directo a Capataz AI.
+        </p>
+        
+        <div className="space-y-4">
+          {biReports.map((report) => (
+            <div key={report.id} className="bg-slate-900/60 border border-white/5 rounded-xl p-3 hover:border-amber-500/20 transition-all flex flex-col gap-2.5">
+              <div>
+                <h4 className="text-xs font-bold text-white mb-0.5">{report.title}</h4>
+                <p className="text-[10px] text-slate-500">{report.desc}</p>
+              </div>
+              
+              <div className="flex items-center gap-2 mt-1">
+                <button
+                  onClick={() => handleExportBI(report.id, 'excel')}
+                  disabled={exportingReportId !== null}
+                  className="flex-1 py-1.5 bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-600 hover:text-white transition-all text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 shadow-sm"
+                >
+                  {exportingReportId === `${report.id}_excel` ? (
+                    <Loader2 className="animate-spin" size={10} />
+                  ) : (
+                    <FileSpreadsheet size={10} />
+                  )}
+                  Excel
+                </button>
+                
+                <button
+                  onClick={() => handleExportBI(report.id, 'pdf')}
+                  disabled={exportingReportId !== null}
+                  className="flex-1 py-1.5 bg-red-600/10 border border-red-500/20 text-red-500 rounded-lg hover:bg-red-600 hover:text-white transition-all text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 shadow-sm"
+                >
+                  {exportingReportId === `${report.id}_pdf` ? (
+                    <Loader2 className="animate-spin" size={10} />
+                  ) : (
+                    <FileText size={10} />
+                  )}
+                  PDF
+                </button>
+
+                <button
+                  onClick={() => handleAskAIAboutReport(report.title, report.id)}
+                  disabled={isTyping}
+                  className="p-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg hover:bg-amber-500 hover:text-white transition-all"
+                  title="Preguntar a la IA"
+                >
+                  <Sparkles size={11} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </aside>
 
       {/* MODAL: Visualización del Informe Ejecutivo */}
       {reportMarkdown && (

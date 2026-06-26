@@ -194,7 +194,7 @@ const Spark = () => {
             hidden 
             ref={fileInputRef} 
             onChange={handleFileUpload}
-            accept="image/*"
+            accept="image/*,.pdf,.doc,.docx"
           />
           <input 
             type="text" 
