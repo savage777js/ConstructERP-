@@ -18,6 +18,7 @@ class UserUpdate(UserBase):
 class UserOut(UserBase):
     id: int
     is_active: bool
+    ai_quota: int = 50
     organization_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime

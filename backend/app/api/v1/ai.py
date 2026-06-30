@@ -12,6 +12,18 @@ import json
 
 router = APIRouter()
 
+@router.get("/quota")
+def get_ai_quota(current_user: User = Depends(get_current_user)):
+    """
+    Retorna la cuota de consultas gratuitas que le quedan al usuario actual.
+    El frontend usa este endpoint para mostrar la advertencia de uso.
+    """
+    return {
+        "remaining_quota": current_user.ai_quota,
+        "total_quota": 50,
+        "warning": current_user.ai_quota <= 10
+    }
+
 @router.get("/dashboard")
 def get_ai_dashboard(
     db: Session = Depends(get_db),
@@ -192,6 +204,13 @@ async def chat_with_ai(
     
     if not messages:
         raise HTTPException(status_code=400, detail="Messages are required")
+
+    # --- Validar cuota gratuita de IA ---
+    if current_user.ai_quota <= 0:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Capataz IA: Has agotado tus {50} consultas gratuitas. Contacta a soporte para obtener más créditos."
+        )
     
     # Procesar conversación mediante el Agente con herramientas
     ai_result = await ai_service.get_chat_response(
@@ -223,10 +242,19 @@ async def chat_with_ai(
     except Exception as audit_err:
         print(f"⚠️ Error registrando auditoría de IA: {audit_err}")
         db.rollback()
+    
+    # --- Descontar 1 uso de la cuota ---
+    try:
+        current_user.ai_quota = max(0, current_user.ai_quota - 1)
+        db.commit()
+    except Exception as quota_err:
+        print(f"⚠️ Error actualizando cuota de IA: {quota_err}")
+        db.rollback()
         
     return {
         "response": ai_result.get("response", ""),
-        "tool_calls": ai_result.get("tool_calls_logged", [])
+        "tool_calls": ai_result.get("tool_calls_logged", []),
+        "remaining_quota": current_user.ai_quota
     }
 
 @router.post("/report")

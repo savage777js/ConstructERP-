@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     # Seguridad - FIJADA PARA EVITAR ERRORES 401
     SECRET_KEY: str = "construct_erp_2026_secure_key_local"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # Límite de sesión: 30 minutos (SLA seguridad)
     
     # Origins permitidos
     ALLOWED_ORIGINS: Any = []

@@ -122,6 +122,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.ADMIN)
     is_active = Column(Boolean(), default=True)
+    ai_quota = Column(Integer, default=50) # Cuota de consultas gratuitas a la IA
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     rut = Column(String(50), nullable=True) # RUT del usuario administrativo

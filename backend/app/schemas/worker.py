@@ -1,7 +1,22 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 from app.models.core import EmployeeStatus
+import enum
+
+class WorkerRole(str, enum.Enum):
+    """Cargos predefinidos para trabajadores de construcción"""
+    JORNALERO = "JORNALERO"
+    CAPATAZ = "CAPATAZ"
+    ALBANIL = "ALBAÑIL"
+    CARPINTERO = "CARPINTERO"
+    ELECTRICISTA = "ELECTRICISTA"
+    PLOMERO = "PLOMERO"
+    SOLDADOR = "SOLDADOR"
+    BODEGUERO = "BODEGUERO"
+    ADMINISTRATIVO = "ADMINISTRATIVO"
+    GUARDIA = "GUARDIA"
+    OTRO = "OTRO"
 
 class EmployeeBase(BaseModel):
     first_name: str
@@ -11,8 +26,8 @@ class EmployeeBase(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
-    role: Optional[str] = None
-    salary: int = 0
+    role: Optional[str] = None  # Se acepta texto libre o usar WorkerRole Enum
+    salary: int = Field(500000, ge=500000, description="Sueldo mínimo: $500.000")
     hire_date: Optional[datetime] = None
     contract_end_date: Optional[datetime] = None
     status: EmployeeStatus = EmployeeStatus.ACTIVE
