@@ -211,38 +211,81 @@ def init_db():
 
     db = SessionLocal()
     try:
-        from app.models.core import User, UserRole
+        from app.models.core import User, UserRole, Organization
         from app.core import security
-        
-        # Leer contraseñas de inicialización segura del entorno o asignar contraseñas por defecto seguras
-        initial_admin_pwd = os.environ.get("INITIAL_ADMIN_PASSWORD", "Admin_Secure_ConstructERP_2026")
-        initial_gerente_pwd = os.environ.get("INITIAL_GERENTE_PASSWORD", "Gerente_Secure_ConstructERP_2026")
 
-        if not db.query(User).filter(User.email == "admin@serconind.cl").first():
-            admin_user = User(
-                email="admin@serconind.cl",
-                hashed_password=security.get_password_hash(initial_admin_pwd),
-                full_name="Administrador Local",
-                role=UserRole.ADMIN,
-                is_active=True
-            )
-            db.add(admin_user)
+        # ──────────────────────────────────────────────────────────────
+        # Asegurar organización base
+        # ──────────────────────────────────────────────────────────────
+        org = db.query(Organization).first()
+        if not org:
+            org = Organization(name="Sercon Ind SpA")
+            db.add(org)
             db.commit()
-            print("🚀 Admin local creado de forma segura.")
+            db.refresh(org)
+        org_id = org.id
 
-        if not db.query(User).filter(User.email == "gerente@serconind.cl").first():
-            gerente_user = User(
-                email="gerente@serconind.cl",
-                hashed_password=security.get_password_hash(initial_gerente_pwd),
-                full_name="Gerente General",
-                role=UserRole.MANAGEMENT,
-                is_active=True
-            )
-            db.add(gerente_user)
-            db.commit()
-            print("🚀 Gerente local creado de forma segura.")
+        # ──────────────────────────────────────────────────────────────
+        # Usuarios de rol — se crean o actualizan en CADA arranque.
+        # Las contraseñas se leen de variables de entorno; si no están
+        # definidas, se usan las contraseñas cortas de prueba.
+        # En Render: define INITIAL_ADMIN_PASSWORD, etc. en el panel
+        # Environment de tu servicio para cambiarlas.
+        # ──────────────────────────────────────────────────────────────
+        role_users = [
+            {
+                "email": "admin@serconind.cl",
+                "password": os.environ.get("INITIAL_ADMIN_PASSWORD", "admin"),
+                "name": "Administrador",
+                "role": UserRole.ADMIN,
+            },
+            {
+                "email": "gerente@serconind.cl",
+                "password": os.environ.get("INITIAL_GERENTE_PASSWORD", "gerente"),
+                "name": "Gerente General",
+                "role": UserRole.MANAGEMENT,
+            },
+            {
+                "email": "rrhh@serconind.cl",
+                "password": os.environ.get("INITIAL_RRHH_PASSWORD", "rrhh"),
+                "name": "Jefe de Recursos Humanos",
+                "role": UserRole.HR_MANAGER,
+            },
+            {
+                "email": "proyectos@serconind.cl",
+                "password": os.environ.get("INITIAL_PROYECTOS_PASSWORD", "proyectos"),
+                "name": "Jefe de Proyectos",
+                "role": UserRole.PROJECT_MANAGER,
+            },
+        ]
+
+        for ud in role_users:
+            existing = db.query(User).filter(User.email == ud["email"]).first()
+            hashed = security.get_password_hash(ud["password"])
+            if existing:
+                # Actualizar contraseña y asegurarse de que esté activo
+                existing.hashed_password = hashed
+                existing.is_active = True
+                if not existing.organization_id:
+                    existing.organization_id = org_id
+                db.commit()
+                print(f"🔄 Contraseña actualizada: {ud['email']}")
+            else:
+                new_user = User(
+                    email=ud["email"],
+                    hashed_password=hashed,
+                    full_name=ud["name"],
+                    role=ud["role"],
+                    is_active=True,
+                    organization_id=org_id,
+                )
+                db.add(new_user)
+                db.commit()
+                print(f"🚀 Usuario creado: {ud['email']}")
+
     except Exception as e:
         print(f"❌ Error inicializando DB: {e}")
+        import traceback; traceback.print_exc()
     finally:
         db.close()
 
