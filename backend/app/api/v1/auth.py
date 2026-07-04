@@ -84,9 +84,17 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
         raise http_exc
     except Exception as e:
         import traceback
+        tb_str = traceback.format_exc()
         print("!!! ERROR CRÍTICO EN LOGIN !!!")
-        print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail="Error interno del servidor al procesar el inicio de sesión")
+        print(tb_str)
+        raise HTTPException(
+            status_code=500, 
+            detail={
+                "message": "Error interno del servidor al procesar el inicio de sesión",
+                "error": str(e),
+                "traceback": tb_str
+            }
+        )
 
 
 # ─── Gestión de Usuarios (Solo SUPER_ADMIN / ADMIN) ──────────────────────────

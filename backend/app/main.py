@@ -170,6 +170,36 @@ def init_db():
 
     db = SessionLocal()
     try:
+        # ── Columnas faltantes en USERS ─────────────────────────────
+        # ai_quota (cuota IA — añadida en sesión anterior)
+        try:
+            db.execute(text("ALTER TABLE users ADD COLUMN ai_quota INTEGER DEFAULT 50"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        # auth_id (UUID Supabase Auth — nullable)
+        try:
+            db.execute(text("ALTER TABLE users ADD COLUMN auth_id VARCHAR UNIQUE"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        # rut del usuario administrativo
+        try:
+            db.execute(text("ALTER TABLE users ADD COLUMN rut VARCHAR(50)"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        # updated_at
+        try:
+            db.execute(text("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP DEFAULT NOW()"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        # ── Columnas faltantes en otras tablas ───────────────────────
         # Columna budget en projects
         try:
             db.execute(text("ALTER TABLE projects ADD COLUMN budget NUMERIC(15, 2) DEFAULT 0"))
@@ -204,6 +234,8 @@ def init_db():
             db.commit()
         except Exception:
             db.rollback()
+
+        print("✅ Migraciones de columnas aplicadas.")
     except Exception as e:
         print(f"❌ Error aplicando migraciones: {e}")
     finally:
