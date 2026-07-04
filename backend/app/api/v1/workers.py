@@ -13,9 +13,180 @@ import io
 router = APIRouter()
 
 # Dependencias de rol
-# Gerente General (MANAGEMENT) solo puede leer — no puede crear/editar/eliminar
-allow_manage_hr = RoleChecker([UserRole.HR_MANAGER])
-allow_read_hr = RoleChecker([UserRole.HR_MANAGER, UserRole.PROJECT_MANAGER])
+# HR_MANAGER, ADMIN y SUPER_ADMIN pueden crear/editar/eliminar
+allow_manage_hr = RoleChecker([UserRole.HR_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN])
+allow_read_hr = RoleChecker([UserRole.HR_MANAGER, UserRole.PROJECT_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGEMENT])
+
+# ─── Rutas estáticas primero (deben ir ANTES de /{worker_id}) ────────────────
+
+@router.get("/template-excel")
+def download_excel_template():
+    import openpyxl
+    import io
+    from fastapi.responses import Response
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Plantilla Trabajadores"
+    
+    headers = [
+        "Nombres", "Apellidos", "RUT", "Edad", "Cargo", "Sueldo Base", 
+        "Fecha Ingreso (AAAA-MM-DD)", "Tipo Contrato (INDEFINIDO/PLAZO_FIJO)", 
+        "Fecha Vencimiento Contrato (AAAA-MM-DD)", "Email", "Telefono", "Direccion"
+    ]
+    ws.append(headers)
+    
+    ws.append([
+        "Juan Carlos", "Perez Gomez", "12.345.678-9", "35", "Maestro Albañil", "850000",
+        "2026-01-15", "INDEFINIDO", "", "juan@gmail.com", "+56912345678", "Av San Martin 123"
+    ])
+    ws.append([
+        "Maria Leonor", "Soto Diaz", "15.432.109-8", "28", "Soldador HDPE", "950000",
+        "2026-02-01", "PLAZO_FIJO", "2026-08-01", "maria@gmail.com", "+56987654321", "Pasaje El Roble 456"
+    ])
+    
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    return Response(
+        content=output.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": "attachment; filename=plantilla_trabajadores.xlsx"
+        }
+    )
+
+@router.post("/import-excel", dependencies=[Depends(allow_manage_hr)])
+async def import_workers_excel(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    import openpyxl
+    from datetime import datetime
+    
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in [".xlsx", ".xls"]:
+        raise HTTPException(status_code=400, detail="Formato de archivo inválido. Debe subir un archivo Excel (.xlsx).")
+        
+    try:
+        contents = await file.read()
+        wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
+        ws = wb.active
+        
+        rows = list(ws.iter_rows(values_only=True))
+        if len(rows) < 2:
+            raise HTTPException(status_code=400, detail="El archivo está vacío o no contiene filas de datos.")
+            
+        data_rows = rows[1:]
+        imported_count = 0
+        errors = []
+        
+        for idx, row in enumerate(data_rows, start=2):
+            if not row or all(v is None for v in row):
+                continue
+                
+            try:
+                first_name = str(row[0]).strip() if row[0] is not None else ""
+                last_name = str(row[1]).strip() if row[1] is not None else ""
+                rut = str(row[2]).strip() if row[2] is not None else ""
+                age_raw = row[3]
+                role = str(row[4]).strip() if row[4] is not None else ""
+                salary_raw = row[5]
+                hire_date_raw = row[6]
+                contract_type_raw = str(row[7]).strip().upper() if row[7] is not None else "INDEFINIDO"
+                contract_end_raw = row[8]
+                email = str(row[9]).strip() if row[9] is not None else ""
+                phone = str(row[10]).strip() if row[10] is not None else ""
+                address = str(row[11]).strip() if row[11] is not None else ""
+                
+                if not first_name or not last_name:
+                    errors.append(f"Fila {idx}: Nombre y Apellido son obligatorios.")
+                    continue
+                if not role:
+                    errors.append(f"Fila {idx}: El cargo/rol es obligatorio.")
+                    continue
+                    
+                formatted_rut = None
+                if rut:
+                    if not validate_rut(rut):
+                        errors.append(f"Fila {idx}: RUT '{rut}' inválido.")
+                        continue
+                    formatted_rut = format_rut(rut)
+                    existing = db.query(Employee).filter(Employee.rut == formatted_rut).first()
+                    if existing:
+                        errors.append(f"Fila {idx}: Trabajador con RUT '{rut}' ya existe en el sistema.")
+                        continue
+                
+                age = int(age_raw) if age_raw is not None else None
+                salary = int(salary_raw) if salary_raw is not None else 0
+                
+                hire_date = datetime.utcnow()
+                if hire_date_raw:
+                    if isinstance(hire_date_raw, datetime):
+                        hire_date = hire_date_raw
+                    elif isinstance(hire_date_raw, str):
+                        try:
+                            hire_date = datetime.strptime(hire_date_raw, "%Y-%m-%d")
+                        except ValueError:
+                            try:
+                                hire_date = datetime.strptime(hire_date_raw, "%d/%m/%Y")
+                            except ValueError:
+                                errors.append(f"Fila {idx}: Formato de Fecha Ingreso inválido.")
+                                continue
+                
+                contract_end_date = None
+                if contract_end_raw:
+                    if isinstance(contract_end_raw, datetime):
+                        contract_end_date = contract_end_raw
+                    elif isinstance(contract_end_raw, str):
+                        try:
+                            contract_end_date = datetime.strptime(contract_end_raw, "%Y-%m-%d")
+                        except ValueError:
+                            try:
+                                contract_end_date = datetime.strptime(contract_end_raw, "%d/%m/%Y")
+                            except ValueError:
+                                errors.append(f"Fila {idx}: Formato de Fecha Término Contrato inválido.")
+                                continue
+                
+                if contract_type_raw not in ["INDEFINIDO", "PLAZO_FIJO"]:
+                    contract_type_raw = "INDEFINIDO"
+                
+                new_worker = Employee(
+                    organization_id=current_user.organization_id,
+                    first_name=first_name,
+                    last_name=last_name,
+                    rut=formatted_rut,
+                    age=age,
+                    role=role,
+                    salary=salary,
+                    hire_date=hire_date,
+                    contract_type=contract_type_raw,
+                    contract_end_date=contract_end_date,
+                    email=email,
+                    phone=phone,
+                    address=address,
+                    vacation_balance=15.0
+                )
+                db.add(new_worker)
+                imported_count += 1
+            except Exception as row_err:
+                errors.append(f"Fila {idx}: Error inesperado - {str(row_err)}")
+                
+        db.commit()
+        return {
+            "imported_count": imported_count,
+            "errors": errors,
+            "success": len(errors) == 0
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error importando Excel: {e}")
+        raise HTTPException(status_code=500, detail="Error interno al procesar el archivo Excel.")
+
+# ─── Rutas dinámicas con /{worker_id} ────────────────────────────────────────
 
 @router.get("/{worker_id}/contract", dependencies=[Depends(allow_read_hr)])
 def get_worker_contract(
@@ -30,7 +201,6 @@ def get_worker_contract(
     if not worker:
         raise HTTPException(status_code=404, detail="Trabajador no encontrado o no pertenece a su organización")
     
-    # Preparamos los datos para el servicio de PDF
     worker_data = {
         "first_name": worker.first_name,
         "last_name": worker.last_name,
@@ -214,181 +384,7 @@ def delete_worker(
     
     return None
 
-@router.get("/template-excel")
-def download_excel_template():
-    import openpyxl
-    import io
-    from fastapi.responses import Response
 
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Plantilla Trabajadores"
-    
-    headers = [
-        "Nombres", "Apellidos", "RUT", "Edad", "Cargo", "Sueldo Base", 
-        "Fecha Ingreso (AAAA-MM-DD)", "Tipo Contrato (INDEFINIDO/PLAZO_FIJO)", 
-        "Fecha Vencimiento Contrato (AAAA-MM-DD)", "Email", "Telefono", "Direccion"
-    ]
-    ws.append(headers)
-    
-    # Add dummy row as example
-    ws.append([
-        "Juan Carlos", "Perez Gomez", "12.345.678-9", "35", "Maestro Albañil", "850000",
-        "2026-01-15", "INDEFINIDO", "", "juan@gmail.com", "+56912345678", "Av San Martin 123"
-    ])
-    ws.append([
-        "Maria Leonor", "Soto Diaz", "15.432.109-8", "28", "Soldador HDPE", "950000",
-        "2026-02-01", "PLAZO_FIJO", "2026-08-01", "maria@gmail.com", "+56987654321", "Pasaje El Roble 456"
-    ])
-    
-    output = io.BytesIO()
-    wb.save(output)
-    output.seek(0)
-    
-    return Response(
-        content=output.getvalue(),
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-            "Content-Disposition": "attachment; filename=plantilla_trabajadores.xlsx"
-        }
-    )
-
-@router.post("/import-excel", dependencies=[Depends(allow_manage_hr)])
-async def import_workers_excel(
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    import openpyxl
-    from datetime import datetime
-    
-    # Check extension
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in [".xlsx", ".xls"]:
-        raise HTTPException(status_code=400, detail="Formato de archivo inválido. Debe subir un archivo Excel (.xlsx).")
-        
-    try:
-        contents = await file.read()
-        wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
-        ws = wb.active
-        
-        rows = list(ws.iter_rows(values_only=True))
-        if len(rows) < 2:
-            raise HTTPException(status_code=400, detail="El archivo está vacío o no contiene filas de datos.")
-            
-        data_rows = rows[1:]
-        
-        imported_count = 0
-        errors = []
-        
-        for idx, row in enumerate(data_rows, start=2):
-            if not row or all(v is None for v in row):
-                continue # Skip empty rows
-                
-            try:
-                # Map columns based on headers or positions
-                first_name = str(row[0]).strip() if row[0] is not None else ""
-                last_name = str(row[1]).strip() if row[1] is not None else ""
-                rut = str(row[2]).strip() if row[2] is not None else ""
-                age_raw = row[3]
-                role = str(row[4]).strip() if row[4] is not None else ""
-                salary_raw = row[5]
-                hire_date_raw = row[6]
-                contract_type_raw = str(row[7]).strip().upper() if row[7] is not None else "INDEFINIDO"
-                contract_end_raw = row[8]
-                email = str(row[9]).strip() if row[9] is not None else ""
-                phone = str(row[10]).strip() if row[10] is not None else ""
-                address = str(row[11]).strip() if row[11] is not None else ""
-                
-                if not first_name or not last_name:
-                    errors.append(f"Fila {idx}: Nombre y Apellido son obligatorios.")
-                    continue
-                    
-                if not role:
-                    errors.append(f"Fila {idx}: El cargo/rol es obligatorio.")
-                    continue
-                    
-                # Format/Validate RUT
-                formatted_rut = None
-                if rut:
-                    if not validate_rut(rut):
-                        errors.append(f"Fila {idx}: RUT '{rut}' inválido.")
-                        continue
-                    formatted_rut = format_rut(rut)
-                    # Check if duplicate in DB
-                    existing = db.query(Employee).filter(Employee.rut == formatted_rut).first()
-                    if existing:
-                        errors.append(f"Fila {idx}: Trabajador con RUT '{rut}' ya existe en el sistema.")
-                        continue
-                
-                # Parse age
-                age = int(age_raw) if age_raw is not None else None
-                salary = int(salary_raw) if salary_raw is not None else 0
-                
-                # Parse Dates
-                hire_date = datetime.utcnow()
-                if hire_date_raw:
-                    if isinstance(hire_date_raw, datetime):
-                        hire_date = hire_date_raw
-                    elif isinstance(hire_date_raw, str):
-                        try:
-                            hire_date = datetime.strptime(hire_date_raw, "%Y-%m-%d")
-                        except ValueError:
-                            try:
-                                hire_date = datetime.strptime(hire_date_raw, "%d/%m/%Y")
-                            except ValueError:
-                                errors.append(f"Fila {idx}: Formato de Fecha Ingreso inválido.")
-                                continue
-                
-                contract_end_date = None
-                if contract_end_raw:
-                    if isinstance(contract_end_raw, datetime):
-                        contract_end_date = contract_end_raw
-                    elif isinstance(contract_end_raw, str):
-                        try:
-                            contract_end_date = datetime.strptime(contract_end_raw, "%Y-%m-%d")
-                        except ValueError:
-                            try:
-                                contract_end_date = datetime.strptime(contract_end_raw, "%d/%m/%Y")
-                            except ValueError:
-                                errors.append(f"Fila {idx}: Formato de Fecha Término Contrato inválido.")
-                                continue
-                
-                # Clean contract type
-                if contract_type_raw not in ["INDEFINIDO", "PLAZO_FIJO"]:
-                    contract_type_raw = "INDEFINIDO"
-                
-                # Create worker
-                new_worker = Employee(
-                    organization_id=current_user.organization_id,
-                    first_name=first_name,
-                    last_name=last_name,
-                    rut=formatted_rut,
-                    age=age,
-                    role=role,
-                    salary=salary,
-                    hire_date=hire_date,
-                    contract_type=contract_type_raw,
-                    contract_end_date=contract_end_date,
-                    email=email,
-                    phone=phone,
-                    address=address,
-                    vacation_balance=15.0 # default balance
-                )
-                db.add(new_worker)
-                imported_count += 1
-            except Exception as row_err:
-                errors.append(f"Fila {idx}: Error inesperador - {str(row_err)}")
-                
-        db.commit()
-        return {
-            "imported_count": imported_count,
-            "errors": errors,
-            "success": len(errors) == 0
-        }
-    except Exception as e:
-        print(f"Error importando Excel: {e}")
-        raise HTTPException(status_code=500, detail="Error interno al procesar el archivo Excel. Asegúrese de que el formato sea correcto.")
 
 def generate_vacation_document_pdf(employee, request) -> bytes:
     from app.services.pdf_service import BasePDFService

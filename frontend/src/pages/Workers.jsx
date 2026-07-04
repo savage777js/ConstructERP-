@@ -151,7 +151,7 @@ const Workers = () => {
           'Content-Type': 'multipart/form-data'
         }
       });
-      alert(`Importación exitosa. Se registraron ${res.data.count} trabajadores.`);
+      alert(`Importación exitosa. Se registraron ${res.data.imported_count} trabajadores.${res.data.errors?.length ? `\n\nAdvertencias:\n${res.data.errors.slice(0, 5).join('\n')}` : ''}`);
       fetchWorkers();
     } catch (error) {
       alert(error.response?.data?.detail || 'Error al importar archivo Excel');
