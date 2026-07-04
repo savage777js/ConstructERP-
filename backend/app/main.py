@@ -233,6 +233,7 @@ def init_db():
         # Environment de tu servicio para cambiarlas.
         # ──────────────────────────────────────────────────────────────
         role_users = [
+            # ── Usuarios base (siempre presentes) ──────────────────────
             {
                 "email": "admin@serconind.cl",
                 "password": os.environ.get("INITIAL_ADMIN_PASSWORD", "admin"),
@@ -245,6 +246,32 @@ def init_db():
                 "name": "Gerente General",
                 "role": UserRole.MANAGEMENT,
             },
+            # ── Usuarios legacy con emails distintos en Supabase ───────
+            {
+                "email": "superadmin@serconind.cl",
+                "password": os.environ.get("INITIAL_SUPERADMIN_PASSWORD", "admin"),
+                "name": "Super Administrador",
+                "role": UserRole.SUPER_ADMIN if hasattr(UserRole, "SUPER_ADMIN") else UserRole.ADMIN,
+            },
+            {
+                "email": "gerente2026@serconind.cl",
+                "password": os.environ.get("INITIAL_GERENTE2_PASSWORD", "gerente"),
+                "name": "Gerente 2026",
+                "role": UserRole.MANAGEMENT,
+            },
+            {
+                "email": "rhh@serconind.cl",
+                "password": os.environ.get("INITIAL_RHH_PASSWORD", "rrhh"),
+                "name": "Recursos Humanos",
+                "role": UserRole.HR_MANAGER,
+            },
+            {
+                "email": "EncargadoProyecto@serconind.cl",
+                "password": os.environ.get("INITIAL_PROYECTO_PASSWORD", "proyectos"),
+                "name": "Encargado de Proyecto",
+                "role": UserRole.PROJECT_MANAGER,
+            },
+            # ── Usuarios nuevos con emails actualizados ─────────────────
             {
                 "email": "rrhh@serconind.cl",
                 "password": os.environ.get("INITIAL_RRHH_PASSWORD", "rrhh"),
