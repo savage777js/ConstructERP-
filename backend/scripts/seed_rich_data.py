@@ -43,12 +43,21 @@ def seed_rich_data():
 
         # Limpiar datos anteriores relacionados para pruebas limpias
         print("Limpiando asignaciones y logs anteriores...")
-        db.query(ProjectAssignment).delete()
-        db.query(ProjectLog).delete()
-        db.query(Expense).delete()
-        db.query(Notification).delete()
-        db.query(Employee).delete()
-        db.query(Project).delete()
+        from app.models.core import Document
+        try:
+            # Eliminar datos binarios de documentos primero
+            db.execute(db.query(Document).statement.with_only_columns([]).execution_options(synchronize_session=False))
+        except Exception:
+            pass
+        # Borrar usando SQL directo para respetar FK en cascada
+        db.execute(__import__('sqlalchemy').text("DELETE FROM document_data"))
+        db.execute(__import__('sqlalchemy').text("DELETE FROM documents"))
+        db.execute(__import__('sqlalchemy').text("DELETE FROM project_assignments"))
+        db.execute(__import__('sqlalchemy').text("DELETE FROM project_logs"))
+        db.execute(__import__('sqlalchemy').text("DELETE FROM expenses"))
+        db.execute(__import__('sqlalchemy').text("DELETE FROM notifications"))
+        db.execute(__import__('sqlalchemy').text("DELETE FROM employees"))
+        db.execute(__import__('sqlalchemy').text("DELETE FROM projects"))
         db.commit()
 
         # 3. Agregar Proyectos de ejemplo

@@ -30,7 +30,11 @@ class Settings(BaseSettings):
 
     def __init__(self, **values):
         super().__init__(**values)
-        # HACK FINAL: Forzamos sqlite por defecto para el instituto, pero permitimos variables de entorno reales si están definidas (ej. en Sevalla o Supabase)
+        # Carga explícita del .env local (por si pydantic_settings no lo detecta)
+        from dotenv import load_dotenv
+        import os
+        load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '.env'), override=True)
+
         env_db_url = os.environ.get("DATABASE_URL")
         if env_db_url:
             self.DATABASE_URL = env_db_url
