@@ -14,6 +14,7 @@ const ProjectForm = ({ onClose, onSuccess, projectData = null }) => {
     end_date: projectData?.end_date ? new Date(projectData.end_date).toISOString().split('T')[0] : '',
     status: projectData?.status || 'ACTIVE',
     budget: projectData?.budget || 0,
+    progress: projectData?.progress || 0,
   });
 
   const [errors, setErrors] = useState({});
@@ -44,6 +45,7 @@ const ProjectForm = ({ onClose, onSuccess, projectData = null }) => {
         start_date: new Date(formData.start_date).toISOString(),
         end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
         budget: parseFloat(formData.budget) || 0,
+        progress: parseInt(formData.progress) || 0,
       };
 
       if (isEdit) {
@@ -134,6 +136,20 @@ const ProjectForm = ({ onClose, onSuccess, projectData = null }) => {
                 className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                 placeholder="Ej: 15000000"
                 min="0"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Avance del Proyecto (%)</label>
+              <input
+                type="number"
+                name="progress"
+                value={formData.progress}
+                onChange={handleChange}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                placeholder="Ej: 45"
+                min="0"
+                max="100"
               />
             </div>
 

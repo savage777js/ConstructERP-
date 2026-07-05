@@ -143,6 +143,18 @@ const Projects = () => {
                     <DollarSign size={14} className="text-emerald-400 shrink-0" />
                     <span>Presupuesto: <span className="text-emerald-400 font-extrabold">${project.budget ? Number(project.budget).toLocaleString('es-CL') : '0'}</span></span>
                   </div>
+                  <div className="space-y-1.5 pt-2 border-t border-white/5">
+                    <div className="flex justify-between text-xs font-semibold text-slate-300">
+                      <span>Avance de Obra</span>
+                      <span className="text-blue-400 font-extrabold">{project.progress || 0}%</span>
+                    </div>
+                    <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden border border-white/5">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${project.progress || 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

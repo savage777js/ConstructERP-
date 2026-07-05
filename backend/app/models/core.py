@@ -186,6 +186,7 @@ class Project(Base):
     end_date = Column(DateTime)
     observations = Column(String)
     budget = Column(Numeric(15, 2), default=0.0)
+    progress = Column(Integer, default=0) # Avance en porcentaje (0-100)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

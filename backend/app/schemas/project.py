@@ -16,6 +16,7 @@ class ProjectBase(BaseModel):
     end_date: Optional[datetime] = None
     observations: Optional[str] = None
     budget: Optional[float] = 0.0
+    progress: Optional[int] = 0
 
 class ProjectCreate(ProjectBase):
     pass

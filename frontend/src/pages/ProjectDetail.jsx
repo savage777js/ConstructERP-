@@ -380,6 +380,37 @@ const ProjectDetail = () => {
               </div>
 
               <div className="space-y-6">
+                {/* Card de Avance del Proyecto */}
+                <div className="glass-card p-4 sm:p-8 border-l-4 border-l-indigo-500 shadow-xl bg-indigo-500/5">
+                  <h4 className="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-4 flex justify-between items-center">
+                    <span>Avance de Obra</span>
+                    {canManageProject && (
+                      <button 
+                        onClick={() => setShowEditModal(true)}
+                        className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-bold"
+                      >
+                        <Edit2 size={12} /> Actualizar
+                      </button>
+                    )}
+                  </h4>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-4xl font-extrabold text-white">{project.progress || 0}%</p>
+                        <p className="text-slate-400 text-xs mt-1">Avance registrado</p>
+                      </div>
+                      <HardHat size={48} className="text-indigo-500/10" />
+                    </div>
+                    
+                    <div className="w-full bg-slate-700/50 rounded-full h-2.5 overflow-hidden border border-white/5">
+                      <div 
+                        className="bg-gradient-to-r from-indigo-500 to-blue-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${project.progress || 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="glass-card p-4 sm:p-8 border-l-4 border-l-blue-500 shadow-xl bg-blue-500/5">
                   <h4 className="text-sm font-bold text-blue-400 uppercase tracking-widest mb-4">Métricas de Dotación</h4>
                   <div className="flex justify-between items-end">

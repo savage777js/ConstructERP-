@@ -125,7 +125,8 @@ class ProjectService:
             "start_date": "Fecha de Inicio",
             "end_date": "Fecha de Término",
             "observations": "Observaciones",
-            "budget": "Presupuesto"
+            "budget": "Presupuesto",
+            "progress": "Avance del Proyecto"
         }
 
         for field, new_value in update_data.items():
