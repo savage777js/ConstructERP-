@@ -27,7 +27,7 @@ class EmployeeBase(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     role: Optional[str] = None  # Se acepta texto libre o usar WorkerRole Enum
-    salary: int = Field(500000, ge=500000, description="Sueldo mínimo: $500.000")
+    salary: int = Field(553553, ge=553553, description="Sueldo mínimo: $553.553")
     hire_date: Optional[datetime] = None
     contract_end_date: Optional[datetime] = None
     status: EmployeeStatus = EmployeeStatus.ACTIVE

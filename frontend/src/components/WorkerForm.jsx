@@ -30,7 +30,7 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
     last_name: workerData?.last_name || '',
     rut: workerData?.rut || '',
     age: workerData?.age || '',
-    salary: workerData?.salary !== undefined ? workerData.salary : 500000,
+    salary: workerData?.salary !== undefined ? workerData.salary : 553553,
     hire_date: workerData?.hire_date ? new Date(workerData.hire_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     email: workerData?.email || '',
     phone: workerData?.phone || '',
@@ -50,8 +50,8 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
     const finalRole = roleSelect === 'OTRO' ? customRole : roleSelect;
     if (!finalRole.trim()) newErrors.role = 'El cargo es obligatorio';
     
-    if (formData.salary === undefined || formData.salary === '' || formData.salary < 500000) {
-      newErrors.salary = 'El sueldo mínimo es $500.000';
+    if (formData.salary === undefined || formData.salary === '' || formData.salary < 553553) {
+      newErrors.salary = 'El sueldo mínimo es $553.553';
     }
     
     setErrors(newErrors);
@@ -213,7 +213,7 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
                 name="salary"
                 value={formData.salary}
                 onChange={handleChange}
-                min="500000"
+                min="553553"
                 className={`w-full bg-slate-800/50 border ${errors.salary ? 'border-red-500' : 'border-white/10'} rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all`}
                 placeholder="Ej: 850000"
               />

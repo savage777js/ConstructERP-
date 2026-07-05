@@ -12,7 +12,7 @@ def test_create_worker_sets_organization(client, test_data, db):
         "phone": "+56911112222",
         "address": "Calle Falsa 123",
         "role": "Jornalero",
-        "salary": 500000,
+        "salary": 553553,
         "contract_type": "INDEFINIDO"
     }
     response = client.post(

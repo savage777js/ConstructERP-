@@ -244,8 +244,8 @@ const Workers = () => {
     if (!matchesSearch) return false;
 
     if (salaryFilter === 'ALL') return true;
-    if (salaryFilter === 'LOW') return (w.salary || 0) < 500000;
-    if (salaryFilter === 'MEDIUM') return (w.salary || 0) >= 500000 && (w.salary || 0) <= 1000000;
+    if (salaryFilter === 'LOW') return (w.salary || 0) < 553553;
+    if (salaryFilter === 'MEDIUM') return (w.salary || 0) >= 553553 && (w.salary || 0) <= 1000000;
     if (salaryFilter === 'HIGH') return (w.salary || 0) > 1000000;
     return true;
   });
