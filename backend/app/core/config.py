@@ -32,6 +32,8 @@ class Settings(BaseSettings):
 
     def __init__(self, **values):
         super().__init__(**values)
+        # Limpiar espacios en blanco o saltos de línea del final (protección contra copy-paste)
+        self.DATABASE_URL = self.DATABASE_URL.strip()
         # Normalizar DATABASE_URL para SQLAlchemy (postgres:// → postgresql://)
         if self.DATABASE_URL.startswith("postgres://"):
             self.DATABASE_URL = self.DATABASE_URL.replace("postgres://", "postgresql://", 1)
