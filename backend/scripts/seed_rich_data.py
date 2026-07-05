@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 def seed_rich_data():
     db = SessionLocal()
     try:
-        print("🌱 Iniciando siembra de datos de prueba con compatibilidad Postgres...")
+        print("[INFO] Iniciando siembra de datos de prueba con compatibilidad Postgres...")
 
         # 1. Obtener o crear Organización de ejemplo con UUID válido
         org = db.query(Organization).first()
@@ -30,12 +30,12 @@ def seed_rich_data():
             db.commit()
             db.refresh(org)
         org_id = org.id
-        print(f"🏢 Organización activa ID: {org_id}")
+        print(f"[INFO] Organizacion activa ID: {org_id}")
 
         # 2. Vincular Admin existente a esta Organización
         admin = db.query(User).filter(User.email == "admin@serconind.cl").first()
         if not admin:
-            print("❌ No se encontró el usuario admin. Crea primero las tablas y usuarios base.")
+            print("[ERROR] No se encontro el usuario admin. Crea primero las tablas y usuarios base.")
             return
 
         admin.organization_id = org_id
@@ -91,7 +91,7 @@ def seed_rich_data():
         for p in projects:
             db.add(p)
         db.commit()
-        print(f"✅ {len(projects)} Proyectos insertados.")
+        print(f"[OK] {len(projects)} Proyectos insertados.")
 
         # 4. Agregar Empleados de ejemplo
         employees = [
@@ -172,7 +172,7 @@ def seed_rich_data():
         for emp in employees:
             db.add(emp)
         db.commit()
-        print(f"✅ {len(employees)} Empleados insertados.")
+        print(f"[OK] {len(employees)} Empleados insertados.")
 
         # 5. Asignaciones de Personal a Obras
         assignments = [
@@ -189,7 +189,7 @@ def seed_rich_data():
         for ass in assignments:
             db.add(ass)
         db.commit()
-        print("✅ Asignaciones creadas con éxito.")
+        print("[OK] Asignaciones creadas con exito.")
 
         # 6. Agregar Gastos de ejemplo (Finanzas)
         expenses = [
@@ -252,7 +252,7 @@ def seed_rich_data():
         for exp in expenses:
             db.add(exp)
         db.commit()
-        print(f"✅ {len(expenses)} Gastos registrados.")
+        print(f"[OK] {len(expenses)} Gastos registrados.")
 
         # 7. Agregar Notificaciones de Alerta
         notifications = [
@@ -285,7 +285,7 @@ def seed_rich_data():
         for notif in notifications:
             db.add(notif)
         db.commit()
-        print("✅ Alertas de prueba insertadas.")
+        print("[OK] Alertas de prueba insertadas.")
 
         # 8. Agregar Logs de Auditoría
         logs = [
@@ -302,13 +302,13 @@ def seed_rich_data():
         for l in logs:
             db.add(l)
         db.commit()
-        print("✅ Logs de auditoría agregados.")
+        print("[OK] Logs de auditoria agregados.")
 
-        print("\n🎉 ¡Siembra enriquecida de datos finalizada exitosamente! Todo listo para pruebas.")
+        print("\n[OK] Siembra enriquecida de datos finalizada exitosamente! Todo listo para pruebas.")
 
     except Exception as e:
         db.rollback()
-        print(f"❌ Error inyectando datos de prueba: {e}")
+        print(f"[ERROR] Error inyectando datos de prueba: {e}")
     finally:
         db.close()
 
