@@ -339,12 +339,6 @@ const Workers = () => {
               Vacaciones & Permisos
             </button>
           )}
-          <button className="px-4 sm:px-6 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium transition-all cursor-not-allowed opacity-50 shrink-0" title="Próximamente">
-            Asistencias
-          </button>
-          <button className="px-4 sm:px-6 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium transition-all cursor-not-allowed opacity-50 shrink-0" title="Próximamente">
-            Liquidaciones
-          </button>
         </div>
       </header>
 

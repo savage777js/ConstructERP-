@@ -68,6 +68,39 @@ export const AuthProvider = ({ children }) => {
     fetchUserData();
   }, [fetchUserData]);
 
+  // Session inactivity timeout (15 minutes)
+  useEffect(() => {
+    if (!user) return;
+
+    const INACTIVITY_LIMIT = 15 * 60 * 1000; // 15 minutes
+    let timeoutId;
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        alert("Su sesión ha expirado por inactividad. Por favor, inicie sesión nuevamente.");
+        logout();
+      }, INACTIVITY_LIMIT);
+    };
+
+    // Events to track user activity
+    const activityEvents = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart'];
+    
+    activityEvents.forEach(event => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    // Start timer initially
+    resetTimer();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [user, logout]);
+
   const role = user?.role || localStorage.getItem('userRole') || '';
 
   /**
@@ -79,8 +112,11 @@ export const AuthProvider = ({ children }) => {
     // Super Admin y Admin legacy tienen acceso absoluto
     if (ADMIN_ROLES.includes(role)) return true;
 
-    // Gerente General solo puede ver cosas de números, estadísticas, plata (Dashboard, Proyectos, Reportes, Finanzas). No ve RR.HH. ni OCR.
+    // Gerente General solo puede ver cosas de números, estadísticas, plata (Dashboard, Proyectos, Reportes, Finanzas) y Jerarquía. No ve RR.HH. ni OCR.
     if (role === 'MANAGEMENT') {
+      if (permissionSlug === 'hierarchy:view') {
+        return true;
+      }
       // Bloqueamos RR.HH. y OCR completamente
       if (permissionSlug.startsWith('employees:') || permissionSlug.includes('ocr') || permissionSlug.startsWith('hr:')) {
         return false;
@@ -98,14 +134,16 @@ export const AuthProvider = ({ children }) => {
              permissionSlug === 'finance:view';
     }
 
-    // HR_MANAGER: gestión de personal, sin acceso a proyectos, finanzas, reportes, ocr ni dashboard
+    // HR_MANAGER: gestión de personal, con acceso adicional a OCR, proyectos (para descarga de carpetas) y jerarquía.
     if (role === 'HR_MANAGER') {
-      // Solo permitimos employees, notificaciones y AI
       return permissionSlug.startsWith('employees:') || 
              permissionSlug.startsWith('notifications:') || 
              permissionSlug.startsWith('ai:') || 
              permissionSlug === 'ai:chat' ||
-             permissionSlug === 'notifications:view';
+             permissionSlug === 'notifications:view' ||
+             permissionSlug === 'ocr:use' ||
+             permissionSlug === 'projects:view' ||
+             permissionSlug === 'hierarchy:view';
     }
 
     // PROJECT_MANAGER: operativo en proyectos, finanzas, ocr, ia y vista en trabajadores

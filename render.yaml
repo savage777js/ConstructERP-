@@ -1,0 +1,48 @@
+services:
+  # ── Backend (FastAPI) ──────────────────────────────────────────────
+  - type: web
+    name: constructerp-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # Se define manualmente en el panel de Render
+      - key: SECRET_KEY
+        sync: false          # Se define manualmente en el panel de Render
+      - key: ALLOWED_ORIGINS
+        value: https://constructerp.onrender.com
+      - key: INITIAL_ADMIN_PASSWORD
+        value: admin
+      - key: INITIAL_GERENTE_PASSWORD
+        value: gerente
+      - key: INITIAL_RRHH_PASSWORD
+        value: rrhh
+      - key: INITIAL_PROYECTOS_PASSWORD
+        value: proyectos
+      - key: INITIAL_SUPERADMIN_PASSWORD
+        value: admin
+      - key: INITIAL_GERENTE2_PASSWORD
+        value: gerente
+      - key: INITIAL_RHH_PASSWORD
+        value: rrhh
+      - key: INITIAL_PROYECTO_PASSWORD
+        value: proyectos
+
+  # ── Frontend (Vite/React) ─────────────────────────────────────────
+  - type: web
+    name: constructerp
+    runtime: node
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    plan: free
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://constructerp-backend.onrender.com

@@ -238,7 +238,7 @@ function AppRoutes() {
         <Route 
           path="/hierarchy" 
           element={
-            <ProtectedRoute requiredPermission="employees:view">
+            <ProtectedRoute requiredPermission="hierarchy:view">
               <MainLayout>
                 <Hierarchy />
               </MainLayout>

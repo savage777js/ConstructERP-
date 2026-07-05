@@ -68,7 +68,7 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
             )
 
         access_token = security.create_access_token(subject=user.id)
-        print(f"✅ Login exitoso para {user.email}")
+        print(f"[OK] Login exitoso para {user.email}")
 
         return {
             "access_token": access_token,

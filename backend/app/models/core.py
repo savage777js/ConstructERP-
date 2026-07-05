@@ -269,10 +269,10 @@ class Document(Base):
                 os.makedirs(os.path.dirname(local_path), exist_ok=True)
                 with open(local_path, "wb") as f:
                     f.write(doc_data.content)
-                print(f"🔄 Archivo recuperado exitosamente de la BD a {local_path}")
+                print(f"[INFO] Archivo recuperado exitosamente de la BD a {local_path}")
                 return True
         except Exception as e:
-            print(f"❌ Error recuperando archivo {self.file_path} de la BD: {e}")
+            print(f"[ERROR] Error recuperando archivo {self.file_path} de la BD: {e}")
             
         return False
 
@@ -297,9 +297,9 @@ def save_document_binary(mapper, connection, target):
                 text("INSERT INTO document_data (id, document_id, content) VALUES (:id, :doc_id, :content)"),
                 {"id": generate_uuid(), "doc_id": str(target.id), "content": content}
             )
-            print(f"💾 Contenido binario del documento '{target.title}' guardado en la base de datos.")
+            print(f"[INFO] Contenido binario del documento '{target.title}' guardado en la base de datos.")
         except Exception as e:
-            print(f"❌ Error en event listener save_document_binary: {e}")
+            print(f"[ERROR] Error en event listener save_document_binary: {repr(e).encode('ascii', errors='replace').decode('ascii')}")
 
 class Notification(Base):
     __tablename__ = "notifications"

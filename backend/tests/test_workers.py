@@ -93,3 +93,10 @@ def test_create_vacation_request(client, test_data, db):
     data = response.json()
     assert data["status"] == "PENDING_APPROVAL"
 
+
+def test_download_excel_template(client, test_data):
+    response = client.get("/api/v1/workers/template-excel", headers=test_data["headers_a"])
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+

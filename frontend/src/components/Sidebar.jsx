@@ -57,7 +57,7 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
       name: 'Proyectos',
       path: '/projects',
       icon: Briefcase,
-      roles: ['SUPER_ADMIN', 'ADMIN', 'PROJECT_MANAGER', 'MANAGEMENT'],
+      roles: ['SUPER_ADMIN', 'ADMIN', 'PROJECT_MANAGER', 'MANAGEMENT', 'HR_MANAGER'],
     },
     {
       name: 'Notificaciones',
@@ -71,7 +71,7 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
       name: 'Jerarquía',
       path: '/hierarchy',
       icon: GitBranch,
-      roles: ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER'],
+      roles: ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER', 'MANAGEMENT'],
     },
     {
       name: 'Capataz AI',
@@ -84,7 +84,7 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
       name: 'Documentación OCR',
       path: '/documents',
       icon: FileText,
-      roles: ['SUPER_ADMIN', 'ADMIN', 'PROJECT_MANAGER'],
+      roles: ['SUPER_ADMIN', 'ADMIN', 'PROJECT_MANAGER', 'HR_MANAGER'],
       special: 'ocr',
     },
     // Solo Super Administrador
@@ -97,10 +97,12 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
     },
   ];
 
-  const navItems = allNavItems.map(item => ({
-    ...item,
-    isLocked: !item.roles.includes(currentRole),
-  }));
+  const navItems = allNavItems
+    .filter(item => item.roles.includes(currentRole))
+    .map(item => ({
+      ...item,
+      isLocked: false,
+    }));
 
   const getNavStyle = (item, isActive) => {
     if (item.special === 'admin') {

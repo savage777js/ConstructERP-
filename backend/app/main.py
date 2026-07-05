@@ -16,9 +16,9 @@ async def lifespan(app: FastAPI):
         db = SessionLocal()
         try:
             db.execute(text("SELECT 1"))
-            print("⚡ Connection pool warmed up successfully.")
+            print("[INFO] Connection pool warmed up successfully.")
         except Exception as e:
-            print(f"⚠️ Connection warmup failed: {e}")
+            print(f"[WARN] Connection warmup failed: {e}")
         finally:
             db.close()
     
@@ -164,42 +164,12 @@ def init_db():
     # Crear tablas
     try:
         Base.metadata.create_all(bind=engine)
-        print("✅ Tablas sincronizadas con Base.metadata.")
+        print("[OK] Tablas sincronizadas con Base.metadata.")
     except Exception as e:
-        print(f"⚠️ Advertencia creando tablas: {e}")
+        print(f"[WARN] Advertencia creando tablas: {e}")
 
     db = SessionLocal()
     try:
-        # ── Columnas faltantes en USERS ─────────────────────────────
-        # ai_quota (cuota IA — añadida en sesión anterior)
-        try:
-            db.execute(text("ALTER TABLE users ADD COLUMN ai_quota INTEGER DEFAULT 50"))
-            db.commit()
-        except Exception:
-            db.rollback()
-
-        # auth_id (UUID Supabase Auth — nullable)
-        try:
-            db.execute(text("ALTER TABLE users ADD COLUMN auth_id VARCHAR UNIQUE"))
-            db.commit()
-        except Exception:
-            db.rollback()
-
-        # rut del usuario administrativo
-        try:
-            db.execute(text("ALTER TABLE users ADD COLUMN rut VARCHAR(50)"))
-            db.commit()
-        except Exception:
-            db.rollback()
-
-        # updated_at
-        try:
-            db.execute(text("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP DEFAULT NOW()"))
-            db.commit()
-        except Exception:
-            db.rollback()
-
-        # ── Columnas faltantes en otras tablas ───────────────────────
         # Columna budget en projects
         try:
             db.execute(text("ALTER TABLE projects ADD COLUMN budget NUMERIC(15, 2) DEFAULT 0"))
@@ -234,8 +204,6 @@ def init_db():
             db.commit()
         except Exception:
             db.rollback()
-
-        print("✅ Migraciones de columnas aplicadas.")
     except Exception as e:
         print(f"❌ Error aplicando migraciones: {e}")
     finally:
@@ -328,7 +296,7 @@ def init_db():
                 if not existing.organization_id:
                     existing.organization_id = org_id
                 db.commit()
-                print(f"🔄 Contraseña actualizada: {ud['email']}")
+                print(f"[UPDATE] Contraseña actualizada: {ud['email']}")
             else:
                 new_user = User(
                     email=ud["email"],
@@ -340,10 +308,10 @@ def init_db():
                 )
                 db.add(new_user)
                 db.commit()
-                print(f"🚀 Usuario creado: {ud['email']}")
+                print(f"[INFO] Usuario creado: {ud['email']}")
 
     except Exception as e:
-        print(f"❌ Error inicializando DB: {e}")
+        print(f"[ERROR] Error inicializando DB: {e}")
         import traceback; traceback.print_exc()
     finally:
         db.close()

@@ -2,15 +2,35 @@ import { useState } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
 import api from '../api';
 
+const PREDEFINED_ROLES = [
+  'JORNALERO',
+  'CAPATAZ',
+  'ALBAÑIL',
+  'CARPINTERO',
+  'ELECTRICISTA',
+  'PLOMERO',
+  'SOLDADOR',
+  'BODEGUERO',
+  'ADMINISTRATIVO',
+  'GUARDIA',
+  'OTRO'
+];
+
 const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
   const isEdit = !!workerData;
+  
+  // Determine initial role select & custom role values
+  const initialRole = workerData?.role || 'JORNALERO';
+  const isPredefined = PREDEFINED_ROLES.includes(initialRole);
+  const [roleSelect, setRoleSelect] = useState(isPredefined ? initialRole : 'OTRO');
+  const [customRole, setCustomRole] = useState(isPredefined ? '' : initialRole);
+
   const [formData, setFormData] = useState({
     first_name: workerData?.first_name || '',
     last_name: workerData?.last_name || '',
     rut: workerData?.rut || '',
     age: workerData?.age || '',
-    role: workerData?.role || '',
-    salary: workerData?.salary || '',
+    salary: workerData?.salary !== undefined ? workerData.salary : 500000,
     hire_date: workerData?.hire_date ? new Date(workerData.hire_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     email: workerData?.email || '',
     phone: workerData?.phone || '',
@@ -26,8 +46,13 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
     const newErrors = {};
     if (!formData.first_name) newErrors.first_name = 'El nombre es obligatorio';
     if (!formData.last_name) newErrors.last_name = 'El apellido es obligatorio';
-    if (!formData.role) newErrors.role = 'El cargo es obligatorio';
-    if (!formData.salary || formData.salary < 0) newErrors.salary = 'Ingrese un sueldo válido';
+    
+    const finalRole = roleSelect === 'OTRO' ? customRole : roleSelect;
+    if (!finalRole.trim()) newErrors.role = 'El cargo es obligatorio';
+    
+    if (formData.salary === undefined || formData.salary === '' || formData.salary < 500000) {
+      newErrors.salary = 'El sueldo mínimo es $500.000';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -39,8 +64,10 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
 
     setSubmitting(true);
     try {
+      const finalRole = roleSelect === 'OTRO' ? customRole : roleSelect;
       const payload = {
         ...formData,
+        role: finalRole,
         salary: parseInt(formData.salary),
         age: formData.age ? parseInt(formData.age) : null,
         rut: formData.rut || null,
@@ -81,7 +108,9 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
           <X size={24} />
         </button>
 
-        <h2 className="text-2xl font-bold mb-6 gradient-text">Registrar Nuevo Trabajador</h2>
+        <h2 className="text-2xl font-bold mb-6 gradient-text">
+          {isEdit ? 'Editar Trabajador' : 'Registrar Nuevo Trabajador'}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -144,16 +173,37 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
             {/* Cargo */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Cargo / Rol</label>
-              <input
-                type="text"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className={`w-full bg-slate-800/50 border ${errors.role ? 'border-red-500' : 'border-white/10'} rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all`}
-                placeholder="Ej: Maestro Albañil"
-              />
-              {errors.role && <p className="text-red-400 text-xs mt-1">{errors.role}</p>}
+              <select
+                value={roleSelect}
+                onChange={(e) => {
+                  setRoleSelect(e.target.value);
+                  if (errors.role) setErrors(prev => ({ ...prev, role: null }));
+                }}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+              >
+                {PREDEFINED_ROLES.map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
             </div>
+
+            {/* Custom Cargo (if OTRO is selected) */}
+            {roleSelect === 'OTRO' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Especificar Cargo</label>
+                <input
+                  type="text"
+                  value={customRole}
+                  onChange={(e) => {
+                    setCustomRole(e.target.value);
+                    if (errors.role) setErrors(prev => ({ ...prev, role: null }));
+                  }}
+                  className={`w-full bg-slate-800/50 border ${errors.role ? 'border-red-500' : 'border-white/10'} rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all`}
+                  placeholder="Ej: Pintor, Yesero"
+                />
+                {errors.role && <p className="text-red-400 text-xs mt-1">{errors.role}</p>}
+              </div>
+            )}
 
             {/* Sueldo */}
             <div>
@@ -163,10 +213,37 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
                 name="salary"
                 value={formData.salary}
                 onChange={handleChange}
+                min="500000"
                 className={`w-full bg-slate-800/50 border ${errors.salary ? 'border-red-500' : 'border-white/10'} rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all`}
                 placeholder="Ej: 850000"
               />
               {errors.salary && <p className="text-red-400 text-xs mt-1">{errors.salary}</p>}
+            </div>
+
+            {/* Correo Electrónico */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Correo Electrónico</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                placeholder="ejemplo@correo.com"
+              />
+            </div>
+
+            {/* Teléfono */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Teléfono</label>
+              <input
+                type="text"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                placeholder="+56912345678"
+              />
             </div>
 
             {/* Fecha de Ingreso */}

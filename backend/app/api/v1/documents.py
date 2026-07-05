@@ -150,6 +150,44 @@ async def ocr_invoice(
         print(f"Error en OCR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+def create_docx_from_ocr(title: str, ocr_data: dict, output_path: str):
+    """Crea un documento de Word (.docx) a partir de los datos del OCR."""
+    if not docx:
+        raise Exception("python-docx no está instalado en el servidor.")
+    
+    doc = docx.Document()
+    doc.add_heading(f"Reporte de Extracción OCR - {title}", level=0)
+    doc.add_paragraph("Generado automáticamente por ConstructERP AI\n")
+    
+    # Agregar tabla de datos estructurados
+    doc.add_heading("Datos Estructurados Extraídos", level=1)
+    
+    table = doc.add_table(rows=1, cols=2)
+    table.style = 'Light Shading Accent 1'
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = 'Campo'
+    hdr_cells[1].text = 'Valor'
+    
+    for k, v in ocr_data.items():
+        if k == 'confidence':
+            continue
+        row_cells = table.add_row().cells
+        key_label = k.replace('_', ' ').title()
+        row_cells[0].text = str(key_label)
+        row_cells[1].text = str(v) if v is not None else "No detectado"
+        
+    doc.add_paragraph("\n")
+    
+    # Si hay un resumen, descripción o detalle principal
+    doc.add_heading("Resumen de Contenido", level=1)
+    resumen_text = ocr_data.get("resumen") or ocr_data.get("description") or ocr_data.get("detalles")
+    if resumen_text:
+        doc.add_paragraph(str(resumen_text))
+    else:
+        doc.add_paragraph("Datos extraídos con éxito según el tipo de documento.")
+        
+    doc.save(output_path)
+
 @router.post("/")
 async def upload_document(
     employee_id: int = Form(...),
@@ -171,7 +209,7 @@ async def upload_document(
 
     contents = await file.read()
     
-    # Crear un nombre único de archivo
+    # Crear un nombre único de archivo original
     unique_filename = f"{uuid.uuid4()}{ext}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     
@@ -181,15 +219,58 @@ async def upload_document(
     # Si es una organización, asociamos a la misma org del usuario
     org_id = current_user.organization_id if current_user.organization_id else employee.organization_id
 
+    file_type = file.content_type
+    file_size = len(contents)
+    ocr_status = "PENDING"
+    ocr_content = None
+    extracted_data = None
+
+    if ext in [".jpg", ".jpeg", ".png"]:
+        import json
+        image_base64 = base64.b64encode(contents).decode("utf-8")
+        try:
+            ocr_data = await ai_service.process_document(
+                image_base64=image_base64,
+                text_content=None,
+                category=category
+            )
+        except Exception:
+            ocr_data = None
+            
+        if not ocr_data:
+            ocr_data = {
+                "tipo_documento": category,
+                "titulo": title,
+                "resumen": "El procesamiento OCR no retornó datos estructurados válidos.",
+                "confidence": 0.0
+            }
+            
+        docx_filename = f"{uuid.uuid4()}.docx"
+        docx_path = os.path.join(UPLOAD_DIR, docx_filename)
+        
+        try:
+            create_docx_from_ocr(title, ocr_data, docx_path)
+            unique_filename = docx_filename
+            file_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            file_size = os.path.getsize(docx_path)
+            ocr_status = "COMPLETED"
+            ocr_content = json.dumps(ocr_data, indent=2, ensure_ascii=False)
+            extracted_data = ocr_data
+        except Exception as e:
+            print(f"Error generando Word de OCR: {e}")
+
     db_doc = core.Document(
         organization_id=org_id,
         title=title,
         file_path=f"/uploads/documents/{unique_filename}",
-        file_type=file.content_type,
-        file_size=len(contents),
+        file_type=file_type,
+        file_size=file_size,
         category=category,
         employee_id=employee_id,
-        created_by=current_user.id
+        created_by=current_user.id,
+        ocr_status=ocr_status,
+        ocr_content=ocr_content,
+        extracted_data=extracted_data
     )
     db.add(db_doc)
     db.commit()
