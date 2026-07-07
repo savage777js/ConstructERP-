@@ -43,28 +43,6 @@ const Workers = () => {
     }
   }, []);
 
-  // Auto-calcular días solicitados (días hábiles de lunes a viernes)
-  useEffect(() => {
-    if (vacationForm.start_date && vacationForm.end_date) {
-      const start = new Date(vacationForm.start_date + 'T00:00:00');
-      const end = new Date(vacationForm.end_date + 'T00:00:00');
-      if (end >= start) {
-        let count = 0;
-        let curDate = new Date(start);
-        while (curDate <= end) {
-          const dayOfWeek = curDate.getDay();
-          if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Excluir Sábado y Domingo
-            count++;
-          }
-          curDate.setDate(curDate.getDate() + 1);
-        }
-        setVacationForm(prev => ({ ...prev, days_requested: count.toString() }));
-      } else {
-        setVacationForm(prev => ({ ...prev, days_requested: '' }));
-      }
-    }
-  }, [vacationForm.start_date, vacationForm.end_date]);
-
   const fetchWorkers = async () => {
     setLoading(true);
     try {
@@ -197,7 +175,7 @@ const Workers = () => {
   const handleRebateVacation = async (requestId) => {
     try {
       await api.patch(`/workers/vacations/request/${requestId}/rebate`);
-      alert('Rebaja de vacaciones realizada con éxito. Saldo actualizado.');
+      alert('Rebaja de vacaciones realizada con éxito. Días disponibles actualizados.');
       fetchVacationRequests();
       fetchWorkers();
     } catch (error) {
@@ -408,7 +386,7 @@ const Workers = () => {
                 <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Nombre</th>
                 <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Contrato / Cargo</th>
                 <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Sueldo Base</th>
-                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Saldo Vacaciones</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Días Disponibles</th>
                 <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Estado</th>
                 <th className="px-3 sm:px-6 py-3 sm:py-4 text-right">Proyecto / Obra</th>
               </tr>
@@ -551,7 +529,7 @@ const Workers = () => {
                       <span className="text-slate-300 font-bold">${worker.salary?.toLocaleString('es-CL')}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-bold">Saldo Vacaciones</span>
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold">Días Disponibles</span>
                       <span className="text-slate-300 font-semibold">{worker.vacation_balance !== undefined ? `${worker.vacation_balance} días` : 'N/A'}</span>
                     </div>
                   </div>
@@ -636,7 +614,7 @@ const Workers = () => {
                     }`}>
                       {req.status === 'PENDING_APPROVAL' && 'Pendiente Aprobación'}
                       {req.status === 'APPROVED' && 'Autorizado - Pendiente Firma/Rebaja'}
-                      {req.status === 'REBATED' && 'Rebajado de Saldo'}
+                      {req.status === 'REBATED' && 'Rebajado'}
                       {req.status === 'REJECTED' && 'Rechazado'}
                     </span>
                   </td>
@@ -843,7 +821,7 @@ const Workers = () => {
                   <option value="">-- Seleccionar Trabajador --</option>
                   {workers.filter(w => w.status === 'ACTIVE').map(w => (
                     <option key={w.id} value={w.id}>
-                      {w.first_name} {w.last_name} (Saldo: {w.vacation_balance} d)
+                      {w.first_name} {w.last_name} (Días disp: {w.vacation_balance})
                     </option>
                   ))}
                 </select>

@@ -204,6 +204,20 @@ def init_db():
             db.commit()
         except Exception:
             db.rollback()
+
+        # Actualizar enum notificationtype en PostgreSQL (por fuera de transacciones normales)
+        if engine.url.drivername.startswith("postgresql"):
+            try:
+                with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+                    for val in ['VACATION_ALERT', 'VACATION_REQUEST', 'VACATION_APPROVED', 'PROFITABILITY_ALERT']:
+                        try:
+                            conn.execute(text(f"ALTER TYPE notificationtype ADD VALUE '{val}'"))
+                        except Exception as e:
+                            # Ignorar error si el valor ya existe
+                            if "already exists" not in str(e).lower():
+                                print(f"[WARN] Error agregando valor {val} a enum: {e}")
+            except Exception as e:
+                print(f"[WARN] Error actualizando enum notificationtype: {e}")
     except Exception as e:
         print(f"❌ Error aplicando migraciones: {e}")
     finally:

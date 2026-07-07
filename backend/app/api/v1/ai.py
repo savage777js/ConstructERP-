@@ -277,7 +277,6 @@ async def generate_executive_report(
         alertas = fetcher.obtenerAlertas()
         proyectos = fetcher.obtenerProyectos()
         dotacion = fetcher.obtenerDotacion()
-        asistencia = fetcher.obtenerAsistencia()
         vacaciones = fetcher.obtenerVacaciones()
         
         has_hr_access = user_role in ["ADMIN", "MANAGEMENT", "HR_MANAGER"]
@@ -292,7 +291,6 @@ async def generate_executive_report(
             "alertas_pendientes": alertas,
             "proyectos_obras": proyectos,
             "dotacion_irregularidades": dotacion,
-            "asistencia_diaria": asistencia,
             "vacaciones_solicitudes": vacaciones,
             "planilla_sueldos": sueldos,
             "licencias_medicas": licencias
@@ -304,7 +302,7 @@ async def generate_executive_report(
             f"Basate estrictamente en los siguientes datos reales del ERP:\n{json.dumps(state_data)}\n\n"
             "El informe debe ser formal, estructurado con Markdown, e incluir de manera concisa:\n"
             "1. **Resumen Ejecutivo** (Salud general de la organización)\n"
-            "2. **Análisis de Dotación y Asistencia** (Tasa de asistencia del día, atrasos, ausentes y trabajadores sin obra)\n"
+            "2. **Dotación y Carga de Personal** (Lista de trabajadores contratados pero sin proyecto asignado, indicando que representan un costo/oportunidad para reubicar, y la distribución de carga indicando qué obras tienen más personal y cuáles están vacías o con menor cantidad)\n"
             "3. **Gestión Contractual y Licencias** (Contratos por vencer o vencer pronto, licencias activas)\n"
             "4. **Finanzas y Proyectos** (Presupuestos vs. Gastos reales y dotación en obra)\n"
             "5. **Planilla Salarial** (Métricas globales de remuneraciones si están disponibles)\n"

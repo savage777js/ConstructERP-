@@ -289,7 +289,7 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
 
             {/* Saldo de Vacaciones */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Saldo Vacaciones (días)</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Días disponibles de vacaciones</label>
               <input
                 type="number"
                 step="0.5"
