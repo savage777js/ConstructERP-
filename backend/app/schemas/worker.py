@@ -35,6 +35,8 @@ class EmployeeBase(BaseModel):
     project_id: Optional[int] = None
     contract_type: Optional[str] = "INDEFINIDO"
     vacation_balance: Optional[float] = 15.0
+    afp: Optional[str] = None
+    health_system: Optional[str] = None
 
 class EmployeeCreate(EmployeeBase):
     pass

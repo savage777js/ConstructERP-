@@ -36,7 +36,8 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
     phone: workerData?.phone || '',
     contract_end_date: workerData?.contract_end_date ? new Date(workerData.contract_end_date).toISOString().split('T')[0] : '',
     contract_type: workerData?.contract_type || 'INDEFINIDO',
-    vacation_balance: workerData?.vacation_balance !== undefined ? workerData.vacation_balance : 15.0,
+    afp: workerData?.afp || 'MODELO',
+    health_system: workerData?.health_system || 'FONASA',
   });
 
   const [errors, setErrors] = useState({});
@@ -93,7 +94,13 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      if (name === 'contract_type' && value === 'INDEFINIDO') {
+        updated.contract_end_date = '';
+      }
+      return updated;
+    });
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
@@ -245,33 +252,6 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
               />
             </div>
 
-            {/* Fecha de Ingreso */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Fecha de Ingreso</label>
-              <input
-                type="date"
-                name="hire_date"
-                value={formData.hire_date}
-                onChange={handleChange}
-                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              />
-            </div>
-
-            {/* Fecha de Vencimiento Contrato */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2 font-bold flex items-center gap-2">
-                <AlertCircle size={14} className="text-amber-500" /> Vencimiento Contrato
-              </label>
-              <input
-                type="date"
-                name="contract_end_date"
-                value={formData.contract_end_date}
-                onChange={handleChange}
-                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-amber-500 outline-none transition-all"
-              />
-              <p className="text-[10px] text-slate-500 mt-1 italic">Habilita alertas automáticas de RRHH.</p>
-            </div>
-
             {/* Tipo de Contrato */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Tipo de Contrato</label>
@@ -286,7 +266,67 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
               </select>
             </div>
 
+            {/* Fecha de Ingreso */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Fecha de Ingreso</label>
+              <input
+                type="date"
+                name="hire_date"
+                value={formData.hire_date}
+                onChange={handleChange}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              />
+            </div>
 
+            {/* Fecha de Vencimiento Contrato */}
+            {formData.contract_type === 'PLAZO_FIJO' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2 font-bold flex items-center gap-2">
+                  <AlertCircle size={14} className="text-amber-500" /> Vencimiento Contrato
+                </label>
+                <input
+                  type="date"
+                  name="contract_end_date"
+                  value={formData.contract_end_date}
+                  onChange={handleChange}
+                  className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                />
+                <p className="text-[10px] text-slate-500 mt-1 italic">Habilita alertas automáticas de RRHH.</p>
+              </div>
+            )}
+
+            {/* AFP (Cotizaciones) */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">AFP (Previsión)</label>
+              <select
+                name="afp"
+                value={formData.afp}
+                onChange={handleChange}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+              >
+                <option value="MODELO">AFP Modelo</option>
+                <option value="HABITAT">AFP Habitat</option>
+                <option value="CAPITAL">AFP Capital</option>
+                <option value="PROVIDA">AFP Provida</option>
+                <option value="PLANVITAL">AFP PlanVital</option>
+                <option value="CUPRUM">AFP Cuprum</option>
+                <option value="UNO">AFP Uno</option>
+              </select>
+            </div>
+
+            {/* Sistema de Salud */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Sistema de Salud</label>
+              <select
+                name="health_system"
+                value={formData.health_system}
+                onChange={handleChange}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+              >
+                <option value="FONASA">FONASA</option>
+                <option value="ISAPRE">ISAPRE</option>
+              </select>
+            </div>
           </div>
 
           {errors.api && (

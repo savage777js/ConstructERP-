@@ -191,6 +191,20 @@ def init_db():
         except Exception:
             db.rollback()
 
+        # Columna afp en employees
+        try:
+            db.execute(text("ALTER TABLE employees ADD COLUMN afp VARCHAR(50)"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        # Columna health_system en employees
+        try:
+            db.execute(text("ALTER TABLE employees ADD COLUMN health_system VARCHAR(50)"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
         # Columna end_date en project_assignments
         try:
             db.execute(text("ALTER TABLE project_assignments ADD COLUMN end_date TIMESTAMP"))

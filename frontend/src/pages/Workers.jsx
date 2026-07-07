@@ -444,8 +444,11 @@ const Workers = () => {
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
                       <div>
                         <p className="text-white text-sm font-semibold">{worker.role}</p>
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block leading-tight mt-0.5">
                           {worker.contract_type?.replace('_', ' ') || 'INDEFINIDO'}
+                          {(worker.afp || worker.health_system) && (
+                            ` · AFP: ${worker.afp || 'MODELO'} · SALUD: ${worker.health_system || 'FONASA'}`
+                          )}
                         </span>
                       </div>
                     </td>
@@ -543,8 +546,13 @@ const Workers = () => {
                       <span className="text-white font-semibold">{worker.role}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-bold">Tipo Contrato</span>
-                      <span className="text-slate-300 font-medium uppercase">{worker.contract_type?.replace('_', ' ') || 'INDEFINIDO'}</span>
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold">Tipo Contrato / Cotizaciones</span>
+                      <span className="text-slate-300 font-medium uppercase text-[11px] block leading-tight mt-0.5">
+                        {worker.contract_type?.replace('_', ' ') || 'INDEFINIDO'}
+                        {(worker.afp || worker.health_system) && (
+                          ` (${worker.afp || 'MODELO'} / ${worker.health_system || 'FONASA'})`
+                        )}
+                      </span>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-500 block uppercase font-bold">Sueldo Base</span>

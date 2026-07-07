@@ -157,6 +157,8 @@ class Employee(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     contract_type = Column(String(50), default="INDEFINIDO") # 'INDEFINIDO', 'PLAZO_FIJO'
     vacation_balance_db = Column("vacation_balance", Float, default=15.0)
+    afp = Column(String(50), nullable=True)
+    health_system = Column(String(50), nullable=True)
 
     @property
     def vacation_balance(self) -> float:
