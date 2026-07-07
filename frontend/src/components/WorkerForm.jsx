@@ -79,7 +79,7 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
       if (isEdit) {
         await api.put(`/workers/${workerData.id}`, payload);
       } else {
-        await api.post('/workers/', payload);
+        await api.post('/workers', payload);
       }
       
       onSuccess();

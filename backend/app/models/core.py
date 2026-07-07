@@ -162,9 +162,16 @@ class Employee(Base):
     def vacation_balance(self) -> float:
         # Calculate days of service
         start_date = self.hire_date or datetime.utcnow()
+        if start_date.tzinfo is not None:
+            start_date = start_date.replace(tzinfo=None)
+            
         end_date = datetime.utcnow()
-        if self.contract_end_date and self.contract_end_date < end_date:
-            end_date = self.contract_end_date
+        if self.contract_end_date:
+            contract_end = self.contract_end_date
+            if contract_end.tzinfo is not None:
+                contract_end = contract_end.replace(tzinfo=None)
+            if contract_end < end_date:
+                end_date = contract_end
             
         days_employed = (end_date - start_date).days
         if days_employed < 0:
