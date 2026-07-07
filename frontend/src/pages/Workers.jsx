@@ -43,6 +43,28 @@ const Workers = () => {
     }
   }, []);
 
+  // Calcular automáticamente días hábiles solicitados (excluyendo fines de semana)
+  useEffect(() => {
+    if (vacationForm.start_date && vacationForm.end_date) {
+      const start = new Date(vacationForm.start_date + 'T00:00:00');
+      const end = new Date(vacationForm.end_date + 'T00:00:00');
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && start <= end) {
+        let count = 0;
+        let curDate = new Date(start.getTime());
+        while (curDate <= end) {
+          const dayOfWeek = curDate.getDay();
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Excluir Sábado (6) y Domingo (0)
+            count++;
+          }
+          curDate.setDate(curDate.getDate() + 1);
+        }
+        setVacationForm(prev => ({ ...prev, days_requested: count.toString() }));
+      } else {
+        setVacationForm(prev => ({ ...prev, days_requested: '' }));
+      }
+    }
+  }, [vacationForm.start_date, vacationForm.end_date]);
+
   const fetchWorkers = async () => {
     setLoading(true);
     try {
