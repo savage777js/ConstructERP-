@@ -156,7 +156,38 @@ class Employee(Base):
     status = Column(Enum(EmployeeStatus), default=EmployeeStatus.ACTIVE)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     contract_type = Column(String(50), default="INDEFINIDO") # 'INDEFINIDO', 'PLAZO_FIJO'
-    vacation_balance = Column(Float, default=15.0)
+    vacation_balance_db = Column("vacation_balance", Float, default=15.0)
+
+    @property
+    def vacation_balance(self) -> float:
+        # Calculate days of service
+        start_date = self.hire_date or datetime.utcnow()
+        end_date = datetime.utcnow()
+        if self.contract_end_date and self.contract_end_date < end_date:
+            end_date = self.contract_end_date
+            
+        days_employed = (end_date - start_date).days
+        if days_employed < 0:
+            days_employed = 0
+            
+        # Accumulate 15 days per year (365 days)
+        accumulated = days_employed * (15.0 / 365.0)
+        
+        # Cap accumulated at 30.0
+        capped_accumulated = min(30.0, accumulated)
+        
+        # Calculate taken/rebated days
+        taken_days = 0.0
+        if self.vacations:
+            taken_days = sum(v.days_requested for v in self.vacations if v.status == 'REBATED')
+            
+        # Available balance
+        available = capped_accumulated - taken_days
+        return max(0.0, round(available, 1))
+
+    @vacation_balance.setter
+    def vacation_balance(self, value):
+        self.vacation_balance_db = value
     
     # Relationships
     organization = relationship("Organization", back_populates="employees")

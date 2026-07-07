@@ -200,10 +200,8 @@ class NotificationService:
     @staticmethod
     def _check_accumulated_vacations(db: Session):
         from app.models.core import Employee
-        workers = db.query(Employee).filter(
-            Employee.status == "ACTIVE",
-            Employee.vacation_balance > 30.0
-        ).all()
+        all_active = db.query(Employee).filter(Employee.status == "ACTIVE").all()
+        workers = [emp for emp in all_active if emp.vacation_balance >= 30.0]
         
         for emp in workers:
             NotificationService._create_notification_if_not_exists(

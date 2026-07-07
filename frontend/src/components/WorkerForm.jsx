@@ -74,7 +74,6 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
         hire_date: new Date(formData.hire_date).toISOString(),
         contract_end_date: formData.contract_end_date ? new Date(formData.contract_end_date).toISOString() : null,
         contract_type: formData.contract_type,
-        vacation_balance: parseFloat(formData.vacation_balance) || 0.0,
       };
 
       if (isEdit) {
@@ -287,20 +286,7 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
               </select>
             </div>
 
-            {/* Saldo de Vacaciones */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Días disponibles de vacaciones</label>
-              <input
-                type="number"
-                step="0.5"
-                name="vacation_balance"
-                value={formData.vacation_balance}
-                onChange={handleChange}
-                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                placeholder="Ej: 15"
-                min="0"
-              />
-            </div>
+
           </div>
 
           {errors.api && (

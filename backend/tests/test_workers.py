@@ -64,7 +64,8 @@ def test_workers_multi_tenant_isolation(client, test_data, db):
     assert response_del.status_code == 404
 
 def test_create_vacation_request(client, test_data, db):
-    # 1. Crear un trabajador en la Org A
+    from datetime import datetime, timedelta
+    # 1. Crear un trabajador en la Org A (contratado hace 1 año para tener saldo)
     worker_a = Employee(
         first_name="Juan",
         last_name="Perez",
@@ -72,7 +73,7 @@ def test_create_vacation_request(client, test_data, db):
         role="Pintor",
         salary=600000,
         organization_id=test_data["org_a"].id,
-        vacation_balance=15.0
+        hire_date=datetime.utcnow() - timedelta(days=365)
     )
     db.add(worker_a)
     db.commit()
