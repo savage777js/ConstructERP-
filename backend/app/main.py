@@ -205,6 +205,14 @@ def init_db():
         except Exception:
             db.rollback()
 
+        # Columnas de liquidación (colación, movilización, bonos) en employees
+        for col in ['colacion', 'movilizacion', 'bonos']:
+            try:
+                db.execute(text(f"ALTER TABLE employees ADD COLUMN {col} INTEGER DEFAULT 0"))
+                db.commit()
+            except Exception:
+                db.rollback()
+
         # Columna end_date en project_assignments
         try:
             db.execute(text("ALTER TABLE project_assignments ADD COLUMN end_date TIMESTAMP"))

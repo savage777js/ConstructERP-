@@ -159,6 +159,9 @@ class Employee(Base):
     vacation_balance_db = Column("vacation_balance", Float, default=15.0)
     afp = Column(String(50), nullable=True)
     health_system = Column(String(50), nullable=True)
+    colacion = Column(Integer, default=0)
+    movilizacion = Column(Integer, default=0)
+    bonos = Column(Integer, default=0)
 
     @property
     def vacation_balance(self) -> float:

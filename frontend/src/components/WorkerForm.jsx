@@ -38,6 +38,9 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
     contract_type: workerData?.contract_type || 'INDEFINIDO',
     afp: workerData?.afp || 'MODELO',
     health_system: workerData?.health_system || 'FONASA',
+    colacion: workerData?.colacion !== undefined ? workerData.colacion : 0,
+    movilizacion: workerData?.movilizacion !== undefined ? workerData.movilizacion : 0,
+    bonos: workerData?.bonos !== undefined ? workerData.bonos : 0,
   });
 
   const [errors, setErrors] = useState({});
@@ -75,6 +78,9 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
         hire_date: new Date(formData.hire_date).toISOString(),
         contract_end_date: formData.contract_end_date ? new Date(formData.contract_end_date).toISOString() : null,
         contract_type: formData.contract_type,
+        colacion: parseInt(formData.colacion) || 0,
+        movilizacion: parseInt(formData.movilizacion) || 0,
+        bonos: parseInt(formData.bonos) || 0,
       };
 
       if (isEdit) {
@@ -326,6 +332,48 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
                 <option value="FONASA">FONASA</option>
                 <option value="ISAPRE">ISAPRE</option>
               </select>
+            </div>
+
+            {/* Asignación de Colación */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Asignación de Colación ($)</label>
+              <input
+                type="number"
+                name="colacion"
+                value={formData.colacion}
+                onChange={handleChange}
+                min="0"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                placeholder="Ej: 50000"
+              />
+            </div>
+
+            {/* Asignación de Movilización */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Asignación de Movilización ($)</label>
+              <input
+                type="number"
+                name="movilizacion"
+                value={formData.movilizacion}
+                onChange={handleChange}
+                min="0"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                placeholder="Ej: 50000"
+              />
+            </div>
+
+            {/* Otros Bonos Imponibles */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Otros Bonos / Bonificaciones ($)</label>
+              <input
+                type="number"
+                name="bonos"
+                value={formData.bonos}
+                onChange={handleChange}
+                min="0"
+                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                placeholder="Ej: 80000"
+              />
             </div>
           </div>
 

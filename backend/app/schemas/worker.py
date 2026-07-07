@@ -37,6 +37,9 @@ class EmployeeBase(BaseModel):
     vacation_balance: Optional[float] = 15.0
     afp: Optional[str] = None
     health_system: Optional[str] = None
+    colacion: Optional[int] = 0
+    movilizacion: Optional[int] = 0
+    bonos: Optional[int] = 0
 
 class EmployeeCreate(EmployeeBase):
     pass

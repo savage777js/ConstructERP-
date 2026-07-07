@@ -453,9 +453,14 @@ const Workers = () => {
                       </div>
                     </td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
-                      <span className={`${worker.status === 'INACTIVE' ? 'opacity-50 font-mono text-xs' : ''}`}>
-                         ${worker.salary?.toLocaleString('es-CL')}
-                      </span>
+                      <div className={worker.status === 'INACTIVE' ? 'opacity-50' : ''}>
+                        <p className="text-white font-bold text-sm">${worker.salary?.toLocaleString('es-CL')}</p>
+                        {(worker.colacion || worker.movilizacion || worker.bonos) ? (
+                          <p className="text-[10px] text-slate-500 font-medium whitespace-nowrap mt-0.5">
+                            + Col: ${(worker.colacion || 0).toLocaleString('es-CL')} · Mov: ${(worker.movilizacion || 0).toLocaleString('es-CL')} · Bonos: ${(worker.bonos || 0).toLocaleString('es-CL')}
+                          </p>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
                       {worker.vacation_balance !== undefined ? (
@@ -555,8 +560,15 @@ const Workers = () => {
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-bold">Sueldo Base</span>
-                      <span className="text-slate-300 font-bold">${worker.salary?.toLocaleString('es-CL')}</span>
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold">Sueldo / Haberes</span>
+                      <span className="text-slate-300 font-bold text-xs block">${worker.salary?.toLocaleString('es-CL')}</span>
+                      {(worker.colacion || worker.movilizacion || worker.bonos) ? (
+                        <span className="text-[9px] text-slate-500 block leading-tight mt-0.5">
+                          + Col: ${(worker.colacion || 0).toLocaleString('es-CL')}<br />
+                          + Mov: ${(worker.movilizacion || 0).toLocaleString('es-CL')}<br />
+                          + Bonos: ${(worker.bonos || 0).toLocaleString('es-CL')}
+                        </span>
+                      ) : null}
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-500 block uppercase font-bold">Días Disponibles</span>
