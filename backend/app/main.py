@@ -227,6 +227,15 @@ def init_db():
         except Exception:
             db.rollback()
 
+        # Eliminar tablas de inventario obsoletas
+        for table in ['inventory_movements', 'inventory_items']:
+            try:
+                db.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE"))
+                db.commit()
+            except Exception as e:
+                print(f"[WARN] Error dropping obsolete table {table}: {e}")
+                db.rollback()
+
         # Actualizar enum notificationtype en PostgreSQL (por fuera de transacciones normales)
         if engine.url.drivername.startswith("postgresql"):
             try:
