@@ -49,27 +49,35 @@ const Notifications = () => {
 
   const getPriorityIcon = (priority) => {
     switch (priority) {
-      case 'CRITICAL': return <AlertOctagon className="text-red-500" size={24} />;
-      case 'WARNING': return <AlertTriangle className="text-amber-500" size={24} />;
-      default: return <Info className="text-blue-500" size={24} />;
+      case 'CRITICAL': return <AlertOctagon size={20} />;
+      case 'WARNING': return <AlertTriangle size={20} />;
+      default: return <Info size={20} />;
     }
   };
 
   const getBadgeColor = (type) => {
     switch (type) {
-      case 'UNPAID_SALARY': return 'bg-red-500/10 text-red-500 border-red-500/20 font-black';
-      case 'CONTRACT_EXPIRING': return 'bg-red-500/10 text-red-500 border-red-500/20';
-      case 'PROJECT_ENDING': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-      default: return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
+      case 'UNPAID_SALARY': return 'bg-red-500/10 text-red-400 border-red-500/20';
+      case 'CONTRACT_EXPIRING': return 'bg-red-500/10 text-red-400 border-red-500/20';
+      case 'PROJECT_ENDING': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+      case 'VACATION_ALERT': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+      case 'VACATION_REQUEST': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+      case 'VACATION_APPROVED': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+      case 'PROFITABILITY_ALERT': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+      default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
     }
   };
 
   const getTypeIcon = (type) => {
     switch (type) {
-      case 'UNPAID_SALARY': return <DollarSign size={14} />;
-      case 'CONTRACT_EXPIRING': return <Users size={14} />;
-      case 'PROJECT_ENDING': return <Calendar size={14} />;
-      default: return <Bell size={14} />;
+      case 'UNPAID_SALARY': return <DollarSign size={12} />;
+      case 'CONTRACT_EXPIRING': return <Users size={12} />;
+      case 'PROJECT_ENDING': return <Calendar size={12} />;
+      case 'VACATION_ALERT': return <AlertTriangle size={12} />;
+      case 'VACATION_REQUEST': return <Calendar size={12} />;
+      case 'VACATION_APPROVED': return <CheckCircle2 size={12} />;
+      case 'PROFITABILITY_ALERT': return <DollarSign size={12} />;
+      default: return <Bell size={12} />;
     }
   };
 
@@ -103,35 +111,61 @@ const Notifications = () => {
           {notifications.map((notif) => (
             <div 
               key={notif.id}
-              className={`glass-card p-4 sm:p-6 flex items-start gap-4 sm:gap-6 transition-all border-l-4 ${
-                notif.is_read ? 'opacity-60 border-l-slate-700' : 
-                notif.priority === 'CRITICAL' ? 'border-l-red-500 bg-red-500/5' : 
-                notif.priority === 'WARNING' ? 'border-l-amber-500 bg-amber-500/5' : 
-                'border-l-blue-500 bg-blue-500/5'
+              className={`glass-card p-5 sm:p-6 flex items-start gap-4 sm:gap-6 transition-all rounded-2xl relative border border-white/5 hover:border-white/10 hover:bg-white/[0.02] ${
+                notif.is_read ? 'opacity-55' : 
+                notif.priority === 'CRITICAL' ? 'shadow-[0_0_15px_rgba(239,68,68,0.05)] border-l-4 border-l-red-500' : 
+                notif.priority === 'WARNING' ? 'shadow-[0_0_15px_rgba(245,158,11,0.05)] border-l-4 border-l-amber-500' : 
+                'shadow-[0_0_15px_rgba(59,130,246,0.05)] border-l-4 border-l-blue-500'
               }`}
             >
+              {!notif.is_read && (
+                <span className="absolute top-4 right-4 flex h-2 w-2">
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    notif.priority === 'CRITICAL' ? 'bg-red-400' :
+                    notif.priority === 'WARNING' ? 'bg-amber-400' : 'bg-blue-400'
+                  }`}></span>
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                    notif.priority === 'CRITICAL' ? 'bg-red-500' :
+                    notif.priority === 'WARNING' ? 'bg-amber-500' : 'bg-blue-500'
+                  }`}></span>
+                </span>
+              )}
+              
               <div className="pt-1 shrink-0">
-                {getPriorityIcon(notif.priority)}
+                <div className={`p-3 rounded-xl ${
+                  notif.priority === 'CRITICAL' ? 'bg-red-500/10 text-red-400' : 
+                  notif.priority === 'WARNING' ? 'bg-amber-500/10 text-amber-400' : 
+                  'bg-blue-500/10 text-blue-400'
+                }`}>
+                  {getPriorityIcon(notif.priority)}
+                </div>
               </div>
               
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 uppercase ${getBadgeColor(notif.type)}`}>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                  <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold border flex items-center gap-1 uppercase tracking-wider ${getBadgeColor(notif.type)}`}>
                     {getTypeIcon(notif.type)} {
                       notif.type === 'UNPAID_SALARY' ? 'SUELDO IMPAGO' :
                       notif.type === 'CONTRACT_EXPIRING' ? 'VENCIMIENTO CONTRATO' :
                       notif.type === 'PROJECT_ENDING' ? 'TÉRMINO PROYECTO' :
                       notif.type === 'STOCK_ALERT' ? 'ALERTA BODEGA' :
                       notif.type === 'SYSTEM_INFO' ? 'INFO SISTEMA' :
+                      notif.type === 'VACATION_ALERT' ? 'ALERTA VACACIONES' :
+                      notif.type === 'VACATION_REQUEST' ? 'SOLICITUD VACACIONES' :
+                      notif.type === 'VACATION_APPROVED' ? 'VACACIONES APROBADAS' :
+                      notif.type === 'PROFITABILITY_ALERT' ? 'MARGEN CRÍTICO' :
                       notif.type.replace('_', ' ')
                     }
                   </span>
-                  <span className="text-xs text-slate-500 font-mono">
-                    {new Date(notif.created_at).toLocaleString('es-CL')}
+                  <span className="text-xs text-slate-500 font-medium">
+                    {new Date(notif.created_at).toLocaleString('es-CL', {
+                      year: 'numeric', month: 'short', day: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
+                    })}
                   </span>
                 </div>
                 
-                <h3 className={`text-lg font-bold mb-1 ${notif.is_read ? 'text-slate-300' : 'text-white'}`}>
+                <h3 className={`text-base sm:text-lg font-bold mb-1.5 ${notif.is_read ? 'text-slate-400 line-through' : 'text-white'}`}>
                   {notif.title}
                 </h3>
                 
@@ -139,21 +173,23 @@ const Notifications = () => {
                   {notif.message}
                 </p>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                   {!notif.is_read && (
                     <button 
                       onClick={() => markAsRead(notif.id)}
-                      className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/40 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-bold transition-all"
                     >
+                      <CheckCircle2 size={13} />
                       Marcar como leída
                     </button>
                   )}
                   {notif.link && (
                     <button 
                       onClick={() => navigate(notif.link)}
-                      className="text-xs font-bold text-slate-300 hover:text-white transition-colors flex items-center gap-1"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-500/20 bg-blue-500/5 text-blue-400 hover:text-white hover:bg-blue-600/30 text-xs font-bold transition-all"
                     >
-                      Ver detalle <ExternalLink size={12} />
+                      Ver detalle
+                      <ExternalLink size={13} />
                     </button>
                   )}
                 </div>
