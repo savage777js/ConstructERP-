@@ -78,8 +78,19 @@ const Login = ({ onLoginSuccess }) => {
 
           {/* Logo */}
           <div className="brand-logo-wrap">
-            <div className="brand-logo-icon">
-              <HardHat size={24} />
+            <div className="brand-logo-icon" style={{ overflow: 'hidden', background: '#eaeaea' }}>
+              <img 
+                src="/images/logoconstruct.png" 
+                alt="Logo" 
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover', 
+                  objectPosition: 'center 20%', 
+                  transform: 'scale(2.2)', 
+                  transformOrigin: 'center 20%' 
+                }} 
+              />
             </div>
             <span className="brand-logo-text">ConstructERP</span>
           </div>
