@@ -152,14 +152,25 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.25rem' }}>
           <div style={{
             width: '44px', height: '44px', minWidth: '44px', minHeight: '44px',
-            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(234, 88, 12, 0.15))',
+            background: '#eaeaea',
             borderRadius: '12px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15)',
-            border: '1px solid rgba(245, 158, 11, 0.25)',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             overflow: 'hidden'
           }}>
-            <img src="/images/logoconstruct.png" alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+            <img 
+              src="/images/logoconstruct.png" 
+              alt="Logo" 
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                objectFit: 'cover',
+                objectPosition: 'center 20%',
+                transform: 'scale(2.2)',
+                transformOrigin: 'center 20%'
+              }} 
+            />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <h2 style={{
