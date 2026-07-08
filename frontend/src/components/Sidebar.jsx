@@ -152,12 +152,13 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.25rem' }}>
           <div style={{
             width: '44px', height: '44px', minWidth: '44px', minHeight: '44px',
-            background: '#eaeaea',
+            background: '#ffffff',
             borderRadius: '12px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
             border: '1px solid rgba(255, 255, 255, 0.15)',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            padding: '2px'
           }}>
             <img 
               src="/images/logoconstruct.png" 
@@ -165,10 +166,7 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
               style={{ 
                 width: '100%', 
                 height: '100%', 
-                objectFit: 'cover',
-                objectPosition: 'center 20%',
-                transform: 'scale(2.2)',
-                transformOrigin: 'center 20%'
+                objectFit: 'contain'
               }} 
             />
           </div>
