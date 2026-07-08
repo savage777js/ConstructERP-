@@ -6,6 +6,9 @@ import {
   Search, Filter, Loader2, ChevronRight,
   FileSpreadsheet, ArrowLeft, LayoutDashboard, Sparkles
 } from 'lucide-react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
+} from 'recharts';
 
 const Reports = () => {
   const [selectedReport, setSelectedReport] = useState(null);
@@ -239,6 +242,81 @@ const Reports = () => {
               </div>
             </div>
 
+            {/* Financial Deviation Chart for Projects Report */}
+            {!loading && selectedReport.id === 'projects' && previewData.length > 0 && (
+              <div className="p-4 sm:p-8 border-b border-white/5 bg-slate-950/40">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 glass-card p-4 sm:p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950/10">
+                    <h3 className="text-sm font-bold text-white mb-6 flex items-center gap-2">
+                      <LayoutDashboard className="text-blue-400" size={16} />
+                      Cruce Presupuestal y Desviación de Obras
+                    </h3>
+                    <div className="h-[280px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={previewData.map(item => ({
+                            name: item["Nombre Obra"],
+                            Presupuesto: item["Presupuesto"],
+                            GastoReal: item["Gasto Real"],
+                          }))}
+                          margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+                          <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 9 }} />
+                          <YAxis stroke="#94a3b8" tick={{ fontSize: 9 }} tickFormatter={(val) => `$${val.toLocaleString('es-CL')}`} />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#ffffff15', borderRadius: '12px' }}
+                            labelStyle={{ fontWeight: 'bold', color: '#fff' }}
+                            formatter={(value) => [`$${value.toLocaleString('es-CL')}`]}
+                          />
+                          <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
+                          <Bar dataKey="Presupuesto" name="Presupuesto Autorizado" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="GastoReal" name="Gasto Real Ejecutado" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col gap-4">
+                    <div className="glass-card p-5 border-l-4 border-l-blue-500 bg-blue-500/5 flex-1 flex flex-col justify-center">
+                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Presupuestado</h4>
+                      <p className="text-2xl font-extrabold text-white">
+                        ${previewData.reduce((acc, item) => acc + (parseFloat(item["Presupuesto"]) || 0), 0).toLocaleString('es-CL')}
+                      </p>
+                      <span className="text-[9px] text-slate-500 font-bold block mt-1">Suma contractual de obras</span>
+                    </div>
+                    
+                    <div className="glass-card p-5 border-l-4 border-l-pink-500 bg-pink-500/5 flex-1 flex flex-col justify-center">
+                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Gasto Real</h4>
+                      <p className="text-2xl font-extrabold text-white">
+                        ${previewData.reduce((acc, item) => acc + (parseFloat(item["Gasto Real"]) || 0), 0).toLocaleString('es-CL')}
+                      </p>
+                      <span className="text-[9px] text-slate-500 font-bold block mt-1">Suma de egresos consolidados</span>
+                    </div>
+                    
+                    <div className="glass-card p-5 border-l-4 border-l-purple-500 bg-purple-500/5 flex-1 flex flex-col justify-center">
+                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Desviación Total Promedio</h4>
+                      {(() => {
+                        const totalBudget = previewData.reduce((acc, item) => acc + (parseFloat(item["Presupuesto"]) || 0), 0);
+                        const totalSpent = previewData.reduce((acc, item) => acc + (parseFloat(item["Gasto Real"]) || 0), 0);
+                        const diff = totalBudget - totalSpent;
+                        return (
+                          <>
+                            <p className={`text-2xl font-extrabold ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              ${diff.toLocaleString('es-CL')}
+                            </p>
+                            <span className="text-[9px] text-slate-500 font-bold block mt-1">
+                              {diff >= 0 ? 'Operación dentro del presupuesto' : 'Exceso de presupuesto en obras'}
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="overflow-x-auto">
               {loading ? (
                 <div className="py-40 flex flex-col items-center justify-center text-slate-500">
@@ -266,7 +344,9 @@ const Reports = () => {
                                       ? `px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusColor(val)}`
                                       : 'text-slate-300'
                                   }>
-                                      {val}
+                                      {(key === 'Presupuesto' || key === 'Gasto Real' || key === 'Desviación') && typeof val === 'number'
+                                       ? `$${val.toLocaleString('es-CL')}`
+                                       : val}
                                   </span>
                               </td>
                           ))}
@@ -287,7 +367,9 @@ const Reports = () => {
                               ? `px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${getStatusColor(val)}`
                               : 'text-slate-200 font-semibold text-right max-w-[200px] truncate'
                             }>
-                              {val}
+                              {(key === 'Presupuesto' || key === 'Gasto Real' || key === 'Desviación') && typeof val === 'number'
+                               ? `$${val.toLocaleString('es-CL')}`
+                               : val}
                             </span>
                           </div>
                         ))}

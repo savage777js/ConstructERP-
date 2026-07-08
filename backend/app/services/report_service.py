@@ -89,6 +89,9 @@ class ReportService:
         report_data = []
         
         for p in projects:
+            expenses_sum = sum(float(e.amount) for e in p.expenses)
+            budget_val = float(p.budget) if p.budget else 0.0
+            deviation = budget_val - expenses_sum
             report_data.append({
                 "Código": p.code,
                 "Nombre Obra": p.name,
@@ -96,7 +99,10 @@ class ReportService:
                 "Fecha Inicio": p.start_date.strftime('%d/%m/%Y') if p.start_date else "N/A",
                 "Fecha Término Est.": p.end_date.strftime('%d/%m/%Y') if p.end_date else "N/A",
                 "Estado": PROJECT_STATUS_TRANSLATIONS.get(p.status, p.status),
-                "Dirección": p.address
+                "Presupuesto": budget_val,
+                "Gasto Real": expenses_sum,
+                "Desviación": deviation,
+                "Avance": f"{p.progress or 0}%"
             })
         return report_data
 

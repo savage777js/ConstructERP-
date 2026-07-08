@@ -78,8 +78,8 @@ const Login = ({ onLoginSuccess }) => {
 
           {/* Logo */}
           <div className="brand-logo-wrap">
-            <div className="brand-logo-icon" style={{ background: 'white', overflow: 'hidden', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src="/logo.jpg" alt="Serconind Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div className="brand-logo-icon">
+              <HardHat size={24} />
             </div>
             <span className="brand-logo-text">ConstructERP</span>
           </div>

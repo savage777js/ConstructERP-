@@ -59,6 +59,7 @@ class ProjectAssignmentOut(BaseModel):
     updated_at: datetime
     approved_by_manager: bool = False
     manager_notes: Optional[str] = None
+    compliance_status: Optional[dict] = None
 
     class Config:
         from_attributes = True

@@ -260,6 +260,44 @@ class ProjectAssignment(Base):
     project = relationship("Project", back_populates="assignments")
     worker = relationship("Employee", back_populates="assignments")
 
+    @property
+    def compliance_status(self):
+        docs = self.worker.documents if self.worker else []
+        has_contract = False
+        has_permits = False
+        has_epp = False
+        
+        for doc in docs:
+            cat = (doc.category or "").lower()
+            title = (doc.title or "").lower()
+            
+            # 1. Contrato
+            if cat in ["contrato", "anexo_contrato"] or "contrato" in title or "anexo" in title:
+                has_contract = True
+                
+            # 2. Permisos (Licencia, Cédula, Certificados)
+            if cat in ["licencia", "cédula", "cedula", "certificado"] or any(x in title for x in ["licencia", "cedula", "rut", "certificado", "permiso", "antecedentes", "afiliacion"]):
+                has_permits = True
+                
+            # 3. EPP
+            if "epp" in title or "epp" in cat or any(x in title for x in ["epp", "entrega", "proteccion", "protección", "casco", "zapatos", "chaleco"]):
+                has_epp = True
+                
+        # Overall status severity
+        if has_contract and has_permits and has_epp:
+            status = "GREEN"
+        elif not has_contract:
+            status = "RED" # Critical legal requirement
+        else:
+            status = "YELLOW" # Missing EPP or minor permits
+            
+        return {
+            "has_contract": has_contract,
+            "has_permits": has_permits,
+            "has_epp": has_epp,
+            "status": status
+        }
+
 class ProjectLog(Base):
     __tablename__ = "project_logs"
 

@@ -815,6 +815,7 @@ const ProjectDetail = () => {
                   <tr className="bg-slate-900/50 text-slate-500 text-xs font-bold uppercase tracking-wider">
                     <th className="px-3 sm:px-8 py-3 sm:py-5">Trabajador</th>
                     <th className="px-3 sm:px-8 py-3 sm:py-5">Rol en Obra</th>
+                    <th className="px-3 sm:px-8 py-3 sm:py-5">Cumplimiento Legal</th>
                     <th className="px-3 sm:px-8 py-3 sm:py-5">Visto Bueno</th>
                     <th className="px-3 sm:px-8 py-3 sm:py-5">Notas Gerenciales</th>
                     <th className="px-3 sm:px-8 py-3 sm:py-5">Documentos</th>
@@ -840,6 +841,39 @@ const ProjectDetail = () => {
                           <HardHat size={14} className="text-blue-400 shrink-0" />
                           {a.role || 'Operario'}
                         </span>
+                      </td>
+                      <td className="px-3 sm:px-8 py-4 sm:py-6">
+                        <div className="flex flex-col gap-1">
+                          {(() => {
+                            const comp = a.compliance_status || { status: 'RED', has_contract: false, has_permits: false, has_epp: false };
+                            const statusColor = 
+                              comp.status === 'GREEN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                              comp.status === 'YELLOW' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                              'bg-red-500/10 text-red-400 border-red-500/20 font-bold';
+                            const statusLabel = 
+                              comp.status === 'GREEN' ? 'Al Día' :
+                              comp.status === 'YELLOW' ? 'Pendiente' :
+                              'CRÍTICO (Falta Contrato)';
+                            return (
+                              <>
+                                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border w-fit uppercase ${statusColor}`}>
+                                  {statusLabel}
+                                </span>
+                                <div className="flex gap-2 mt-1">
+                                  <span className={`text-[9px] font-bold ${comp.has_contract ? 'text-emerald-400' : 'text-red-400'}`} title="Contrato de Trabajo o Anexo Firmado">
+                                    {comp.has_contract ? '✓' : '✗'} Contrato
+                                  </span>
+                                  <span className={`text-[9px] font-bold ${comp.has_permits ? 'text-emerald-400' : 'text-slate-500'}`} title="Cédula, Certificados o Permisos">
+                                    {comp.has_permits ? '✓' : '✗'} Permisos
+                                  </span>
+                                  <span className={`text-[9px] font-bold ${comp.has_epp ? 'text-emerald-400' : 'text-slate-500'}`} title="Entrega de EPP (Art. 68 Código del Trabajo)">
+                                    {comp.has_epp ? '✓' : '✗'} EPP
+                                  </span>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
                       </td>
                       <td className="px-3 sm:px-8 py-4 sm:py-6">
                         {a.approved_by_manager ? (
@@ -964,6 +998,41 @@ const ProjectDetail = () => {
                           <HardHat size={12} className="text-blue-400" />
                           {a.role || 'Operario'}
                         </span>
+                      </div>
+
+                      <div className="flex justify-between items-start pt-1.5 border-t border-white/5">
+                        <span className="text-slate-500 font-bold uppercase text-[10px] mt-0.5">Cumplimiento Legal</span>
+                        <div className="flex flex-col items-end gap-1">
+                          {(() => {
+                            const comp = a.compliance_status || { status: 'RED', has_contract: false, has_permits: false, has_epp: false };
+                            const statusColor = 
+                              comp.status === 'GREEN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                              comp.status === 'YELLOW' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                              'bg-red-500/10 text-red-400 border-red-500/20 font-bold';
+                            const statusLabel = 
+                              comp.status === 'GREEN' ? 'Al Día' :
+                              comp.status === 'YELLOW' ? 'Pendiente' :
+                              'CRÍTICO (Sin Contrato)';
+                            return (
+                              <>
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase ${statusColor}`}>
+                                  {statusLabel}
+                                </span>
+                                <div className="flex gap-1.5 mt-0.5 text-[8px] font-semibold">
+                                  <span className={comp.has_contract ? 'text-emerald-400' : 'text-red-400'}>
+                                    Cont: {comp.has_contract ? '✓' : '✗'}
+                                  </span>
+                                  <span className={comp.has_permits ? 'text-emerald-400' : 'text-slate-500'}>
+                                    Perm: {comp.has_permits ? '✓' : '✗'}
+                                  </span>
+                                  <span className={comp.has_epp ? 'text-emerald-400' : 'text-slate-500'}>
+                                    EPP: {comp.has_epp ? '✓' : '✗'}
+                                  </span>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
                       </div>
 
                       <div className="flex justify-between items-center">
