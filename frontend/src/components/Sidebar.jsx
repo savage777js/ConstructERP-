@@ -156,9 +156,10 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
             borderRadius: '12px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15)',
-            border: '1px solid rgba(245, 158, 11, 0.25)'
+            border: '1px solid rgba(245, 158, 11, 0.25)',
+            overflow: 'hidden'
           }}>
-            <HardHat size={22} style={{ color: '#f59e0b' }} />
+            <img src="/images/logoconstruct.png" alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <h2 style={{
