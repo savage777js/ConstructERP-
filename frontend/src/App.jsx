@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth, getDefaultRoute } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
@@ -43,6 +43,19 @@ const TopHeader = ({ onOpenSidebar }) => {
   const { user, logout, roleLabel } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="flex justify-between items-center px-4 sm:px-6 py-4 bg-[var(--bg-sidebar)]/50 border-b border-[var(--border)] backdrop-blur-md sticky top-0 z-30">
@@ -62,7 +75,7 @@ const TopHeader = ({ onOpenSidebar }) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 ml-auto relative">
+      <div ref={menuRef} className="flex items-center gap-4 ml-auto relative">
 
         <div 
           onClick={() => setMenuOpen(!menuOpen)}
@@ -79,30 +92,26 @@ const TopHeader = ({ onOpenSidebar }) => {
         </div>
 
         {menuOpen && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-            
-            <div className="absolute right-0 top-full mt-2 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-              <div className="px-3 py-2 border-b border-white/5 mb-1 sm:hidden">
-                <p className="text-xs font-bold text-white">{user?.full_name}</p>
-                <p className="text-[9px] text-slate-500 uppercase">{user?.role}</p>
-              </div>
-              <button
-                onClick={() => { navigate("/profile"); setMenuOpen(false); }}
-                className="w-full flex items-center gap-3 px-3 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all font-bold mb-1"
-              >
-                <User size={14} />
-                <span>Mi Perfil</span>
-              </button>
-              <button
-                onClick={() => { logout(); setMenuOpen(false); }}
-                className="w-full flex items-center gap-3 px-3 py-2 text-left text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all font-bold"
-              >
-                <LogOut size={14} />
-                <span>Cerrar Sesión</span>
-              </button>
+          <div className="absolute right-0 top-full mt-2 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="px-3 py-2 border-b border-white/5 mb-1 sm:hidden">
+              <p className="text-xs font-bold text-white">{user?.full_name}</p>
+              <p className="text-[9px] text-slate-500 uppercase">{user?.role}</p>
             </div>
-          </>
+            <button
+              onClick={() => { navigate("/profile"); setMenuOpen(false); }}
+              className="w-full flex items-center gap-3 px-3 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all font-bold mb-1"
+            >
+              <User size={14} />
+              <span>Mi Perfil</span>
+            </button>
+            <button
+              onClick={() => { logout(); setMenuOpen(false); }}
+              className="w-full flex items-center gap-3 px-3 py-2 text-left text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all font-bold"
+            >
+              <LogOut size={14} />
+              <span>Cerrar Sesión</span>
+            </button>
+          </div>
         )}
       </div>
     </div>
