@@ -5,7 +5,7 @@ from typing import List
 from app.db.session import get_db
 from app.core import security
 from app.models.core import User, Role, Permission, UserRoleRel, role_permissions, UserRole
-from app.schemas.user import Token, UserOut, UserCreate, UserMe, UserUpdate
+from app.schemas.user import Token, UserOut, UserCreate, UserMe, UserUpdate, PasswordChange
 from app.schemas.audit import AuditLogOut
 from app.api.deps import get_current_user, RoleChecker
 
@@ -237,4 +237,28 @@ def list_audit_logs(
             )
         )
     return out_logs
+
+@router.put("/me/password")
+def change_my_password(
+    payload: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Permite al usuario cambiar su propia contraseña. Requiere contraseña actual excepto si es SUPER_ADMIN."""
+    if current_user.role != UserRole.SUPER_ADMIN:
+        if not payload.current_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Se requiere la contraseña actual por motivos de seguridad"
+            )
+        if not security.verify_password(payload.current_password, current_user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La contraseña actual es incorrecta"
+            )
+
+    # Actualizar contraseña
+    current_user.hashed_password = security.get_password_hash(payload.new_password)
+    db.commit()
+    return {"message": "Contraseña actualizada exitosamente"}
 

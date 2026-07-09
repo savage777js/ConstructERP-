@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth, getDefaultRoute } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import { LogOut, User, ChevronDown } from 'lucide-react';
@@ -14,6 +14,7 @@ import Reports from './pages/Reports';
 import Capataz from './pages/Capataz';
 import Hierarchy from './pages/Hierarchy';
 import Admin from './pages/Admin';
+import Profile from './pages/Profile';
 import Can from './components/Can';
 
 const ProtectedRoute = ({ children, requiredPermission }) => {
@@ -41,6 +42,7 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
 const TopHeader = ({ onOpenSidebar }) => {
   const { user, logout, roleLabel } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="flex justify-between items-center px-4 sm:px-6 py-4 bg-[var(--bg-sidebar)]/50 border-b border-[var(--border)] backdrop-blur-md sticky top-0 z-30">
@@ -85,6 +87,13 @@ const TopHeader = ({ onOpenSidebar }) => {
                 <p className="text-xs font-bold text-white">{user?.full_name}</p>
                 <p className="text-[9px] text-slate-500 uppercase">{user?.role}</p>
               </div>
+              <button
+                onClick={() => { navigate("/profile"); setMenuOpen(false); }}
+                className="w-full flex items-center gap-3 px-3 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all font-bold mb-1"
+              >
+                <User size={14} />
+                <span>Mi Perfil</span>
+              </button>
               <button
                 onClick={() => { logout(); setMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2 text-left text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all font-bold"
@@ -252,6 +261,17 @@ function AppRoutes() {
             <ProtectedRoute>
               <MainLayout>
                 <Capataz />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Profile />
               </MainLayout>
             </ProtectedRoute>
           } 

@@ -37,3 +37,7 @@ class Token(BaseModel):
 
 class TokenPayload(BaseModel):
     sub: Optional[int] = None
+
+class PasswordChange(BaseModel):
+    current_password: Optional[str] = None
+    new_password: str
