@@ -73,7 +73,7 @@ def create_invoice(
     db.refresh(invoice)
     return invoice
 
-@router.patch("/invoices/{invoice_id}/status", dependencies=[Depends(allow_write_finance)])
+@router.patch("/invoices/{invoice_id}/status", response_model=InvoiceOut, dependencies=[Depends(allow_write_finance)])
 def update_invoice_status(
     invoice_id: str,
     status_in: str,
@@ -91,7 +91,7 @@ def update_invoice_status(
     db.refresh(invoice)
     return invoice
 
-@router.patch("/expenses/{expense_id}/status", dependencies=[Depends(allow_write_finance)])
+@router.patch("/expenses/{expense_id}/status", response_model=ExpenseOut, dependencies=[Depends(allow_write_finance)])
 def update_expense_status(
     expense_id: str,
     is_paid: bool,
