@@ -57,23 +57,8 @@ class NotificationPriority(str, enum.Enum):
     WARNING = "WARNING"
     CRITICAL = "CRITICAL"
 
-# --- Multi-tenancy ---
-class Organization(Base):
-    __tablename__ = "organizations"
-    id = Column(GUID, primary_key=True, default=generate_uuid)
-    name = Column(String(255), nullable=False)
-    tax_id = Column(String(50), unique=True)
-    address = Column(Text)
-    logo_url = Column(String)
-    settings = Column(JSON, default={})
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+# --- Single-Tenant (No Multi-tenancy) ---
 
-    users = relationship("User", back_populates="organization")
-    projects = relationship("Project", back_populates="organization")
-    employees = relationship("Employee", back_populates="organization")
-    documents = relationship("Document", back_populates="organization")
 
 # --- Role Based Access Control (RBAC) ---
 class Permission(Base):
@@ -95,7 +80,7 @@ role_permissions = Table(
 class Role(Base):
     __tablename__ = "roles"
     id = Column(GUID, primary_key=True, default=generate_uuid)
-    organization_id = Column(GUID, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True)
+    organization_id = Column(GUID, nullable=True)
     name = Column(String(50), unique=True, nullable=False)
     slug = Column(String(50))
     description = Column(Text)
@@ -116,7 +101,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     auth_id = Column(String, unique=True, index=True, nullable=True) # UUID from Supabase Auth
-    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
+    organization_id = Column(GUID, nullable=True)
     full_name = Column(String, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
@@ -127,7 +112,6 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     rut = Column(String(50), nullable=True) # RUT del usuario administrativo
 
-    organization = relationship("Organization", back_populates="users")
     employee = relationship("Employee", back_populates="user", uselist=False)
 
 class EmployeeStatus(str, enum.Enum):
@@ -140,7 +124,7 @@ class Employee(Base):
     __tablename__ = "employees"
 
     id = Column(Integer, primary_key=True, index=True)
-    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
+    organization_id = Column(GUID, nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
@@ -202,7 +186,6 @@ class Employee(Base):
         self.vacation_balance_db = value
     
     # Relationships
-    organization = relationship("Organization", back_populates="employees")
     user = relationship("User", back_populates="employee")
     assignments = relationship("ProjectAssignment", back_populates="worker")
     tasks = relationship("Task", back_populates="assigned_employee")
@@ -218,7 +201,7 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, index=True)
-    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
+    organization_id = Column(GUID, nullable=True)
     name = Column(String, index=True, nullable=False)
     code = Column(String, unique=True, index=True) # Código de obra
     client_name = Column(String)
@@ -233,7 +216,6 @@ class Project(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    organization = relationship("Organization", back_populates="projects")
     assignments = relationship("ProjectAssignment", back_populates="project")
     tasks = relationship("Task", back_populates="project")
     expenses = relationship("Expense", back_populates="project")
@@ -317,7 +299,7 @@ class ProjectLog(Base):
 class Document(Base):
     __tablename__ = "documents"
     id = Column(GUID, primary_key=True, default=generate_uuid)
-    organization_id = Column(GUID, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    organization_id = Column(GUID, nullable=True)
     title = Column(String(255), nullable=False)
     file_path = Column(String, nullable=False)
     file_type = Column(String(50))
@@ -335,7 +317,6 @@ class Document(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    organization = relationship("Organization", back_populates="documents")
     employee = relationship("Employee", back_populates="documents")
     project = relationship("Project", back_populates="documents")
 
@@ -413,7 +394,7 @@ class AuditLog(Base):
 class Task(Base):
     __tablename__ = "tasks"
     id = Column(GUID, primary_key=True, default=generate_uuid)
-    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
+    organization_id = Column(GUID, nullable=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     assigned_to = Column(Integer, ForeignKey("employees.id"), nullable=True)
     title = Column(String(255), nullable=False)
@@ -442,7 +423,7 @@ class TaskComment(Base):
 class Expense(Base):
     __tablename__ = "expenses"
     id = Column(GUID, primary_key=True, default=generate_uuid)
-    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
+    organization_id = Column(GUID, nullable=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     category = Column(String(100))
     description = Column(Text)
@@ -458,7 +439,7 @@ class Expense(Base):
 class Invoice(Base):
     __tablename__ = "invoices"
     id = Column(GUID, primary_key=True, default=generate_uuid)
-    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
+    organization_id = Column(GUID, nullable=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
     client_name = Column(String(255), nullable=False)
     total_amount = Column(Numeric(15, 2), nullable=False)

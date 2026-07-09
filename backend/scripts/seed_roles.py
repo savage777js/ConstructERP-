@@ -2,14 +2,13 @@ import sys
 import os
 sys.path.append(os.getcwd())
 from app.db.session import SessionLocal
-from app.models.core import User, UserRole, Organization
+from app.models.core import User, UserRole
 from app.core import security
 
 def seed_roles():
     db = SessionLocal()
     try:
-        org = db.query(Organization).first()
-        org_id = org.id if org else None
+        org_id = "default-org"
         
         users_data = [
             {"email": "admin@serconind.cl", "role": UserRole.ADMIN, "password": "admin", "name": "Administrador Local"},

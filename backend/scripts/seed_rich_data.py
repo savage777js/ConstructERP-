@@ -9,7 +9,7 @@ load_dotenv()
 
 from app.db.session import SessionLocal, engine
 from app.models import core # Ensure models are loaded
-from app.models.core import User, Employee, Project, ProjectAssignment, Expense, Notification, ProjectLog, UserRole, EmployeeStatus, NotificationType, NotificationPriority, Organization
+from app.models.core import User, Employee, Project, ProjectAssignment, Expense, Notification, ProjectLog, UserRole, EmployeeStatus, NotificationType, NotificationPriority
 from datetime import datetime, timedelta
 
 def seed_rich_data():
@@ -17,19 +17,8 @@ def seed_rich_data():
     try:
         print("[INFO] Iniciando siembra de datos de prueba con compatibilidad Postgres...")
 
-        # 1. Obtener o crear Organización de ejemplo con UUID válido
-        org = db.query(Organization).first()
-        if not org:
-            print("Creando organización por defecto...")
-            org = Organization(
-                name="Serconind Ltda.",
-                tax_id="76.123.456-K",
-                address="Av. Providencia 1240, Santiago"
-            )
-            db.add(org)
-            db.commit()
-            db.refresh(org)
-        org_id = org.id
+        # 1. Usar organización base estática para single tenant
+        org_id = "default-org"
         print(f"[INFO] Organizacion activa ID: {org_id}")
 
         # 2. Vincular Admin existente a esta Organización

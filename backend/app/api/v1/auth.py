@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.db.session import get_db
 from app.core import security
-from app.models.core import User, Role, Permission, UserRoleRel, role_permissions, UserRole, Organization
+from app.models.core import User, Role, Permission, UserRoleRel, role_permissions, UserRole
 from app.schemas.user import Token, UserOut, UserCreate, UserMe, UserUpdate
 from app.schemas.audit import AuditLogOut
 from app.api.deps import get_current_user, RoleChecker
@@ -30,12 +30,10 @@ def read_user_me(db: Session = Depends(get_db), current_user: User = Depends(get
             all_perms = db.query(Permission.slug).all()
             perm_list = list(set(perm_list + [p[0] for p in all_perms]))
 
-        org_data = None
-        if current_user.organization:
-            org_data = {
-                "id": str(current_user.organization.id),
-                "name": current_user.organization.name
-            }
+        org_data = {
+            "id": str(current_user.organization_id) if current_user.organization_id else "default-org",
+            "name": "ConstructERP"
+        }
 
         return {
             "user": current_user,

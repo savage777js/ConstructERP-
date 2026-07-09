@@ -1,23 +1,12 @@
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
-from app.models.core import User, Organization, Employee, Project
+from app.models.core import User, Employee, Project
 
 def fix_orgs():
     db = SessionLocal()
     try:
-        # 1. Crear organización si no existe
-        org = db.query(Organization).filter(Organization.name == "SERCONIND LTDA.").first()
-        if not org:
-            org = Organization(
-                name="SERCONIND LTDA.",
-                tax_id="77.666.555-4",
-                address="Santiago, Chile",
-                is_active=True
-            )
-            db.add(org)
-            db.flush() # Para obtener el ID
-        
-        org_id = org.id
+        # 1. Usar organización estática
+        org_id = "default-org"
         print(f"🏢 Org ID: {org_id}")
 
         # 2. Vincular Admin

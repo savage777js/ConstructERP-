@@ -256,19 +256,13 @@ def init_db():
 
     db = SessionLocal()
     try:
-        from app.models.core import User, UserRole, Organization
+        from app.models.core import User, UserRole
         from app.core import security
 
         # ──────────────────────────────────────────────────────────────
-        # Asegurar organización base
+        # Asegurar organización base (estática para single tenant)
         # ──────────────────────────────────────────────────────────────
-        org = db.query(Organization).first()
-        if not org:
-            org = Organization(name="Sercon Ind SpA")
-            db.add(org)
-            db.commit()
-            db.refresh(org)
-        org_id = org.id
+        org_id = "default-org"
 
         # ──────────────────────────────────────────────────────────────
         # Usuarios de rol — se crean o actualizan en CADA arranque.

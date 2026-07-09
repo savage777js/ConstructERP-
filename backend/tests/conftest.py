@@ -6,8 +6,9 @@ from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.db.session import Base, get_db
-from app.models.core import Organization, User, UserRole
+from app.models.core import User, UserRole
 from app.core import security
+from types import SimpleNamespace
 
 # Crear una base de datos SQLite en memoria para las pruebas
 SQLALCHEMY_DATABASE_URL = "sqlite://"
@@ -47,14 +48,9 @@ def client(db):
 
 @pytest.fixture(scope="function")
 def test_data(db):
-    # Crear Organización A
-    org_a = Organization(name="Serconind Org A", is_active=True)
-    db.add(org_a)
-    
-    # Crear Organización B
-    org_b = Organization(name="Competidor Org B", is_active=True)
-    db.add(org_b)
-    db.commit()
+    # Usar SimpleNamespace para simular la organización sin el modelo de base de datos
+    org_a = SimpleNamespace(id="org_a_id", name="Serconind Org A")
+    org_b = SimpleNamespace(id="org_b_id", name="Competidor Org B")
     
     # Crear Administrador Organización A
     admin_a = User(
