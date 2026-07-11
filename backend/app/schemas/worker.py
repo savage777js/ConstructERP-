@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from app.models.core import EmployeeStatus
 import enum
@@ -54,6 +54,7 @@ class EmployeeOut(EmployeeBase):
     hire_date: datetime
     updated_at: datetime
     active_project: Optional[str] = None
+    missing_mandatory_docs: List[str] = []
 
     class Config:
         from_attributes = True

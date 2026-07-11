@@ -32,6 +32,22 @@ class GUID(TypeDecorator):
 def generate_uuid():
     return str(uuid.uuid4())
 
+class EncryptedString(TypeDecorator):
+    impl = String
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        from app.utils.encryption import encrypt_value
+        return encrypt_value(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        from app.utils.encryption import decrypt_value
+        return decrypt_value(value)
+
 # --- Enums ---
 class UserRole(str, enum.Enum):
     SUPER_ADMIN = "SUPER_ADMIN"
@@ -131,8 +147,8 @@ class Employee(Base):
     rut = Column(String, unique=True, index=True, nullable=True)  # Chile ID (ahora opcional)
     age = Column(Integer, nullable=True)  # Edad del trabajador
     email = Column(String, index=True)
-    phone = Column(String)
-    address = Column(String)
+    phone = Column(EncryptedString)
+    address = Column(EncryptedString)
     role = Column(String)  # Cargo del trabajador
     salary = Column(Integer, default=0)  # Sueldo
     hire_date = Column(DateTime, default=datetime.utcnow)
@@ -196,6 +212,16 @@ class Employee(Base):
     def active_project(self):
         active_assignment = next((a for a in self.assignments if a.is_active), None)
         return active_assignment.project.name if active_assignment and active_assignment.project else None
+
+    @property
+    def missing_mandatory_docs(self) -> list:
+        uploaded_categories = {d.category for d in self.documents}
+        missing = []
+        if "Contrato" not in uploaded_categories:
+            missing.append("Contrato de Trabajo")
+        if "Cédula" not in uploaded_categories:
+            missing.append("Cédula de Identidad")
+        return missing
 
 class Project(Base):
     __tablename__ = "projects"
@@ -433,8 +459,10 @@ class Expense(Base):
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    mini_budget_id = Column(GUID, ForeignKey("mini_budgets.id", ondelete="SET NULL"), nullable=True)
 
     project = relationship("Project", back_populates="expenses")
+    mini_budget = relationship("MiniBudget")
 
 class Invoice(Base):
     __tablename__ = "invoices"
@@ -448,8 +476,10 @@ class Invoice(Base):
     due_date = Column(DateTime)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    mini_budget_id = Column(GUID, ForeignKey("mini_budgets.id", ondelete="SET NULL"), nullable=True)
 
     project = relationship("Project", back_populates="invoices")
+    mini_budget = relationship("MiniBudget")
 
 
 class MiniBudget(Base):

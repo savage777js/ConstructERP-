@@ -10,6 +10,7 @@ class ExpenseBase(BaseModel):
     amount: Decimal
     expense_date: Optional[datetime] = None
     is_paid: Optional[bool] = False
+    mini_budget_id: Optional[str] = None
 
 class ExpenseCreate(ExpenseBase):
     pass
@@ -34,6 +35,7 @@ class InvoiceBase(BaseModel):
     status: str = "DRAFT"
     issue_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
+    mini_budget_id: Optional[str] = None
 
 class InvoiceCreate(InvoiceBase):
     pass

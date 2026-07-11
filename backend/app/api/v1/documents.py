@@ -312,6 +312,54 @@ def list_employee_documents(
         "created_at": d.created_at
     } for d in docs]
 
+@router.get("/employee/{employee_id}/download-zip")
+def download_employee_documents_zip(
+    employee_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: core.User = Depends(deps.get_current_user),
+):
+    """Genera y descarga un archivo ZIP con todos los documentos del trabajador."""
+    import zipfile
+    import io
+    from fastapi.responses import Response
+
+    query_emp = db.query(core.Employee).filter(core.Employee.id == employee_id)
+    if current_user.organization_id:
+        query_emp = query_emp.filter(core.Employee.organization_id == current_user.organization_id)
+    employee = query_emp.first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Trabajador no encontrado en su organización")
+        
+    docs = db.query(core.Document).filter(core.Document.employee_id == employee_id).all()
+    if not docs:
+        raise HTTPException(status_code=404, detail="El trabajador no tiene documentos en su carpeta digital")
+        
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for doc in docs:
+            local_path = doc.file_path.lstrip('/')
+            doc.ensure_local_file(db)
+            if os.path.exists(local_path):
+                ext = os.path.splitext(local_path)[1]
+                safe_title = "".join([c for c in doc.title if c.isalnum() or c in [' ', '_', '-']]).strip()
+                if not safe_title:
+                    safe_title = f"documento_{doc.id}"
+                filename_in_zip = f"{safe_title}{ext}"
+                zip_file.write(local_path, filename_in_zip)
+            else:
+                print(f"Warning: local file {local_path} not found for ZIP.")
+                
+    zip_buffer.seek(0)
+    zip_name = f"documentos_{employee.first_name}_{employee.last_name}.zip".replace(" ", "_")
+    
+    return Response(
+        content=zip_buffer.getvalue(),
+        media_type="application/x-zip-compressed",
+        headers={
+            "Content-Disposition": f"attachment; filename={zip_name}"
+        }
+    )
+
 @router.delete("/{document_id}")
 def delete_document(
     document_id: str,

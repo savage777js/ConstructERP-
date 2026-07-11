@@ -45,6 +45,92 @@ const ProjectDetail = () => {
   const userRole = localStorage.getItem('userRole');
   const canAssignWorker = ['ADMIN', 'SUPER_ADMIN', 'PROJECT_MANAGER'].includes(userRole);
   const canManageProject = ['ADMIN', 'SUPER_ADMIN', 'PROJECT_MANAGER'].includes(userRole);
+  const canManageFinance = ['ADMIN', 'SUPER_ADMIN', 'PROJECT_MANAGER', 'INVENTORY_MANAGER'].includes(userRole);
+
+  // States for adding expenses and invoices
+  const [showAddExpense, setShowAddExpense] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({
+    category: 'MATERIALES',
+    description: '',
+    amount: '',
+    expense_date: new Date().toISOString().split('T')[0],
+    is_paid: false,
+    mini_budget_id: 'otros'
+  });
+
+  const [showAddInvoice, setShowAddInvoice] = useState(false);
+  const [invoiceForm, setInvoiceForm] = useState({
+    client_name: '',
+    total_amount: '',
+    status: 'DRAFT',
+    issue_date: new Date().toISOString().split('T')[0],
+    due_date: '',
+    mini_budget_id: 'otros'
+  });
+
+  const handleOpenAddInvoice = () => {
+    setInvoiceForm({
+      client_name: project?.client_name || '',
+      total_amount: '',
+      status: 'DRAFT',
+      issue_date: new Date().toISOString().split('T')[0],
+      due_date: '',
+      mini_budget_id: 'otros'
+    });
+    setShowAddInvoice(true);
+  };
+
+  const handleOpenAddExpense = () => {
+    setExpenseForm({
+      category: 'MATERIALES',
+      description: '',
+      amount: '',
+      expense_date: new Date().toISOString().split('T')[0],
+      is_paid: false,
+      mini_budget_id: 'otros'
+    });
+    setShowAddExpense(true);
+  };
+
+  const handleCreateExpense = async (e) => {
+    e.preventDefault();
+    if (!expenseForm.amount || !expenseForm.description) return;
+    try {
+      await api.post('/finance/expenses', {
+        project_id: parseInt(id),
+        category: expenseForm.category,
+        description: expenseForm.description,
+        amount: parseFloat(expenseForm.amount),
+        expense_date: new Date(expenseForm.expense_date).toISOString(),
+        is_paid: expenseForm.is_paid,
+        mini_budget_id: expenseForm.mini_budget_id === 'otros' ? null : expenseForm.mini_budget_id
+      });
+      setShowAddExpense(false);
+      fetchProjectData();
+    } catch (error) {
+      alert('Error al registrar el gasto.');
+    }
+  };
+
+  const handleCreateInvoice = async (e) => {
+    e.preventDefault();
+    if (!invoiceForm.total_amount || !invoiceForm.client_name) return;
+    try {
+      await api.post('/finance/invoices', {
+        project_id: parseInt(id),
+        client_name: invoiceForm.client_name,
+        total_amount: parseFloat(invoiceForm.total_amount),
+        status: invoiceForm.status,
+        issue_date: new Date(invoiceForm.issue_date).toISOString(),
+        due_date: invoiceForm.due_date ? new Date(invoiceForm.due_date).toISOString() : null,
+        mini_budget_id: invoiceForm.mini_budget_id === 'otros' ? null : invoiceForm.mini_budget_id
+      });
+      setShowAddInvoice(false);
+      fetchProjectData();
+    } catch (error) {
+      alert('Error al registrar la factura.');
+    }
+  };
 
   useEffect(() => {
     fetchProjectData();
@@ -608,10 +694,20 @@ const ProjectDetail = () => {
               {/* Gastos registrados */}
               <div className="lg:col-span-2 space-y-6">
                 <div className="glass-card p-6 bg-white/[0.02]">
-                  <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                    <Briefcase className="text-blue-500" size={20} />
-                    Detalle de Gastos de Obra
-                  </h3>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                      <Briefcase className="text-blue-500" size={20} />
+                      Detalle de Gastos de Obra
+                    </h3>
+                    {canManageFinance && project.status === 'ACTIVE' && (
+                      <button
+                        onClick={handleOpenAddExpense}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-md flex items-center gap-1"
+                      >
+                        <Plus size={14} /> Registrar Gasto
+                      </button>
+                    )}
+                  </div>
                   <div className="overflow-x-auto">
                     {/* Desktop Table View */}
                     <table className="w-full text-left hidden md:table">
@@ -633,7 +729,19 @@ const ProjectDetail = () => {
                                 {exp.category?.replace('_', ' ')}
                               </span>
                             </td>
-                            <td className="px-4 py-3">{exp.description}</td>
+                            <td className="px-4 py-3">
+                              <div>
+                                <p className="text-white font-medium">{exp.description}</p>
+                                {(() => {
+                                  const matchingMini = project.mini_budgets?.find(mb => mb.id === exp.mini_budget_id);
+                                  return (
+                                    <span className="text-[10px] text-slate-500 font-medium mt-0.5 block">
+                                      Partida: {matchingMini ? matchingMini.description : 'Otros / Gasto General'}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
+                            </td>
                             <td className="px-4 py-3 text-right font-bold text-white">${parseFloat(exp.amount).toLocaleString('es-CL')}</td>
                             <td className="px-4 py-3 text-center">
                               {['ADMIN', 'SUPER_ADMIN'].includes(userRole) ? (
@@ -677,9 +785,19 @@ const ProjectDetail = () => {
                               {exp.category?.replace('_', ' ')}
                             </span>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-slate-500 font-bold uppercase text-[10px]">Descripción</span>
-                            <span className="text-slate-200 font-medium text-right truncate max-w-[200px]">{exp.description}</span>
+                          <div className="flex justify-between items-start">
+                            <span className="text-slate-500 font-bold uppercase text-[10px] mt-0.5">Descripción</span>
+                            <div className="text-right">
+                              <span className="text-slate-200 font-medium block truncate max-w-[200px]">{exp.description}</span>
+                              {(() => {
+                                const matchingMini = project.mini_budgets?.find(mb => mb.id === exp.mini_budget_id);
+                                return (
+                                  <span className="text-[9px] text-slate-500 italic block mt-0.5">
+                                    Partida: {matchingMini ? matchingMini.description : 'Otros / Gasto General'}
+                                  </span>
+                                );
+                              })()}
+                            </div>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-slate-500 font-bold uppercase text-[10px]">Monto</span>
@@ -722,10 +840,20 @@ const ProjectDetail = () => {
               {/* Facturas y cosas cobradas/pagadas */}
               <div className="space-y-6">
                 <div className="glass-card p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/20">
-                  <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                    <CheckCircle2 className="text-emerald-400" size={18} />
-                    Cosas que me han Pagado
-                  </h3>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                      <CheckCircle2 className="text-emerald-400" size={18} />
+                      Cosas que me han Pagado
+                    </h3>
+                    {canManageFinance && project.status === 'ACTIVE' && (
+                      <button
+                        onClick={handleOpenAddInvoice}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-md flex items-center gap-1"
+                      >
+                        <Plus size={14} /> Registrar Factura
+                      </button>
+                    )}
+                  </div>
                   
                   {/* Summary indicators */}
                   <div className="grid grid-cols-2 gap-4 mb-6">
@@ -749,7 +877,15 @@ const ProjectDetail = () => {
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="text-xs font-bold text-white">{inv.client_name}</p>
-                            <span className="text-[9px] text-slate-500">Emitido: {new Date(inv.issue_date).toLocaleDateString('es-CL')}</span>
+                            <span className="text-[9px] text-slate-500 block">Emitido: {new Date(inv.issue_date).toLocaleDateString('es-CL')}</span>
+                            {(() => {
+                              const matchingMini = project.mini_budgets?.find(mb => mb.id === inv.mini_budget_id);
+                              return (
+                                <span className="text-[10px] text-blue-400 font-medium mt-1 block">
+                                  Partida: {matchingMini ? matchingMini.description : 'Otros / Ingreso General'}
+                                </span>
+                              );
+                            })()}
                           </div>
                           <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
                             inv.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400 animate-pulse'
@@ -1424,6 +1560,210 @@ const ProjectDetail = () => {
                   className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-white rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all font-bold"
                 >
                   Añadir Partida
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Registrar Gasto Modal */}
+      {showAddExpense && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-bold text-white mb-2">Registrar Gasto</h3>
+            <p className="text-slate-400 mb-6 text-sm">Registra un nuevo egreso para esta obra.</p>
+            <form onSubmit={handleCreateExpense} className="space-y-4">
+              <div>
+                <label className="label-neutral block mb-2">Categoría</label>
+                <select
+                  value={expenseForm.category}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm cursor-pointer"
+                >
+                  <option value="MATERIALES">Materiales</option>
+                  <option value="MANO_DE_OBRA">Mano de Obra</option>
+                  <option value="MAQUINARIA">Maquinaria / Equipos</option>
+                  <option value="HERRAMIENTAS">Herramientas</option>
+                  <option value="SUBCONTRATO">Subcontratos</option>
+                  <option value="VARIOS">Varios</option>
+                  <option value="OTROS">Otros</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="label-neutral block mb-2">Presupuesto Asociado (Partida)</label>
+                <select
+                  value={expenseForm.mini_budget_id}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, mini_budget_id: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm cursor-pointer"
+                >
+                  <option value="otros">Otros / Gasto General</option>
+                  {project.mini_budgets?.map(mini => (
+                    <option key={mini.id} value={mini.id}>{mini.description} (${parseFloat(mini.amount).toLocaleString('es-CL')})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Descripción</label>
+                <input 
+                  type="text"
+                  required
+                  placeholder="Ej: Compra de cemento, Almuerzo personal"
+                  value={expenseForm.description}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Monto ($)</label>
+                <input 
+                  type="number"
+                  required
+                  min="1"
+                  placeholder="Monto del gasto"
+                  value={expenseForm.amount}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Fecha de Gasto</label>
+                <input 
+                  type="date"
+                  required
+                  value={expenseForm.expense_date}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, expense_date: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 py-2">
+                <input 
+                  type="checkbox"
+                  id="expense_is_paid"
+                  checked={expenseForm.is_paid}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, is_paid: e.target.checked })}
+                  className="w-4 h-4 rounded border-white/10 bg-slate-800 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="expense_is_paid" className="text-sm text-slate-300 cursor-pointer select-none">¿Ya está pagado?</label>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowAddExpense(false)}
+                  className="flex-1 py-3 text-slate-400 hover:text-white font-bold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-md transition-all font-bold"
+                >
+                  Registrar Gasto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Registrar Factura Modal */}
+      {showAddInvoice && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-bold text-white mb-2">Registrar Factura</h3>
+            <p className="text-slate-400 mb-6 text-sm">Registra una nueva factura/cobro para esta obra.</p>
+            <form onSubmit={handleCreateInvoice} className="space-y-4">
+              <div>
+                <label className="label-neutral block mb-2">Cliente / Mandante</label>
+                <input 
+                  type="text"
+                  required
+                  placeholder="Nombre del cliente"
+                  value={invoiceForm.client_name}
+                  onChange={(e) => setInvoiceForm({ ...invoiceForm, client_name: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Presupuesto Asociado (Partida)</label>
+                <select
+                  value={invoiceForm.mini_budget_id}
+                  onChange={(e) => setInvoiceForm({ ...invoiceForm, mini_budget_id: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm cursor-pointer"
+                >
+                  <option value="otros">Otros / Ingreso General</option>
+                  {project.mini_budgets?.map(mini => (
+                    <option key={mini.id} value={mini.id}>{mini.description} (${parseFloat(mini.amount).toLocaleString('es-CL')})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Monto Total ($)</label>
+                <input 
+                  type="number"
+                  required
+                  min="1"
+                  placeholder="Monto de la factura"
+                  value={invoiceForm.total_amount}
+                  onChange={(e) => setInvoiceForm({ ...invoiceForm, total_amount: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Fecha de Emisión</label>
+                <input 
+                  type="date"
+                  required
+                  value={invoiceForm.issue_date}
+                  onChange={(e) => setInvoiceForm({ ...invoiceForm, issue_date: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Fecha de Vencimiento</label>
+                <input 
+                  type="date"
+                  value={invoiceForm.due_date}
+                  onChange={(e) => setInvoiceForm({ ...invoiceForm, due_date: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Estado Inicial</label>
+                <select
+                  value={invoiceForm.status}
+                  onChange={(e) => setInvoiceForm({ ...invoiceForm, status: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm cursor-pointer"
+                >
+                  <option value="DRAFT">Pendiente</option>
+                  <option value="PAID">Pagada</option>
+                </select>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowAddInvoice(false)}
+                  className="flex-1 py-3 text-slate-400 hover:text-white font-bold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-md transition-all font-bold"
+                >
+                  Registrar Factura
                 </button>
               </div>
             </form>

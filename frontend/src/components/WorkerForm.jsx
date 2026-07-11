@@ -1,6 +1,16 @@
 import { useState } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
+import { X, Save, AlertCircle, Calculator } from 'lucide-react';
 import api from '../api';
+
+const AFP_RATES = {
+  MODELO: 10.58,
+  HABITAT: 11.27,
+  CAPITAL: 11.44,
+  PROVIDA: 11.45,
+  PLANVITAL: 11.16,
+  CUPRUM: 11.44,
+  UNO: 10.49
+};
 
 const PREDEFINED_ROLES = [
   'JORNALERO',
@@ -46,6 +56,17 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  // AFP and health calculation helpers
+  const currentSalary = Number(formData.salary) || 0;
+  const currentBonos = Number(formData.bonos) || 0;
+  const currentImponible = currentSalary + currentBonos;
+  const afpRate = AFP_RATES[formData.afp] || AFP_RATES.MODELO;
+  const afpDeduction = Math.round(currentImponible * (afpRate / 100));
+  const healthDeduction = Math.round(currentImponible * 0.07);
+  const colacion = Number(formData.colacion) || 0;
+  const movilizacion = Number(formData.movilizacion) || 0;
+  const estimatedLiquid = currentImponible - afpDeduction - healthDeduction + colacion + movilizacion;
+
   const validate = () => {
     const newErrors = {};
     if (!formData.first_name) newErrors.first_name = 'El nombre es obligatorio';
@@ -83,13 +104,14 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
         bonos: parseInt(formData.bonos) || 0,
       };
 
+      let response;
       if (isEdit) {
-        await api.put(`/workers/${workerData.id}`, payload);
+        response = await api.put(`/workers/${workerData.id}`, payload);
       } else {
-        await api.post('/workers', payload);
+        response = await api.post('/workers', payload);
       }
       
-      onSuccess();
+      onSuccess(response.data, isEdit);
       onClose();
     } catch (err) {
       setErrors({ api: err.response?.data?.detail || 'Error al guardar el trabajador' });
@@ -111,20 +133,24 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="glass-card w-full max-w-2xl shadow-2xl relative my-8">
-        <button 
-          onClick={onClose}
-          className="absolute right-4 top-4 text-slate-400 hover:text-white transition-colors"
-        >
-          <X size={24} />
-        </button>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="glass-card w-full max-w-2xl max-h-[90vh] shadow-2xl relative flex flex-col p-6 overflow-hidden">
+        {/* Modal Header */}
+        <div className="flex justify-between items-center pb-4 border-b border-white/5 shrink-0">
+          <h2 className="text-2xl font-bold gradient-text">
+            {isEdit ? 'Editar Trabajador' : 'Registrar Nuevo Trabajador'}
+          </h2>
+          <button 
+            type="button"
+            onClick={onClose}
+            className="text-slate-400 hover:text-white transition-colors"
+          >
+            <X size={24} />
+          </button>
+        </div>
 
-        <h2 className="text-2xl font-bold mb-6 gradient-text">
-          {isEdit ? 'Editar Trabajador' : 'Registrar Nuevo Trabajador'}
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto pr-1 py-4 my-2 space-y-6 scrollbar-thin scrollbar-thumb-slate-800">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Nombres */}
             <div>
@@ -310,13 +336,13 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
                 onChange={handleChange}
                 className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
               >
-                <option value="MODELO">AFP Modelo</option>
-                <option value="HABITAT">AFP Habitat</option>
-                <option value="CAPITAL">AFP Capital</option>
-                <option value="PROVIDA">AFP Provida</option>
-                <option value="PLANVITAL">AFP PlanVital</option>
-                <option value="CUPRUM">AFP Cuprum</option>
-                <option value="UNO">AFP Uno</option>
+                <option value="MODELO">AFP Modelo (10.58%)</option>
+                <option value="HABITAT">AFP Habitat (11.27%)</option>
+                <option value="CAPITAL">AFP Capital (11.44%)</option>
+                <option value="PROVIDA">AFP Provida (11.45%)</option>
+                <option value="PLANVITAL">AFP PlanVital (11.16%)</option>
+                <option value="CUPRUM">AFP Cuprum (11.44%)</option>
+                <option value="UNO">AFP Uno (10.49%)</option>
               </select>
             </div>
 
@@ -377,25 +403,64 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
             </div>
           </div>
 
-          {errors.api && (
-            <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg flex items-center space-x-2 text-red-400 text-sm">
-              <AlertCircle size={18} />
-              <span>{errors.api}</span>
+          {/* Simulador de Liquidación Provisional */}
+          <div className="bg-slate-900/40 border border-white/5 rounded-xl p-5 shadow-inner">
+            <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+              <Calculator size={16} className="text-blue-400" />
+              <span>Desglose de Cotizaciones Provisionales (Simulación)</span>
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+              <div className="bg-slate-800/30 p-3 rounded-lg border border-white/5">
+                <p className="text-slate-500 font-medium uppercase tracking-wider text-[10px]">Total Imponible</p>
+                <p className="text-base font-bold text-white mt-1">
+                  ${currentImponible.toLocaleString('es-CL')}
+                </p>
+                <span className="text-[9px] text-slate-500 italic block mt-0.5">Base + Bonificaciones</span>
+              </div>
+              <div className="bg-slate-800/30 p-3 rounded-lg border border-white/5">
+                <p className="text-slate-500 font-medium uppercase tracking-wider text-[10px]">Descuento AFP</p>
+                <p className="text-base font-bold text-rose-400 mt-1">
+                  -${afpDeduction.toLocaleString('es-CL')}
+                </p>
+                <span className="text-[9px] text-slate-400 italic block mt-0.5">AFP {formData.afp} ({afpRate}%)</span>
+              </div>
+              <div className="bg-slate-800/30 p-3 rounded-lg border border-white/5">
+                <p className="text-slate-500 font-medium uppercase tracking-wider text-[10px]">Descuento Salud (7%)</p>
+                <p className="text-base font-bold text-rose-400 mt-1">
+                  -${healthDeduction.toLocaleString('es-CL')}
+                </p>
+                <span className="text-[9px] text-slate-400 italic block mt-0.5">Previsión de Salud ({formData.health_system})</span>
+              </div>
+              <div className="bg-slate-800/30 p-3 rounded-lg border border-white/5">
+                <p className="text-slate-500 font-medium uppercase tracking-wider text-[10px]">Sueldo Líquido Estimado</p>
+                <p className="text-base font-bold text-emerald-400 mt-1">
+                  ${estimatedLiquid.toLocaleString('es-CL')}
+                </p>
+                <span className="text-[9px] text-slate-500 italic block mt-0.5">Imponible - Descuentos + No Imponibles</span>
+              </div>
             </div>
-          )}
+          </div>
 
-          <div className="flex justify-end space-x-4 mt-8 pt-4 border-t border-white/5">
+            {errors.api && (
+              <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg flex items-center space-x-2 text-red-400 text-sm">
+                <AlertCircle size={18} />
+                <span>{errors.api}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-4 pt-4 border-t border-white/5 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+              className="px-6 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all text-sm font-semibold"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="btn-primary flex items-center space-x-2 px-8"
+              className="btn-primary flex items-center space-x-2 px-8 py-2 rounded-lg text-sm font-bold shadow-md shadow-blue-500/10 hover:shadow-blue-500/20 transition-all"
             >
               {submitting ? 'Guardando...' : <><Save size={18} /><span>Guardar Trabajador</span></>}
             </button>

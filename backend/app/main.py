@@ -227,6 +227,20 @@ def init_db():
         except Exception:
             db.rollback()
 
+        # Columna mini_budget_id en invoices
+        try:
+            db.execute(text("ALTER TABLE invoices ADD COLUMN mini_budget_id VARCHAR(36)"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        # Columna mini_budget_id en expenses
+        try:
+            db.execute(text("ALTER TABLE expenses ADD COLUMN mini_budget_id VARCHAR(36)"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
         # Eliminar tablas de inventario obsoletas
         for table in ['inventory_movements', 'inventory_items']:
             try:

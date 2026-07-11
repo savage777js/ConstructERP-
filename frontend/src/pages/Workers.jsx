@@ -1,9 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { Plus, Search, MoreVertical, Edit2, Trash2, UserPlus, UserMinus, Loader2, FileText, AlertTriangle, CheckCircle2, Users, Calendar, DollarSign, Download, Briefcase } from 'lucide-react';
+import { Plus, Search, MoreVertical, Edit2, Trash2, UserPlus, UserMinus, Loader2, FileText, AlertTriangle, CheckCircle2, Users, Calendar, DollarSign, Download, Briefcase, Upload } from 'lucide-react';
 import WorkerForm from '../components/WorkerForm';
 import { useAuth } from '../context/AuthContext';
+
+const AFP_RATES = {
+  MODELO: 10.58,
+  HABITAT: 11.27,
+  CAPITAL: 11.44,
+  PROVIDA: 11.45,
+  PLANVITAL: 11.16,
+  CUPRUM: 11.44,
+  UNO: 10.49
+};
+
+const calculateAfpDeduction = (salary, bonos, afpKey) => {
+  const base = Number(salary) || 0;
+  const bonus = Number(bonos) || 0;
+  const imponible = base + bonus;
+  const rate = AFP_RATES[afpKey?.toUpperCase()] || AFP_RATES.MODELO;
+  return Math.round(imponible * (rate / 100));
+};
 
 const Workers = () => {
   const [workers, setWorkers] = useState([]);
@@ -27,6 +45,7 @@ const Workers = () => {
     end_date: '',
     days_requested: ''
   });
+  const [showComplianceAlertModal, setShowComplianceAlertModal] = useState(null);
 
   const navigate = useNavigate();
   const { canWrite, isReadOnly, role: userRole } = useAuth();
@@ -136,10 +155,13 @@ const Workers = () => {
     }
   };
 
-  const handleCreateSuccess = () => {
+  const handleCreateSuccess = (worker, isEdit) => {
     fetchWorkers();
     setShowModal(false);
     setSelectedWorker(null);
+    if (!isEdit && worker) {
+      setShowComplianceAlertModal(worker);
+    }
   };
 
   const handleDownloadTemplate = async () => {
@@ -428,7 +450,21 @@ const Workers = () => {
                   <tr key={worker.id} className="hover:bg-white/5 transition-colors group">
                     <td className="px-3 sm:px-6 py-3 sm:py-4 font-medium flex items-center justify-between group-hover:pr-2">
                       <div>
-                        <p className="font-bold text-white truncate">{worker.first_name} {worker.last_name}</p>
+                        <p className="font-bold text-white truncate flex items-center gap-2">
+                          {worker.first_name} {worker.last_name}
+                          {worker.missing_mandatory_docs && worker.missing_mandatory_docs.length > 0 && (
+                            <span 
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-[10px] text-rose-400 font-bold cursor-pointer hover:bg-rose-500/20 transition-all"
+                              title={`Falta documentación obligatoria: ${worker.missing_mandatory_docs.join(', ')}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate('/documents', { state: { selectWorkerId: worker.id } });
+                              }}
+                            >
+                              <AlertTriangle size={10} /> Faltan Docs
+                            </span>
+                          )}
+                        </p>
                         <p className="text-[10px] text-slate-500">{worker.rut || 'Sin RUT'} · {worker.email || 'Sin Email'}</p>
                       </div>
                       {canManage && (
@@ -447,14 +483,17 @@ const Workers = () => {
                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block leading-tight mt-0.5">
                           {worker.contract_type?.replace('_', ' ') || 'INDEFINIDO'}
                           {(worker.afp || worker.health_system) && (
-                            ` · AFP: ${worker.afp || 'MODELO'} · SALUD: ${worker.health_system || 'FONASA'}`
+                            ` · AFP: ${worker.afp || 'MODELO'} (${AFP_RATES[worker.afp?.toUpperCase()] || AFP_RATES.MODELO}%) · SALUD: ${worker.health_system || 'FONASA'}`
                           )}
                         </span>
                       </div>
                     </td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-slate-400">
                       <div className={worker.status === 'INACTIVE' ? 'opacity-50' : ''}>
-                        <p className="text-white font-bold text-sm">${worker.salary?.toLocaleString('es-CL')}</p>
+                        <p className="text-white font-bold text-sm">Base: ${worker.salary?.toLocaleString('es-CL')}</p>
+                        <p className="text-[10px] text-rose-400 font-medium whitespace-nowrap leading-tight mt-0.5">
+                          Desc. AFP: -${calculateAfpDeduction(worker.salary, worker.bonos, worker.afp).toLocaleString('es-CL')}
+                        </p>
                         {(worker.colacion || worker.movilizacion || worker.bonos) ? (
                           <p className="text-[10px] text-slate-500 font-medium whitespace-nowrap mt-0.5">
                             + Col: ${(worker.colacion || 0).toLocaleString('es-CL')} · Mov: ${(worker.movilizacion || 0).toLocaleString('es-CL')} · Bonos: ${(worker.bonos || 0).toLocaleString('es-CL')}
@@ -531,7 +570,17 @@ const Workers = () => {
                 <div key={worker.id} className="bg-slate-900/40 border border-white/5 rounded-xl p-4 space-y-3 relative">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-bold text-white text-base">{worker.first_name} {worker.last_name}</h4>
+                      <h4 className="font-bold text-white text-base flex items-center gap-2">
+                        {worker.first_name} {worker.last_name}
+                        {worker.missing_mandatory_docs && worker.missing_mandatory_docs.length > 0 && (
+                          <span 
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-[9px] text-rose-400 font-bold"
+                            title={`Falta documentación obligatoria: ${worker.missing_mandatory_docs.join(', ')}`}
+                          >
+                            <AlertTriangle size={9} /> Faltan Docs
+                          </span>
+                        )}
+                      </h4>
                       <p className="text-[10px] text-slate-500">{worker.rut || 'Sin RUT'} · {worker.email || 'Sin Email'}</p>
                     </div>
                     {canManage && (
@@ -555,13 +604,16 @@ const Workers = () => {
                       <span className="text-slate-300 font-medium uppercase text-[11px] block leading-tight mt-0.5">
                         {worker.contract_type?.replace('_', ' ') || 'INDEFINIDO'}
                         {(worker.afp || worker.health_system) && (
-                          ` (${worker.afp || 'MODELO'} / ${worker.health_system || 'FONASA'})`
+                          ` (${worker.afp || 'MODELO'} ${AFP_RATES[worker.afp?.toUpperCase()] || AFP_RATES.MODELO}% / ${worker.health_system || 'FONASA'})`
                         )}
                       </span>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-500 block uppercase font-bold">Sueldo / Haberes</span>
-                      <span className="text-slate-300 font-bold text-xs block">${worker.salary?.toLocaleString('es-CL')}</span>
+                      <span className="text-slate-300 font-bold text-xs block">Base: ${worker.salary?.toLocaleString('es-CL')}</span>
+                      <span className="text-[10px] text-rose-400 block font-medium">
+                        AFP: -${calculateAfpDeduction(worker.salary, worker.bonos, worker.afp).toLocaleString('es-CL')}
+                      </span>
                       {(worker.colacion || worker.movilizacion || worker.bonos) ? (
                         <span className="text-[9px] text-slate-500 block leading-tight mt-0.5">
                           + Col: ${(worker.colacion || 0).toLocaleString('es-CL')}<br />
@@ -1021,6 +1073,39 @@ const Workers = () => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {showComplianceAlertModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md p-8 text-center animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto mb-6 text-rose-400">
+              <AlertTriangle size={32} />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">¡Trabajador Registrado!</h3>
+            <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+              El trabajador <strong>{showComplianceAlertModal.first_name} {showComplianceAlertModal.last_name}</strong> se ha guardado correctamente.
+              <br /><br />
+              <span className="text-rose-400 font-bold">⚠️ Alerta de Cumplimiento:</span> Es obligatorio adjuntar su <strong>Contrato de Trabajo</strong> y <strong>Cédula de Identidad</strong> a la brevedad.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => {
+                  navigate('/documents', { state: { selectWorkerId: showComplianceAlertModal.id } });
+                  setShowComplianceAlertModal(null);
+                }}
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-white rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all font-bold text-sm flex items-center justify-center gap-2"
+              >
+                <Upload size={16} /> Cargar Documentos Obligatorios Ahora
+              </button>
+              <button 
+                onClick={() => setShowComplianceAlertModal(null)} 
+                className="text-xs text-slate-500 hover:text-slate-300 font-bold uppercase tracking-widest mt-2"
+              >
+                Cargar más tarde
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../api';
 import { 
   Folder, FileText, Upload, Trash2, Eye, Cpu, 
@@ -6,6 +7,7 @@ import {
 } from 'lucide-react';
 
 const Documents = () => {
+  const location = useLocation();
   const [workers, setWorkers] = useState([]);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [documents, setDocuments] = useState([]);
@@ -28,13 +30,23 @@ const Documents = () => {
     fetchWorkers();
   }, []);
 
-  const fetchWorkers = async () => {
+  const fetchWorkers = async (targetIdToSelect = null) => {
     setLoadingWorkers(true);
     try {
       const response = await api.get('/workers/');
       const activeWorkers = response.data.filter(w => w.status === 'ACTIVE');
       setWorkers(activeWorkers);
-      if (activeWorkers.length > 0) {
+      
+      const targetWorkerId = targetIdToSelect || location.state?.selectWorkerId || selectedWorker?.id;
+      let targetWorker = null;
+      if (targetWorkerId) {
+        targetWorker = activeWorkers.find(w => w.id === targetWorkerId);
+      }
+      
+      if (targetWorker) {
+        setSelectedWorker(targetWorker);
+        fetchWorkerDocuments(targetWorker.id);
+      } else if (activeWorkers.length > 0) {
         setSelectedWorker(activeWorkers[0]);
         fetchWorkerDocuments(activeWorkers[0].id);
       }
@@ -94,7 +106,7 @@ const Documents = () => {
       });
 
       setUploadForm({ title: '', category: 'Contrato', file: null });
-      fetchWorkerDocuments(selectedWorker.id);
+      await fetchWorkers(selectedWorker.id);
       alert('Documento cargado correctamente');
     } catch (error) {
       alert(error.response?.data?.detail || 'Error al cargar el documento');
@@ -108,7 +120,7 @@ const Documents = () => {
 
     try {
       await api.delete(`/documents/${docId}`);
-      setDocuments(documents.filter(d => d.id !== docId));
+      await fetchWorkers(selectedWorker.id);
       if (ocrResult?.id === docId) setOcrResult(null);
     } catch (error) {
       alert('Error al eliminar documento');
@@ -153,6 +165,25 @@ const Documents = () => {
     }
   };
 
+  const handleDownloadAllZip = async () => {
+    if (!selectedWorker) return;
+    try {
+      const response = await api.get(`/documents/employee/${selectedWorker.id}/download-zip`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const zipName = `documentos_${selectedWorker.first_name}_${selectedWorker.last_name}.zip`.replace(" ", "_");
+      link.setAttribute('download', zipName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      alert('Error al descargar el archivo ZIP. Verifique si el trabajador posee documentos cargados en su carpeta.');
+    }
+  };
+
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto pb-20">
       <header className="mb-6 sm:mb-10">
@@ -191,7 +222,12 @@ const Documents = () => {
                   }`}
                 >
                   <div>
-                    <p className="text-sm truncate">{w.first_name} {w.last_name}</p>
+                    <p className="text-sm truncate flex items-center gap-1.5">
+                      {w.first_name} {w.last_name}
+                      {w.missing_mandatory_docs && w.missing_mandatory_docs.length > 0 && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" title="Expediente incompleto" />
+                      )}
+                    </p>
                     <p className="text-xs text-slate-500 mt-0.5 truncate">{w.role}</p>
                   </div>
                   {w.age && (
@@ -225,13 +261,35 @@ const Documents = () => {
                     </div>
                   </div>
                   
-                  <button 
-                    onClick={handleDownloadContract}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-bold border border-blue-500/20 rounded-xl transition-all text-xs"
-                  >
-                    <Download size={14} /> Descargar Contrato Sistema
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                    <button 
+                      onClick={handleDownloadContract}
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-bold border border-blue-500/20 rounded-xl transition-all text-xs"
+                    >
+                      <Download size={14} /> Contrato Sistema
+                    </button>
+                    <button 
+                      onClick={handleDownloadAllZip}
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/20 rounded-xl transition-all text-xs"
+                    >
+                      <Download size={14} /> Descargar Carpeta (ZIP)
+                    </button>
+                  </div>
                 </div>
+
+                {/* Compliance Warning Banner */}
+                {selectedWorker.missing_mandatory_docs && selectedWorker.missing_mandatory_docs.length > 0 && (
+                  <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-5 flex items-start gap-4 text-rose-400">
+                    <AlertCircle className="shrink-0 mt-0.5" size={20} />
+                    <div>
+                      <h4 className="font-bold text-sm text-white">Alerta de Cumplimiento: Carpeta Incompleta</h4>
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        Faltan los siguientes documentos obligatorios: <strong className="text-rose-400">{selectedWorker.missing_mandatory_docs.join(' y ')}</strong>.
+                        Debe subirlos utilizando el formulario de abajo para cumplir con la normativa de Recursos Humanos.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Upload New Document Form */}
                 <div className="glass-card p-4 sm:p-6">
