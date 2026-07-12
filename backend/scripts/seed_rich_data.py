@@ -399,69 +399,11 @@ def seed_rich_data():
         print("[OK] Solicitudes de vacaciones agregadas.")
 
         # 10. Agregar Documentos (contratos, cédulas, licencias médicas)
-        documents = [
-            Document(
-                title="Licencia Medica - Ana Maria Silva.pdf",
-                file_path="/uploads/licencia_ana_maria.pdf",
-                file_type="application/pdf",
-                file_size=102400,
-                category="Licencia",
-                ocr_status="COMPLETED",
-                ocr_content="Licencia médica de reposo por 15 días para Ana María Silva RUT 19.876.543-2 por fractura.",
-                employee_id=employees[10].id,
-                created_by=admin.id,
-                organization_id=org_id
-            ),
-            Document(
-                title="Contrato de Trabajo - Laura Ortiz.pdf",
-                file_path="/uploads/contrato_laura_ortiz.pdf",
-                file_type="application/pdf",
-                file_size=204800,
-                category="Contrato",
-                ocr_status="COMPLETED",
-                ocr_content="Contrato de trabajo Laura Ortiz RUT 15.678.901-2 Ingeniera Civil.",
-                employee_id=employees[1].id,
-                created_by=admin.id,
-                organization_id=org_id
-            ),
-            Document(
-                title="Cedula de Identidad - Laura Ortiz.pdf",
-                file_path="/uploads/cedula_laura_ortiz.pdf",
-                file_type="application/pdf",
-                file_size=95000,
-                category="Cédula",
-                ocr_status="COMPLETED",
-                employee_id=employees[1].id,
-                created_by=admin.id,
-                organization_id=org_id
-            ),
-            Document(
-                title="Contrato de Trabajo - Carlos Mendez.pdf",
-                file_path="/uploads/contrato_carlos_mendez.pdf",
-                file_type="application/pdf",
-                file_size=150000,
-                category="Contrato",
-                ocr_status="COMPLETED",
-                employee_id=employees[0].id,
-                created_by=admin.id,
-                organization_id=org_id
-            ),
-            Document(
-                title="Entrega EPP - Sofia Castro.pdf",
-                file_path="/uploads/epp_sofia_castro.pdf",
-                file_type="application/pdf",
-                file_size=88000,
-                category="EPP",
-                ocr_status="COMPLETED",
-                employee_id=employees[4].id,
-                created_by=admin.id,
-                organization_id=org_id
-            )
-        ]
+        documents = []
         for d in documents:
             db.add(d)
         db.commit()
-        print("[OK] Documentos de prueba y licencias insertados.")
+        print("[OK] Documentos de prueba y licencias omitidos (limpieza solicitada).")
 
         print("\n[OK] Siembra enriquecida de datos finalizada exitosamente! Todo listo para pruebas.")
 
