@@ -37,7 +37,7 @@ class ReportService:
         report_data = []
         
         # Check if user can see salaries
-        can_see_salary = current_user_role in [UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.MANAGEMENT]
+        can_see_salary = current_user_role in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.MANAGEMENT]
         
         for w in workers:
             status_val = w.status.value if hasattr(w.status, "value") else str(w.status) if w.status else "ACTIVE"

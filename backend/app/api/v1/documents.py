@@ -69,7 +69,14 @@ def extract_text_from_doc_fallback(file_path: str) -> str:
     except Exception as e:
         return f"Error en fallback de lectura .doc: {str(e)}"
 
-allow_ocr = deps.RoleChecker([core.UserRole.ADMIN, core.UserRole.PROJECT_MANAGER])
+allow_ocr = deps.RoleChecker([
+    core.UserRole.SUPER_ADMIN,
+    core.UserRole.ADMIN,
+    core.UserRole.HR_MANAGER,
+    core.UserRole.PROJECT_MANAGER,
+    core.UserRole.INVENTORY_MANAGER,
+    core.UserRole.MANAGEMENT
+])
 
 @router.post("/ocr/invoice", dependencies=[Depends(allow_ocr)])
 async def ocr_invoice(

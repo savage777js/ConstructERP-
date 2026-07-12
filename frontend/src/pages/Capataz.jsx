@@ -519,7 +519,7 @@ const Capataz = () => {
   }
 
   return (
-    <div className="capataz-container flex flex-col lg:flex-row h-full">
+    <div className="capataz-container flex flex-col lg:flex-row">
       {/* SECCIÓN PRINCIPAL DE CHAT */}
       <main className="chat-workspace flex-1 flex flex-col overflow-hidden">
         

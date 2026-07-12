@@ -39,7 +39,7 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
   return children;
 };
 
-const TopHeader = ({ onOpenSidebar }) => {
+const TopHeader = ({ onOpenSidebar, sidebarCollapsed, onToggleSidebarCollapsed }) => {
   const { user, logout, roleLabel } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -69,6 +69,22 @@ const TopHeader = ({ onOpenSidebar }) => {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
           </svg>
         </button>
+
+        {/* Toggle Sidebar Button for Desktop */}
+        <button 
+          onClick={onToggleSidebarCollapsed}
+          className="hidden md:flex p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+          title={sidebarCollapsed ? "Mostrar menú lateral" : "Ocultar menú lateral"}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+            {sidebarCollapsed ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 9l-3 3m0 0l3 3m-3-3h7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 15l3-3m0 0l-3-3m3 3h-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            )}
+          </svg>
+        </button>
+
         <span className="font-extrabold text-sm gradient-text tracking-wider uppercase md:hidden">ConstructERP</span>
         <div className="hidden md:block">
           <span className="text-slate-400 text-xs font-semibold tracking-wider uppercase">Plataforma Operativa</span>
@@ -121,13 +137,26 @@ const TopHeader = ({ onOpenSidebar }) => {
 const MainLayout = ({ children }) => {
   const { logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sidebarCollapsed') === 'true';
+  });
+
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebarCollapsed', String(next));
+      return next;
+    });
+  };
 
   return (
     <div className="flex min-h-screen bg-[var(--bg-main)] relative overflow-x-hidden">
       {/* Sidebar Wrapper (Hidden on mobile, slide in on state toggle, visible on desktop) */}
       <div 
-        className={`fixed inset-y-0 left-0 z-50 transform md:relative md:translate-x-0 transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${
+          sidebarCollapsed ? 'md:-translate-x-full md:absolute md:-left-64' : 'md:translate-x-0 md:relative md:left-0'
         } md:flex`}
       >
         <Sidebar onLogout={logout} onCloseMobile={() => setSidebarOpen(false)} />
@@ -142,8 +171,12 @@ const MainLayout = ({ children }) => {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        <TopHeader onOpenSidebar={() => setSidebarOpen(true)} />
+      <div className="flex-1 min-w-0 flex flex-col transition-all duration-300">
+        <TopHeader 
+          onOpenSidebar={() => setSidebarOpen(true)} 
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebarCollapsed={handleToggleSidebar}
+        />
 
         <main className="flex-1 p-3 sm:p-4 md:p-8 relative z-10 overflow-y-auto">
           {children}

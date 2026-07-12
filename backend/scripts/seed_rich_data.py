@@ -9,7 +9,7 @@ load_dotenv()
 
 from app.db.session import SessionLocal, engine
 from app.models import core # Ensure models are loaded
-from app.models.core import User, Employee, Project, ProjectAssignment, Expense, Notification, ProjectLog, UserRole, EmployeeStatus, NotificationType, NotificationPriority
+from app.models.core import User, Employee, Project, ProjectAssignment, Expense, Notification, ProjectLog, UserRole, EmployeeStatus, NotificationType, NotificationPriority, VacationRequest, Document
 from datetime import datetime, timedelta
 
 def seed_rich_data():
@@ -18,7 +18,7 @@ def seed_rich_data():
         print("[INFO] Iniciando siembra de datos de prueba con compatibilidad Postgres...")
 
         # 1. Usar organización base estática para single tenant
-        org_id = "default-org"
+        org_id = "00000000-0000-0000-0000-000000000000"
         print(f"[INFO] Organizacion activa ID: {org_id}")
 
         # 2. Vincular Admin existente a esta Organización
@@ -164,6 +164,66 @@ def seed_rich_data():
                 hire_date=datetime.utcnow() - timedelta(days=60),
                 contract_end_date=datetime.utcnow() + timedelta(days=30),
                 status=EmployeeStatus.ACTIVE
+            ),
+            Employee(
+                first_name="Jaime",
+                last_name="Valdés",
+                rut="13.579.246-8",
+                email="j.valdes@serconind.cl",
+                role="Electricista Autorizado",
+                organization_id=org_id,
+                salary=1100000,
+                hire_date=datetime.utcnow() - timedelta(days=120),
+                contract_end_date=datetime.utcnow() + timedelta(days=60),
+                status=EmployeeStatus.ACTIVE
+            ),
+            Employee(
+                first_name="Andrea",
+                last_name="Riquelme",
+                rut="16.248.379-K",
+                email="a.riquelme@serconind.cl",
+                role="Jefe de Adquisiciones",
+                organization_id=org_id,
+                salary=1800000,
+                hire_date=datetime.utcnow() - timedelta(days=300),
+                contract_end_date=datetime.utcnow() + timedelta(days=150),
+                status=EmployeeStatus.ACTIVE
+            ),
+            Employee(
+                first_name="Juan",
+                last_name="Pérez",
+                rut="11.222.333-4",
+                email="j.perez@serconind.cl",
+                role="Jornal Ayudante",
+                organization_id=org_id,
+                salary=650000,
+                hire_date=datetime.utcnow() - timedelta(days=45),
+                contract_end_date=datetime.utcnow() + timedelta(days=15), # Por vencer
+                status=EmployeeStatus.ACTIVE
+            ),
+            Employee(
+                first_name="Pablo",
+                last_name="Venegas",
+                rut="12.333.444-5",
+                email="p.venegas@serconind.cl",
+                role="Soldador Calificado",
+                organization_id=org_id,
+                salary=1250000,
+                hire_date=datetime.utcnow() - timedelta(days=180),
+                contract_end_date=datetime.utcnow() + timedelta(days=120),
+                status=EmployeeStatus.ACTIVE
+            ),
+            Employee(
+                first_name="Ana María",
+                last_name="Silva",
+                rut="19.876.543-2",
+                email="a.silva@serconind.cl",
+                role="Prevencionista Junior",
+                organization_id=org_id,
+                salary=950000,
+                hire_date=datetime.utcnow() - timedelta(days=30),
+                contract_end_date=datetime.utcnow() + timedelta(days=90),
+                status=EmployeeStatus.INACTIVE # Inactivo (simulando licencia médica)
             )
         ]
 
@@ -177,11 +237,15 @@ def seed_rich_data():
             ProjectAssignment(project_id=projects[0].id, worker_id=employees[1].id, role="Jefe de Terreno", is_active=True),
             ProjectAssignment(project_id=projects[0].id, worker_id=employees[3].id, role="Capataz de Obra", is_active=True),
             ProjectAssignment(project_id=projects[0].id, worker_id=employees[0].id, role="Operario Jornal", is_active=True),
+            ProjectAssignment(project_id=projects[0].id, worker_id=employees[6].id, role="Electricista Autorizado", is_active=True),
+            ProjectAssignment(project_id=projects[0].id, worker_id=employees[9].id, role="Soldador Calificado", is_active=True),
             
             ProjectAssignment(project_id=projects[1].id, worker_id=employees[2].id, role="Topógrafo", is_active=True),
             ProjectAssignment(project_id=projects[1].id, worker_id=employees[5].id, role="Carpintero", is_active=True),
+            ProjectAssignment(project_id=projects[1].id, worker_id=employees[8].id, role="Jornal Ayudante", is_active=True),
             
-            ProjectAssignment(project_id=projects[2].id, worker_id=employees[4].id, role="Prevencionista de Riesgos", is_active=True)
+            ProjectAssignment(project_id=projects[2].id, worker_id=employees[4].id, role="Prevencionista de Riesgos", is_active=True),
+            ProjectAssignment(project_id=projects[2].id, worker_id=employees[7].id, role="Jefe de Adquisiciones", is_active=True)
         ]
 
         for ass in assignments:
@@ -301,6 +365,103 @@ def seed_rich_data():
             db.add(l)
         db.commit()
         print("[OK] Logs de auditoria agregados.")
+
+        # 9. Agregar Solicitudes de Vacaciones
+        vacations = [
+            VacationRequest(
+                employee_id=employees[1].id, # Laura Ortiz
+                start_date=datetime.utcnow() + timedelta(days=5),
+                end_date=datetime.utcnow() + timedelta(days=15),
+                days_requested=10,
+                status="PENDING_APPROVAL"
+            ),
+            VacationRequest(
+                employee_id=employees[2].id, # Roberto Silva
+                start_date=datetime.utcnow() - timedelta(days=10),
+                end_date=datetime.utcnow() - timedelta(days=5),
+                days_requested=5,
+                status="APPROVED",
+                approved_by=admin.id
+            ),
+            VacationRequest(
+                employee_id=employees[0].id, # Carlos Méndez
+                start_date=datetime.utcnow() - timedelta(days=30),
+                end_date=datetime.utcnow() - timedelta(days=15),
+                days_requested=15,
+                status="REBATED",
+                approved_by=admin.id,
+                rebated_by=admin.id
+            )
+        ]
+        for v in vacations:
+            db.add(v)
+        db.commit()
+        print("[OK] Solicitudes de vacaciones agregadas.")
+
+        # 10. Agregar Documentos (contratos, cédulas, licencias médicas)
+        documents = [
+            Document(
+                title="Licencia Medica - Ana Maria Silva.pdf",
+                file_path="/uploads/licencia_ana_maria.pdf",
+                file_type="application/pdf",
+                file_size=102400,
+                category="Licencia",
+                ocr_status="COMPLETED",
+                ocr_content="Licencia médica de reposo por 15 días para Ana María Silva RUT 19.876.543-2 por fractura.",
+                employee_id=employees[10].id,
+                created_by=admin.id,
+                organization_id=org_id
+            ),
+            Document(
+                title="Contrato de Trabajo - Laura Ortiz.pdf",
+                file_path="/uploads/contrato_laura_ortiz.pdf",
+                file_type="application/pdf",
+                file_size=204800,
+                category="Contrato",
+                ocr_status="COMPLETED",
+                ocr_content="Contrato de trabajo Laura Ortiz RUT 15.678.901-2 Ingeniera Civil.",
+                employee_id=employees[1].id,
+                created_by=admin.id,
+                organization_id=org_id
+            ),
+            Document(
+                title="Cedula de Identidad - Laura Ortiz.pdf",
+                file_path="/uploads/cedula_laura_ortiz.pdf",
+                file_type="application/pdf",
+                file_size=95000,
+                category="Cédula",
+                ocr_status="COMPLETED",
+                employee_id=employees[1].id,
+                created_by=admin.id,
+                organization_id=org_id
+            ),
+            Document(
+                title="Contrato de Trabajo - Carlos Mendez.pdf",
+                file_path="/uploads/contrato_carlos_mendez.pdf",
+                file_type="application/pdf",
+                file_size=150000,
+                category="Contrato",
+                ocr_status="COMPLETED",
+                employee_id=employees[0].id,
+                created_by=admin.id,
+                organization_id=org_id
+            ),
+            Document(
+                title="Entrega EPP - Sofia Castro.pdf",
+                file_path="/uploads/epp_sofia_castro.pdf",
+                file_type="application/pdf",
+                file_size=88000,
+                category="EPP",
+                ocr_status="COMPLETED",
+                employee_id=employees[4].id,
+                created_by=admin.id,
+                organization_id=org_id
+            )
+        ]
+        for d in documents:
+            db.add(d)
+        db.commit()
+        print("[OK] Documentos de prueba y licencias insertados.")
 
         print("\n[OK] Siembra enriquecida de datos finalizada exitosamente! Todo listo para pruebas.")
 

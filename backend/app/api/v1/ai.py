@@ -313,7 +313,7 @@ async def generate_executive_report(
         response = await ai_service.get_chat_response(
             messages=[{"role": "user", "content": prompt}],
             bot_id="hr_agent",
-            db=None,
+            db=db,
             organization_id=current_user.organization_id,
             current_user=current_user
         )

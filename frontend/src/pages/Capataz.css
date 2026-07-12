@@ -1,6 +1,7 @@
 /* CAPATAZ CONTAINER CORE */
 main:has(.capataz-container) {
     padding: 0.75rem !important;
+    overflow: hidden !important;
 }
 
 .capataz-container {
@@ -522,28 +523,31 @@ main:has(.capataz-container) {
 
 /* Input Area */
 .capataz-input-area {
-    padding: 1rem 1.5rem;
-    background: rgba(15, 23, 42, 0.35);
-    border-top: 1px solid var(--border);
+    padding: 1rem 1.5rem 1.5rem;
+    background: transparent;
+    border-top: none;
 }
 
 .capataz-input-wrapper {
     position: relative;
     width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
     display: flex;
     align-items: center;
 }
 
 .capataz-input {
     width: 100%;
-    padding: 0.85rem 3.75rem 0.85rem 3.25rem !important;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border);
-    border-radius: 14px;
+    padding: 0.95rem 3.75rem 0.95rem 3.25rem !important;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
     color: var(--text-main);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     outline: none;
     transition: all 0.25s ease;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
 }
 
 .capataz-input:focus {

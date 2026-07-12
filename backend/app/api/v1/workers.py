@@ -468,45 +468,13 @@ def generate_vacation_document_pdf(employee, request) -> bytes:
     pdf.ln(20)
     
     y = pdf.get_y()
-    if getattr(request, "is_signed", False):
-        # Generar código hash de verificación
-        hash_input = f"{request.id}-{employee.rut or 'unknown'}-{request.start_date.strftime('%Y-%m-%d')}"
-        verification_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:16].upper()
-        
-        pdf.set_draw_color(0, 128, 0)
-        pdf.set_fill_color(240, 255, 240)
-        pdf.set_line_width(0.5)
-        pdf.rect(15, y, 180, 28, style='DF')
-        
-        pdf.set_text_color(0, 100, 0)
-        pdf.set_font("helvetica", 'B', 10)
-        pdf.set_y(y + 2)
-        pdf.set_x(20)
-        pdf.cell(0, 5, "DOCUMENTO FIRMADO ELECTRÓNICAMENTE - LEY 19.799 (CHILE)", ln=True)
-        
-        pdf.set_text_color(0, 0, 0)
-        pdf.set_font("helvetica", size=9)
-        pdf.set_x(20)
-        pdf.cell(0, 4, f"Firmante: {employee.first_name} {employee.last_name} (RUT: {employee.rut or 'Sin RUT'})", ln=True)
-        pdf.set_x(20)
-        sign_date = request.updated_at.strftime('%d/%m/%Y %H:%M:%S') if request.updated_at else datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-        pdf.cell(0, 4, f"Fecha de Firma: {sign_date} UTC", ln=True)
-        pdf.set_x(20)
-        pdf.cell(0, 4, f"Código de Verificación Único: {verification_hash}", ln=True)
-        pdf.set_x(20)
-        pdf.cell(0, 4, "Validez Legal: Firma Electrónica Simple conforme a regulación laboral DT.", ln=True)
-        
-        pdf.set_text_color(0, 0, 0)
-        pdf.set_draw_color(0, 0, 0)
-        pdf.ln(10)
-    else:
-        pdf.line(20, y, 90, y)
-        pdf.line(120, y, 190, y)
-        pdf.set_y(y + 2)
-        pdf.set_x(20)
-        pdf.cell(70, 5, "Firma Trabajador", align='C')
-        pdf.set_x(120)
-        pdf.cell(70, 5, "Firma Representante / Autorizador", align='C')
+    pdf.line(20, y + 15, 90, y + 15)
+    pdf.line(120, y + 15, 190, y + 15)
+    pdf.set_y(y + 17)
+    pdf.set_x(20)
+    pdf.cell(70, 5, "Firma Trabajador", align='C')
+    pdf.set_x(120)
+    pdf.cell(70, 5, "Firma Representante / Autorizador", align='C')
     
     return pdf.output()
 
@@ -697,78 +665,6 @@ async def upload_signed_vacation_doc(
     
     return {"message": "Documento firmado subido exitosamente", "document_path": req.document_path}
 
-@router.post("/vacations/request/{request_id}/sign-electronically", response_model=VacationRequestOut)
-def sign_electronically(
-    request_id: str,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    from datetime import datetime
-    from app.models.core import UserRole
-    query = db.query(VacationRequest).join(Employee).filter(VacationRequest.id == request_id)
-    if current_user.organization_id:
-        query = query.filter(Employee.organization_id == current_user.organization_id)
-    req = query.first()
-    if not req:
-        raise HTTPException(status_code=404, detail="Solicitud de vacaciones no encontrada o no pertenece a su organización")
-        
-    # El usuario debe ser el empleado solicitante, o ADMIN, o HR_MANAGER
-    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HR_MANAGER]:
-        if not req.employee or req.employee.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="No tiene privilegios para firmar esta solicitud de vacaciones.")
-            
-    if req.status != "APPROVED":
-        raise HTTPException(status_code=400, detail="La solicitud debe estar en estado AUTORIZADA (APPROVED) para ser firmada.")
-        
-    if req.is_signed:
-        raise HTTPException(status_code=400, detail="El documento ya se encuentra firmado.")
-        
-    # Cambiar estado a firmado
-    req.is_signed = True
-    req.updated_at = datetime.utcnow()
-    
-    # Regenerar el PDF físico de las vacaciones ahora con el sello de firma electrónica
-    try:
-        pdf_bytes = generate_vacation_document_pdf(req.employee, req)
-        os.makedirs("uploads/documents", exist_ok=True)
-        unique_filename = f"solicitud_vacaciones_{req.id[:8]}.pdf"
-        file_path = f"uploads/documents/{unique_filename}"
-        with open(file_path, "wb") as f:
-            f.write(pdf_bytes)
-        req.document_path = f"/uploads/documents/{unique_filename}"
-        
-        # Sincronizar el binario del documento en la tabla document_data
-        from app.models.core import Document
-        existing_doc = db.query(Document).filter(Document.file_path == req.document_path).first()
-        if existing_doc:
-            existing_doc.file_size = len(pdf_bytes)
-            # Actualizar el binario manualmente
-            from app.models.core import DocumentData
-            doc_data = db.query(DocumentData).filter(DocumentData.document_id == existing_doc.id).first()
-            if doc_data:
-                doc_data.content = pdf_bytes
-            else:
-                db.add(DocumentData(document_id=existing_doc.id, content=pdf_bytes))
-        else:
-            db_doc = Document(
-                organization_id=req.employee.organization_id,
-                title=f"Solicitud Vacaciones Firmada Electrónicamente - {req.employee.first_name}",
-                file_path=req.document_path,
-                file_type="application/pdf",
-                file_size=len(pdf_bytes),
-                category="vacaciones",
-                employee_id=req.employee_id,
-                created_by=current_user.id
-            )
-            db.add(db_doc)
-            
-    except Exception as pdf_err:
-        print(f"Error regenerando PDF firmado: {pdf_err}")
-        raise HTTPException(status_code=500, detail=f"Error al generar comprobante firmado: {str(pdf_err)}")
-        
-    db.commit()
-    db.refresh(req)
-    return req
 
 @router.get("/vacations/requests", response_model=List[VacationRequestOut], dependencies=[Depends(allow_read_hr)])
 def list_vacation_requests(

@@ -56,10 +56,10 @@ class RoleChecker:
     def __call__(self, user: User = Depends(get_current_user)):
         # Super Admin and legacy Admin bypass all role checks
         if user.role in [UserRole.SUPER_ADMIN, UserRole.ADMIN]:
-            return True
+            return user
         if user.role not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="El usuario no tiene suficientes privilegios para esta acción"
             )
-        return True
+        return user
