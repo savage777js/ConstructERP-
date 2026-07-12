@@ -77,19 +77,16 @@ const Login = ({ onLoginSuccess }) => {
         <div className="brand-content">
 
           {/* Logo */}
-          <div className="brand-logo-wrap">
-            <div className="brand-logo-icon" style={{ overflow: 'hidden', background: '#ffffff', padding: '2px' }}>
-              <img 
-                src="/images/logoconstruct.png" 
-                alt="Logo" 
-                style={{ 
-                  width: '100%', 
-                  height: '100%', 
-                  objectFit: 'contain'
-                }} 
-              />
-            </div>
-            <span className="brand-logo-text">ConstructERP</span>
+          <div className="brand-logo-wrap" style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-start' }}>
+            <img 
+              src="/images/logoconstruct.png" 
+              alt="ConstructERP Logo" 
+              style={{ 
+                height: '75px', 
+                objectFit: 'contain',
+                marginLeft: '-15px'
+              }} 
+            />
           </div>
 
           {/* Headline */}

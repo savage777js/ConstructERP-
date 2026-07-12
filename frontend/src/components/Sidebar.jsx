@@ -148,41 +148,17 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
     }}>
 
       {/* Brand Header */}
-      <div style={{ padding: '2rem 2rem 1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.25rem' }}>
-          <div style={{
-            width: '44px', height: '44px', minWidth: '44px', minHeight: '44px',
-            background: '#ffffff',
-            borderRadius: '12px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            overflow: 'hidden',
-            padding: '2px'
-          }}>
-            <img 
-              src="/images/logoconstruct.png" 
-              alt="Logo" 
-              style={{ 
-                width: '100%', 
-                height: '100%', 
-                objectFit: 'contain'
-              }} 
-            />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <h2 style={{
-              fontSize: '1.25rem', fontWeight: 900, letterSpacing: '-0.04em',
-              background: 'linear-gradient(90deg, #f59e0b, #fb923c)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              lineHeight: 1
-            }}>
-              ConstructERP
-            </h2>
-            <span style={{ fontSize: '8px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px', opacity: 0.6, letterSpacing: '0.03em', lineHeight: 1.2 }}>
-              Empresa: Constructora Serconind
-            </span>
-          </div>
+      <div style={{ padding: '1.5rem 1.5rem 1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+          <img 
+            src="/images/logoconstruct.png" 
+            alt="ConstructERP Logo" 
+            style={{ 
+              height: '56px', 
+              objectFit: 'contain',
+              marginLeft: '-10px'
+            }} 
+          />
         </div>
       </div>
 
