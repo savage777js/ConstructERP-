@@ -148,17 +148,30 @@ const Sidebar = ({ onLogout, onCloseMobile }) => {
     }}>
 
       {/* Brand Header */}
-      <div style={{ padding: '1.5rem 1.5rem 1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
-          <img 
-            src="/images/logoconstruct.png" 
-            alt="ConstructERP Logo" 
-            style={{ 
-              height: '56px', 
-              objectFit: 'contain',
-              marginLeft: '-10px'
-            }} 
-          />
+      <div style={{ padding: '2rem 1.5rem 1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <svg width="34" height="34" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="orangeGradSidebar" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#ea580c" />
+              </linearGradient>
+            </defs>
+            <path d="M50 12L88 34V78L50 100L12 78V34L50 12Z" stroke="url(#orangeGradSidebar)" strokeWidth="6" strokeLinejoin="round" />
+            <path d="M12 34L50 56L88 34" stroke="url(#orangeGradSidebar)" strokeWidth="4" strokeLinejoin="round" />
+            <path d="M50 56V100" stroke="url(#orangeGradSidebar)" strokeWidth="4" strokeLinejoin="round" />
+            <path d="M50 12L50 56" stroke="url(#orangeGradSidebar)" strokeWidth="3" strokeDasharray="3 3" />
+            <path d="M12 78L50 56" stroke="url(#orangeGradSidebar)" strokeWidth="3" strokeDasharray="3 3" />
+            <path d="M88 78L50 56" stroke="url(#orangeGradSidebar)" strokeWidth="3" strokeDasharray="3 3" />
+          </svg>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.03em', lineHeight: 1 }}>
+              Construct<span style={{ color: '#fb923c' }}>ERP</span>
+            </span>
+            <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 700, marginTop: '3px' }}>
+              SERCONIND LTDA.
+            </span>
+          </div>
         </div>
       </div>
 
