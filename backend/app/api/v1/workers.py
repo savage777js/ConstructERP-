@@ -212,6 +212,9 @@ async def import_workers_excel(
                     vacation_balance=15.0
                 )
                 db.add(new_worker)
+                db.commit()
+                db.refresh(new_worker)
+                generate_and_save_unsigned_contract(db, new_worker, current_user.id)
                 imported_count += 1
             except Exception as row_err:
                 errors.append(f"Fila {idx}: Error inesperado - {str(row_err)}")
@@ -324,6 +327,39 @@ def read_workers(
     workers = query.offset(skip).limit(limit).all()
     return workers
 
+def generate_and_save_unsigned_contract(db: Session, worker: Employee, created_by_id: int = None):
+    worker_data = {
+        "first_name": worker.first_name,
+        "last_name": worker.last_name,
+        "rut": worker.rut,
+        "role": worker.role,
+        "salary": worker.salary,
+        "hire_date": worker.hire_date
+    }
+    try:
+        pdf_content = ContractService.generate_worker_contract(worker_data)
+        os.makedirs("uploads/documents", exist_ok=True)
+        unique_filename = f"contrato_generado_{worker.id}_{worker.rut or 'empleado'}.pdf"
+        file_path = f"uploads/documents/{unique_filename}"
+        with open(file_path, "wb") as f:
+            f.write(pdf_content)
+            
+        from app.models.core import Document
+        db_doc = Document(
+            organization_id=worker.organization_id,
+            title=f"Contrato de Trabajo - {worker.first_name} {worker.last_name}",
+            file_path=f"/uploads/documents/{unique_filename}",
+            file_type="application/pdf",
+            file_size=len(pdf_content),
+            category="Contrato",
+            employee_id=worker.id,
+            created_by=created_by_id
+        )
+        db.add(db_doc)
+        db.commit()
+    except Exception as e:
+        print(f"Error generando contrato por defecto: {e}")
+
 @router.post("/", response_model=EmployeeOut, dependencies=[Depends(allow_manage_hr)])
 def create_worker(
     worker_in: EmployeeCreate,
@@ -348,6 +384,9 @@ def create_worker(
     db.add(new_worker)
     db.commit()
     db.refresh(new_worker)
+    
+    # Auto-generate unsigned contract
+    generate_and_save_unsigned_contract(db, new_worker, current_user.id)
     
     from app.utils.audit import log_audit
     log_audit(

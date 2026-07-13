@@ -266,6 +266,22 @@ async def upload_document(
         except Exception as e:
             print(f"Error generando Word de OCR: {e}")
 
+    # Si la categoría es Contrato, eliminamos todos los contratos previos de este trabajador para reemplazarlo
+    if category == "Contrato":
+        existing_contracts = db.query(core.Document).filter(
+            core.Document.employee_id == employee_id,
+            core.Document.category == "Contrato"
+        ).all()
+        for old_contract in existing_contracts:
+            try:
+                local_path = old_contract.file_path.lstrip('/')
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+            except Exception as e:
+                print(f"Error borrando archivo de contrato antiguo: {e}")
+            db.delete(old_contract)
+        db.commit()
+
     db_doc = core.Document(
         organization_id=org_id,
         title=title,
