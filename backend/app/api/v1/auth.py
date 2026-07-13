@@ -31,7 +31,7 @@ def read_user_me(db: Session = Depends(get_db), current_user: User = Depends(get
             perm_list = list(set(perm_list + [p[0] for p in all_perms]))
 
         org_data = {
-            "id": str(current_user.organization_id) if current_user.organization_id else "default-org",
+            "id": str(current_user.organization_id) if current_user.organization_id else "a71e9ecf-b833-4e99-b32b-2a02a4e9fa18",
             "name": "ConstructERP"
         }
 

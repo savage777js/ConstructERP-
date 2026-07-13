@@ -18,7 +18,7 @@ def seed_rich_data():
         print("[INFO] Iniciando siembra de datos de prueba con compatibilidad Postgres...")
 
         # 1. Usar organización base estática para single tenant
-        org_id = "00000000-0000-0000-0000-000000000000"
+        org_id = "a71e9ecf-b833-4e99-b32b-2a02a4e9fa18"
         print(f"[INFO] Organizacion activa ID: {org_id}")
 
         # 2. Vincular Admin existente a esta Organización

@@ -6,7 +6,7 @@ def fix_orgs():
     db = SessionLocal()
     try:
         # 1. Usar organización estática
-        org_id = "default-org"
+        org_id = "a71e9ecf-b833-4e99-b32b-2a02a4e9fa18"
         print(f"🏢 Org ID: {org_id}")
 
         # 2. Vincular Admin

@@ -276,7 +276,7 @@ def init_db():
         # ──────────────────────────────────────────────────────────────
         # Asegurar organización base (estática para single tenant)
         # ──────────────────────────────────────────────────────────────
-        org_id = "default-org"
+        org_id = "a71e9ecf-b833-4e99-b32b-2a02a4e9fa18"
 
         # ──────────────────────────────────────────────────────────────
         # Usuarios de rol — se crean o actualizan en CADA arranque.

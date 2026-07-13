@@ -8,7 +8,7 @@ from app.core import security
 def seed_roles():
     db = SessionLocal()
     try:
-        org_id = "default-org"
+        org_id = "a71e9ecf-b833-4e99-b32b-2a02a4e9fa18"
         
         users_data = [
             {"email": "admin@serconind.cl", "role": UserRole.ADMIN, "password": "admin", "name": "Administrador Local"},
