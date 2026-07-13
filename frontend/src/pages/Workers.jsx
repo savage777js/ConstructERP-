@@ -993,7 +993,7 @@ const Workers = () => {
             
             <div className="flex flex-col gap-3 mb-6">
               <button 
-                onClick={() => { navigate(`/documents`); setActionWorker(null); }}
+                onClick={() => { navigate(`/documents`, { state: { selectWorkerId: actionWorker.id } }); setActionWorker(null); }}
                 className="w-full py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-xl transition-all font-bold text-sm flex items-center justify-center gap-2"
               >
                 <FileText size={16} /> Carpeta Digital

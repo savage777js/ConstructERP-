@@ -472,10 +472,8 @@ const Capataz = () => {
   // Atajos rápidos con "Generar Informe Ejecutivo" incorporado (Fase 6)
   const quickActions = [
     { label: 'Consultar Trabajadores', query: 'Muéstrame la lista de trabajadores activos y sus cargos.' },
-    { label: 'Asistencia', query: '¿Cómo estuvo la asistencia de hoy? ¿Hay retrasos o ausencias?' },
     { label: 'Contratos', query: '¿Qué contratos laborales están próximos a vencer y qué recomiendas?' },
     { label: 'Vacaciones', query: '¿Hay solicitudes de vacaciones pendientes en el sistema?' },
-    { label: 'Licencias', query: 'Muéstrame si existen licencias médicas activas registradas.' },
     { label: 'Proyectos', query: '¿Cuál es el estado actual de los proyectos y sus presupuestos?' },
     { label: 'Dotación', query: 'Obtén las estadísticas de dotación e irregularidades de personal.' },
     { label: 'Alertas', query: 'Muéstrame las alertas y notificaciones pendientes de lectura.' },
