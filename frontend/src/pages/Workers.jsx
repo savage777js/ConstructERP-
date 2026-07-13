@@ -281,6 +281,9 @@ const Workers = () => {
   const monthlyPayroll = workers.filter(w => w.status === 'ACTIVE').reduce((acc, curr) => acc + (curr.salary || 0), 0);
 
   const filteredWorkers = workers.filter(w => {
+    if (activeTab === 'directory' && w.status !== 'ACTIVE') return false;
+    if (activeTab === 'historical' && w.status === 'ACTIVE') return false;
+
     const matchesSearch = `${w.first_name} ${w.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
       (w.rut && w.rut.includes(searchTerm)) ||
       w.role?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -383,12 +386,18 @@ const Workers = () => {
               Vacaciones & Permisos
             </button>
           )}
+          <button 
+            onClick={() => setActiveTab('historical')}
+            className={`px-4 sm:px-6 py-2.5 rounded-lg font-medium transition-all shrink-0 ${activeTab === 'historical' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+          >
+            Registro Histórico (Bajas)
+          </button>
         </div>
       </header>
 
 
       {/* Bar de búsqueda y filtros */}
-      {activeTab === 'directory' && (
+      {(activeTab === 'directory' || activeTab === 'historical') && (
         <div className="mb-6 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
         <div className="flex flex-1 flex-col md:flex-row gap-4 max-w-2xl">
           <div className="relative flex-1">
@@ -415,12 +424,12 @@ const Workers = () => {
           </div>
         </div>
         <div className="text-sm text-slate-500">
-          Mostrando {filteredWorkers.length} de {workers.length} trabajadores
+          Mostrando {filteredWorkers.length} de {workers.filter(w => activeTab === 'directory' ? w.status === 'ACTIVE' : w.status !== 'ACTIVE').length} trabajadores
         </div>
       </div>
       )}
 
-      {activeTab === 'directory' && (
+      {(activeTab === 'directory' || activeTab === 'historical') && (
         <div className="glass-card p-0 overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           {/* Desktop Table View */}
@@ -452,7 +461,7 @@ const Workers = () => {
                       <div>
                         <p className="font-bold text-white truncate flex items-center gap-2">
                           {worker.first_name} {worker.last_name}
-                          {worker.missing_mandatory_docs && worker.missing_mandatory_docs.length > 0 && (
+                          {worker.status === 'ACTIVE' && worker.missing_mandatory_docs && worker.missing_mandatory_docs.length > 0 && (
                             <span 
                               className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-[10px] text-rose-400 font-bold cursor-pointer hover:bg-rose-500/20 transition-all"
                               title={`Falta documentación obligatoria: ${worker.missing_mandatory_docs.join(', ')}`}
@@ -572,7 +581,7 @@ const Workers = () => {
                     <div>
                       <h4 className="font-bold text-white text-base flex items-center gap-2">
                         {worker.first_name} {worker.last_name}
-                        {worker.missing_mandatory_docs && worker.missing_mandatory_docs.length > 0 && (
+                        {worker.status === 'ACTIVE' && worker.missing_mandatory_docs && worker.missing_mandatory_docs.length > 0 && (
                           <span 
                             className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-[9px] text-rose-400 font-bold"
                             title={`Falta documentación obligatoria: ${worker.missing_mandatory_docs.join(', ')}`}

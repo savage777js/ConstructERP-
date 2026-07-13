@@ -215,6 +215,8 @@ class Employee(Base):
 
     @property
     def missing_mandatory_docs(self) -> list:
+        if self.status != EmployeeStatus.ACTIVE:
+            return []
         uploaded_categories = {d.category for d in self.documents}
         missing = []
         if "Contrato" not in uploaded_categories:
