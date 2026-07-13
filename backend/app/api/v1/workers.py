@@ -254,6 +254,55 @@ def get_worker_contract(
     
     pdf_content = ContractService.generate_worker_contract(worker_data)
     
+    # Auto-register contract in Documents to satisfy compliance checks
+    from app.models.core import Document, DocumentData
+    from app.models.core import generate_uuid
+    
+    existing_contract = db.query(Document).filter(
+        Document.employee_id == worker_id,
+        Document.category == "Contrato"
+    ).first()
+    
+    if not existing_contract:
+        os.makedirs("uploads/documents", exist_ok=True)
+        unique_filename = f"contrato_generado_{worker.id}_{worker.rut or 'empleado'}.pdf"
+        file_path = f"uploads/documents/{unique_filename}"
+        with open(file_path, "wb") as f:
+            f.write(pdf_content)
+            
+        db_doc = Document(
+            organization_id=worker.organization_id,
+            title=f"Contrato de Trabajo - {worker.first_name} {worker.last_name}",
+            file_path=f"/uploads/documents/{unique_filename}",
+            file_type="application/pdf",
+            file_size=len(pdf_content),
+            category="Contrato",
+            employee_id=worker.id,
+            created_by=current_user.id
+        )
+        db.add(db_doc)
+        db.commit()
+    else:
+        # Overwrite physical file and update document in DB
+        local_path = existing_contract.file_path.lstrip('/')
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        with open(local_path, "wb") as f:
+            f.write(pdf_content)
+        existing_contract.file_size = len(pdf_content)
+        
+        # Update binary data in DB
+        doc_data = db.query(DocumentData).filter(DocumentData.document_id == existing_contract.id).first()
+        if doc_data:
+            doc_data.content = pdf_content
+        else:
+            new_data = DocumentData(
+                id=generate_uuid(),
+                document_id=existing_contract.id,
+                content=pdf_content
+            )
+            db.add(new_data)
+        db.commit()
+    
     return Response(
         content=pdf_content,
         media_type="application/pdf",
