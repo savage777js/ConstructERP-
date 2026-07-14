@@ -697,15 +697,6 @@ const Capataz = () => {
                   )}
                   PDF
                 </button>
-
-                <button
-                  onClick={() => handleAskAIAboutReport(report.title, report.id)}
-                  disabled={isTyping}
-                  className="p-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg hover:bg-amber-500 hover:text-white transition-all"
-                  title="Preguntar a la IA"
-                >
-                  <Sparkles size={11} />
-                </button>
               </div>
             </div>
           ))}
