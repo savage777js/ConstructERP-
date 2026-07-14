@@ -203,6 +203,49 @@ def toggle_user_active(
     return user
 
 
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Eliminar un usuario permanentemente del sistema. Solo Super Administrador y solo si está desactivado."""
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para eliminar usuarios")
+
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="No puede desactivar o eliminar su propia cuenta")
+
+    query = db.query(User).filter(User.id == user_id)
+    if current_user.organization_id:
+        query = query.filter(User.organization_id == current_user.organization_id)
+
+    user = query.first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if user.is_active:
+        raise HTTPException(status_code=400, detail="Debe desactivar al usuario antes de poder eliminarlo")
+
+    # Limpiar referencias de clave foránea manuales
+    from app.models.core import Employee, Document, Expense, Task, TaskComment, Notification, AuditLog
+    try:
+        db.query(Employee).filter(Employee.user_id == user_id).update({Employee.user_id: None})
+        db.query(Document).filter(Document.created_by == user_id).update({Document.created_by: None})
+        db.query(Expense).filter(Expense.created_by == user_id).update({Expense.created_by: None})
+        db.query(Task).filter(Task.created_by == user_id).update({Task.created_by: None})
+        db.query(TaskComment).filter(TaskComment.user_id == user_id).update({TaskComment.user_id: None})
+        db.query(Notification).filter(Notification.user_id == user_id).update({Notification.user_id: None})
+        db.query(AuditLog).filter(AuditLog.user_id == user_id).update({AuditLog.user_id: None})
+    except Exception as cleanup_err:
+        print(f"[WARN] Error limpiando relaciones del usuario {user_id}: {cleanup_err}")
+        db.rollback()
+
+    db.delete(user)
+    db.commit()
+    return None
+
+
 @router.get("/audit-logs", response_model=List[AuditLogOut])
 def list_audit_logs(
     db: Session = Depends(get_db),

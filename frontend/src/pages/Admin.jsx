@@ -3,7 +3,7 @@ import api from '../api';
 import { useAuth, ROLE_LABELS } from '../context/AuthContext';
 import {
   Users, ShieldCheck, Plus, Edit2, RefreshCw, ToggleLeft, ToggleRight,
-  Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, X, UserPlus, Lock, History
+  Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, X, UserPlus, Lock, History, Trash2
 } from 'lucide-react';
 
 const ROLE_OPTIONS = [
@@ -40,6 +40,7 @@ const Admin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -228,6 +229,24 @@ const Admin = () => {
       setError(err.response?.data?.detail || 'Error al cambiar estado del usuario.');
     } finally {
       setTogglingId(null);
+    }
+  };
+
+  const handleDelete = async (userId) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar permanentemente a este usuario del sistema? Esta acción es irreversible y desvinculará sus registros creados.')) {
+      return;
+    }
+    setError('');
+    setDeletingId(userId);
+    try {
+      await api.delete(`/auth/users/${userId}`);
+      setSuccess('Usuario eliminado permanentemente.');
+      fetchUsers();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Error al eliminar el usuario.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -427,6 +446,20 @@ const Admin = () => {
                                     <ToggleLeft size={14} />
                                   ) : (
                                     <ToggleRight size={14} />
+                                  )}
+                                </button>
+                              )}
+                              {!isSelf && !u.is_active && (
+                                <button
+                                  onClick={() => handleDelete(u.id)}
+                                  disabled={deletingId === u.id}
+                                  className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-all"
+                                  title="Eliminar usuario permanentemente"
+                                >
+                                  {deletingId === u.id ? (
+                                    <Loader2 size={14} className="animate-spin" />
+                                  ) : (
+                                    <Trash2 size={14} />
                                   )}
                                 </button>
                               )}
