@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../api';
 import { 
-  Send, ShieldCheck, Zap, Paperclip, FileText, 
+  Send, ShieldCheck, Zap, FileText, 
   Loader2, AlertCircle, X, Save, Copy, Download,
   BarChart2, FileSpreadsheet, Sparkles, ChevronUp
 } from 'lucide-react';
@@ -21,7 +21,6 @@ const Capataz = () => {
     "✔ Licencias",
     "✔ Remuneraciones",
     "✔ Documentación",
-    "✔ OCR",
     "✔ Alertas",
     "Generando recomendaciones...",
     "Análisis completado."
@@ -33,21 +32,7 @@ const Capataz = () => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [lastResponseTime, setLastResponseTime] = useState('1.1s');
-  
-  // OCR expense form state
-  const [projects, setProjects] = useState([]);
-  const [pendingExpense, setPendingExpense] = useState(null);
-  const [registeringLoading, setRegisteringLoading] = useState(false);
-  const [expenseForm, setExpenseForm] = useState({
-    project_id: '',
-    category: 'materiales',
-    description: '',
-    amount: 0,
-    expense_date: ''
-  });
-  const [formError, setFormError] = useState('');
   
   // Estados para Informe Ejecutivo
   const [generatingReport, setGeneratingReport] = useState(false);
@@ -65,7 +50,6 @@ const Capataz = () => {
   const [copySuccess, setCopySuccess] = useState(false);
 
   const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null);
   const { user } = useAuth();
 
   const [exportingReportId, setExportingReportId] = useState(null);
@@ -120,7 +104,7 @@ const Capataz = () => {
   const handleAskAIAboutReport = (reportTitle, reportId) => {
     handleSend(`Analiza el reporte "${reportTitle}" (ID: ${reportId}) del ERP y haz un análisis de la situación con anomalías y recomendaciones.`);
   };
-  const canManageExpenses = ['ADMIN', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT'].includes(user?.role);
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -168,8 +152,6 @@ const Capataz = () => {
         setMessages([]);
       }
 
-      const projRes = await api.get('/projects/');
-      setProjects(projRes.data);
     } catch (error) {
       console.error('Error cargando datos del Agente AI:', error);
     } finally {
@@ -298,104 +280,7 @@ const Capataz = () => {
     }
   };
 
-  // Carga de archivo para OCR
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
 
-    setIsUploading(true);
-    setMessages(prev => [...prev, { role: 'user', content: `Escaneando documento OCR: ${file.name}...`, isSystem: true }]);
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const response = await api.post('/documents/ocr/invoice', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      const { data } = response.data;
-      
-      const newMessages = [
-        {
-          role: 'bot',
-          type: 'ocr_result',
-          content: `Extracción OCR completada para **${data.vendor_name}**.`,
-          data: data
-        }
-      ];
-      
-      if (canManageExpenses) {
-        newMessages.push({ 
-          role: 'bot', 
-          type: 'ocr_action',
-          content: '¿Confirmar registro del gasto en la contabilidad?',
-          ocrData: data
-        });
-      }
-
-      setMessages(prev => [...prev, ...newMessages]);
-      refreshDashboardSilent();
-    } catch (error) {
-      console.error('Error en OCR:', error);
-      setMessages(prev => [...prev, { 
-        role: 'bot', 
-        content: 'Error al escanear. Verifique que el documento esté bien iluminado y legible.' 
-      }]);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const handleStartRegister = (ocrData) => {
-    setExpenseForm({
-      project_id: projects[0]?.id || '',
-      category: ocrData.category === 'mano_de_obra' || ocrData.category === 'materiales' || ocrData.category === 'servicios' || ocrData.category === 'otros' 
-        ? ocrData.category 
-        : 'materiales',
-      description: ocrData.description || `Gasto OCR: Factura de ${ocrData.vendor_name}`,
-      amount: ocrData.total_amount || ocrData.net_amount || 0,
-      expense_date: ocrData.date || new Date().toISOString().split('T')[0]
-    });
-    setFormError('');
-    setPendingExpense(ocrData);
-  };
-
-  const handleRegisterExpense = async (e) => {
-    e.preventDefault();
-    if (!expenseForm.project_id) {
-      setFormError('Debe asociar el gasto a una obra.');
-      return;
-    }
-    setRegisteringLoading(true);
-
-    try {
-      const payload = {
-        project_id: parseInt(expenseForm.project_id),
-        category: expenseForm.category,
-        description: expenseForm.description,
-        amount: parseFloat(expenseForm.amount),
-        expense_date: expenseForm.expense_date ? new Date(expenseForm.expense_date).toISOString() : new Date().toISOString()
-      };
-
-      await api.post('/finance/expenses', payload);
-
-      const projName = projects.find(p => p.id === parseInt(expenseForm.project_id))?.name || 'Obra';
-      
-      setMessages(prev => [...prev, {
-        role: 'bot',
-        content: `✅ Gasto contable guardado por $${Number(expenseForm.amount).toLocaleString('es-CL')} en la obra **${projName}**.`
-      }]);
-
-      setPendingExpense(null);
-      refreshDashboardSilent();
-    } catch (error) {
-      setFormError('Fallo al sincronizar registro con la base de datos.');
-    } finally {
-      setRegisteringLoading(false);
-    }
-  };
 
   const handleExecuteAction = (actionQuery) => {
     handleSend(actionQuery);
@@ -479,7 +364,6 @@ const Capataz = () => {
     { label: 'Proyectos', query: '¿Cuál es el estado actual de los proyectos y sus presupuestos?' },
     { label: 'Dotación', query: 'Obtén las estadísticas de dotación e irregularidades de personal.' },
     { label: 'Alertas', query: 'Muéstrame las alertas y notificaciones pendientes de lectura.' },
-    { label: 'OCR', query: 'Analiza las facturas y boletas pendientes de validación OCR.' },
     { label: 'Generar Informe Ejecutivo', action: 'report' },
   ];
 
@@ -554,7 +438,7 @@ const Capataz = () => {
           {messages.map((msg, idx) => (
             <div 
               key={idx} 
-              className={`capataz-msg msg-${msg.role} ${msg.type === 'ocr_result' || msg.type === 'ocr_action' ? 'ocr-msg' : ''}`}
+              className={`capataz-msg msg-${msg.role}`}
             >
               {msg.role === 'bot' ? (
                 renderBotResponse(msg.content)
@@ -568,40 +452,7 @@ const Capataz = () => {
                   <span>Llamadas API: {msg.toolCalls.map(t => t.tool).join(', ')}</span>
                 </div>
               )}
-              
-              {msg.type === 'ocr_result' && (
-                <div className="ocr-data-card mt-3">
-                  <div className="ocr-grid">
-                    <div className="ocr-item"><span>Proveedor:</span> {msg.data.vendor_name || 'N/A'}</div>
-                    <div className="ocr-item"><span>RUT:</span> {msg.data.rut || 'N/A'}</div>
-                    <div className="ocr-item"><span>Fecha:</span> {msg.data.date || 'N/A'}</div>
-                    <div className="ocr-item"><span>Total:</span> ${Number(msg.data.total_amount).toLocaleString('es-CL')}</div>
-                  </div>
-                  <div className="ocr-category">
-                    <FileText size={12} /> {msg.data.category}
-                  </div>
-                </div>
-              )}
 
-              {msg.type === 'ocr_action' && (
-                <div className="flex gap-2.5 mt-3">
-                  <button 
-                    onClick={() => handleStartRegister(msg.ocrData)}
-                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-white rounded-lg text-[10px] font-bold transition-all shadow-md flex items-center gap-1 uppercase tracking-wider"
-                  >
-                    <Save size={12} />
-                    Registrar Gasto
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setMessages(prev => [...prev, { role: 'bot', content: 'Gasto descartado. ¿En qué más le asisto, señor?' }]);
-                    }}
-                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-[10px] font-bold transition-all border border-white/5 uppercase tracking-wider"
-                  >
-                    Descartar
-                  </button>
-                </div>
-              )}
             </div>
           ))}
 
@@ -614,15 +465,7 @@ const Capataz = () => {
               </div>
             </div>
           )}
-          
-          {isUploading && (
-            <div className="capataz-msg msg-bot">
-               <div className="upload-loader text-amber-500 flex items-center gap-2">
-                  <Loader2 className="animate-spin" size={16} />
-                  <span className="text-[11px] font-bold font-mono">EJECUTANDO ESCANEO OCR...</span>
-               </div>
-            </div>
-          )}
+
           
           <div ref={messagesEndRef} />
         </div>
@@ -633,7 +476,7 @@ const Capataz = () => {
             <button 
               key={idx}
               onClick={() => action.action === 'report' ? handleGenerateReport() : handleSend(action.query)}
-              disabled={isTyping || isUploading}
+              disabled={isTyping}
               className="btn-quick-shortcut-pill"
             >
               {action.label}
@@ -665,7 +508,7 @@ const Capataz = () => {
                        setShowMobileActions(false);
                        action.action === 'report' ? handleGenerateReport() : handleSend(action.query);
                      }}
-                     disabled={isTyping || isUploading}
+                     disabled={isTyping}
                      className="w-full text-left px-3 py-2.5 rounded-lg text-xs font-bold text-slate-300 hover:bg-amber-500/10 hover:text-amber-400 transition-colors"
                    >
                      {action.label}
@@ -679,21 +522,6 @@ const Capataz = () => {
         {/* Consola de Entrada del Chat */}
         <footer className="capataz-input-area flex-shrink-0">
           <div className="capataz-input-wrapper">
-            <button 
-              className="attachment-btn" 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              title="Escanear Factura (OCR)"
-            >
-              <Paperclip size={18} />
-            </button>
-            <input 
-              type="file" 
-              hidden 
-              ref={fileInputRef} 
-              onChange={handleFileUpload}
-              accept="image/*,.pdf,.doc,.docx"
-            />
             <input 
               type="text" 
               className="capataz-input"
@@ -701,12 +529,12 @@ const Capataz = () => {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              disabled={isTyping || isUploading}
+              disabled={isTyping}
             />
             <button 
               className="capataz-send-btn" 
               onClick={() => handleSend()}
-              disabled={!inputValue.trim() || isTyping || isUploading}
+              disabled={!inputValue.trim() || isTyping}
               title="Enviar consulta"
             >
               <Send size={18} />
