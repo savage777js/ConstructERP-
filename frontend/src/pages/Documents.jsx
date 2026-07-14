@@ -333,7 +333,7 @@ const Documents = () => {
                         id="file-upload"
                         className="hidden"
                         onChange={handleFileChange}
-                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.webp,.heic,.heif,.jfif"
                         required
                       />
                       <label 

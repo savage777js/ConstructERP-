@@ -88,8 +88,8 @@ async def ocr_invoice(
     
     # Validar extensión
     ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in [".jpg", ".jpeg", ".png", ".pdf", ".docx", ".doc"]:
-        raise HTTPException(status_code=400, detail="Formato de archivo no soportado. Use JPG, PNG, PDF o Word (DOCX/DOC).")
+    if ext not in [".jpg", ".jpeg", ".png", ".pdf", ".docx", ".doc", ".webp", ".jfif", ".heic", ".heif"]:
+        raise HTTPException(status_code=400, detail="Formato de archivo no soportado. Use JPG, PNG, PDF, Word o formatos de imagen móviles (HEIC/WEBP/JFIF).")
 
     try:
         # Leer contenido
@@ -211,8 +211,8 @@ async def upload_document(
         raise HTTPException(status_code=404, detail="Trabajador no encontrado")
 
     ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in [".jpg", ".jpeg", ".png", ".pdf", ".docx", ".doc"]:
-        raise HTTPException(status_code=400, detail="Formato de archivo no soportado.")
+    if ext not in [".jpg", ".jpeg", ".png", ".pdf", ".docx", ".doc", ".webp", ".jfif", ".heic", ".heif"]:
+        raise HTTPException(status_code=400, detail="Formato de archivo no soportado. Use JPG, PNG, PDF, Word o imágenes móviles (HEIC/WEBP/JFIF).")
 
     contents = await file.read()
     
@@ -232,7 +232,7 @@ async def upload_document(
     ocr_content = None
     extracted_data = None
 
-    if ext in [".jpg", ".jpeg", ".png"]:
+    if ext in [".jpg", ".jpeg", ".png", ".webp", ".jfif", ".heic", ".heif"]:
         import json
         image_base64 = base64.b64encode(contents).decode("utf-8")
         try:
@@ -266,20 +266,20 @@ async def upload_document(
         except Exception as e:
             print(f"Error generando Word de OCR: {e}")
 
-    # Si la categoría es Contrato, eliminamos todos los contratos previos de este trabajador para reemplazarlo
-    if category == "Contrato":
-        existing_contracts = db.query(core.Document).filter(
+    # Si es un documento obligatorio (Contrato, Licencia, Cédula, Certificado), reemplazamos el anterior para no duplicar
+    if category in ["Contrato", "Licencia", "Cédula", "Certificado"]:
+        existing_docs = db.query(core.Document).filter(
             core.Document.employee_id == employee_id,
-            core.Document.category == "Contrato"
+            core.Document.category == category
         ).all()
-        for old_contract in existing_contracts:
+        for old_doc in existing_docs:
             try:
-                local_path = old_contract.file_path.lstrip('/')
+                local_path = old_doc.file_path.lstrip('/')
                 if os.path.exists(local_path):
                     os.remove(local_path)
             except Exception as e:
-                print(f"Error borrando archivo de contrato antiguo: {e}")
-            db.delete(old_contract)
+                print(f"Error borrando archivo antiguo ({category}): {e}")
+            db.delete(old_doc)
         db.commit()
 
     db_doc = core.Document(

@@ -198,6 +198,7 @@ class AIService:
         ocr_res["tipo_documento"] = category or "invoice"
         ocr_res["titulo"] = f"OCR - {ocr_res['vendor_name']}"
         ocr_res["resumen"] = f"Extracción exitosa para el proveedor {ocr_res['vendor_name']} por un monto de ${ocr_res['total_amount']:,}"
+        return ocr_res
     def _get_local_chat_response(
         self,
         messages: List[Dict[str, str]],
