@@ -62,7 +62,7 @@ const Dashboard = () => {
   );
 
   const userRole = localStorage.getItem('userRole');
-  const isGerenteOrAdmin = ['ADMIN', 'MANAGEMENT'].includes(userRole);
+  const isGerenteOrAdmin = ['ADMIN', 'SUPER_ADMIN', 'MANAGEMENT'].includes(userRole);
 
   const translatedAlertsData = chartData?.alerts_priority?.map(item => {
     let nameEs = item.name;
@@ -221,16 +221,16 @@ const Dashboard = () => {
 
         {/* Quick Access Grid */}
         {(() => {
-          const baseActions = localStorage.getItem('userRole') === 'ADMIN' ? [
+          const baseActions = ['ADMIN', 'SUPER_ADMIN'].includes(localStorage.getItem('userRole')) ? [
             { name: 'Recursos Humanos', icon: Users, path: '/workers', color: 'bg-blue-500/10 text-blue-400' },
             { name: 'Capataz AI', icon: HardHat, path: '/capataz', color: 'bg-amber-500/10 text-amber-400' },
             { name: 'Reportes Generales', icon: FileText, path: '/reports', color: 'bg-indigo-500/10 text-indigo-400' },
             { name: 'Expedientes & OCR', icon: Folder, path: '/documents', color: 'bg-emerald-500/10 text-emerald-400' },
             { name: 'Centro de Alertas', icon: Bell, path: '/notifications', color: 'bg-red-500/10 text-red-400' }
           ] : [
-            { name: 'Gestión RRHH', icon: Users, path: '/workers', color: 'bg-blue-500/10 text-blue-400', roles: ['ADMIN', 'HR_MANAGER', 'MANAGEMENT', 'PROJECT_MANAGER'] },
-            { name: 'Control de Obras', icon: Briefcase, path: '/projects', color: 'bg-purple-500/10 text-purple-400', roles: ['ADMIN', 'PROJECT_MANAGER', 'MANAGEMENT', 'HR_MANAGER', 'INVENTORY_MANAGER'] },
-            { name: 'Centro de Alertas', icon: Bell, path: '/notifications', color: 'bg-red-500/10 text-red-400', roles: ['ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT'] }
+            { name: 'Gestión RRHH', icon: Users, path: '/workers', color: 'bg-blue-500/10 text-blue-400', roles: ['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER', 'MANAGEMENT', 'PROJECT_MANAGER'] },
+            { name: 'Control de Obras', icon: Briefcase, path: '/projects', color: 'bg-purple-500/10 text-purple-400', roles: ['ADMIN', 'SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGEMENT', 'HR_MANAGER', 'INVENTORY_MANAGER'] },
+            { name: 'Centro de Alertas', icon: Bell, path: '/notifications', color: 'bg-red-500/10 text-red-400', roles: ['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT'] }
           ].filter(item => {
             const role = localStorage.getItem('userRole');
             return role && item.roles.includes(role);

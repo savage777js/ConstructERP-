@@ -120,7 +120,7 @@ const Capataz = () => {
   const handleAskAIAboutReport = (reportTitle, reportId) => {
     handleSend(`Analiza el reporte "${reportTitle}" (ID: ${reportId}) del ERP y haz un análisis de la situación con anomalías y recomendaciones.`);
   };
-  const canManageExpenses = ['ADMIN', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT'].includes(user?.role);
+  const canManageExpenses = ['ADMIN', 'SUPER_ADMIN', 'PROJECT_MANAGER', 'INVENTORY_MANAGER', 'MANAGEMENT'].includes(user?.role);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
