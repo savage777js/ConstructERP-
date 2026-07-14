@@ -164,6 +164,9 @@ class ProjectService:
                 new_values=update_data
             )
 
+        # Recalculate progress after update
+        ProjectService.recalculate_project_progress(db, project.id)
+
         return project
 
     @staticmethod
@@ -535,5 +538,34 @@ class ProjectService:
         except Exception as e:
             print(f"Error compressing image: {e}")
             return image_bytes
+
+    @staticmethod
+    def recalculate_project_progress(db: Session, project_id: int):
+        from app.models.core import Project, Expense
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            return
+        
+        # If budget is 0 or undefined, progress is 0
+        if not project.budget or project.budget <= 0:
+            project.progress = 0
+            db.commit()
+            return
+            
+        # Sum of paid expenses
+        from sqlalchemy import func
+        paid_sum = db.query(
+            func.sum(Expense.amount)
+        ).filter(
+            Expense.project_id == project_id,
+            Expense.is_paid == True
+        ).scalar() or 0
+        
+        # Calculate percentage
+        percentage = int((float(paid_sum) / float(project.budget)) * 100)
+        percentage = max(0, min(100, percentage))
+        
+        project.progress = percentage
+        db.commit()
 
 

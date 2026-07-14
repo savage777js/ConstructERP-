@@ -2,7 +2,7 @@ from typing import List, Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.api import deps
-from app.schemas.finance import ExpenseOut, ExpenseCreate, InvoiceOut, InvoiceCreate
+from app.schemas.finance import ExpenseOut, ExpenseCreate, ExpenseUpdate, InvoiceOut, InvoiceCreate
 from app.models import core
 
 router = APIRouter()
@@ -40,6 +40,11 @@ def create_expense(
     db.add(expense)
     db.commit()
     db.refresh(expense)
+    
+    # Recalculate project progress
+    from app.services.project_service import ProjectService
+    ProjectService.recalculate_project_progress(db, expense.project_id)
+    
     return expense
 
 @router.get("/invoices", response_model=List[InvoiceOut], dependencies=[Depends(allow_read_finance)])
@@ -107,4 +112,64 @@ def update_expense_status(
     expense.is_paid = is_paid
     db.commit()
     db.refresh(expense)
+    
+    # Recalculate project progress
+    from app.services.project_service import ProjectService
+    ProjectService.recalculate_project_progress(db, expense.project_id)
+    
+    return expense
+
+
+@router.put("/expenses/{expense_id}", response_model=ExpenseOut, dependencies=[Depends(allow_write_finance)])
+def update_expense(
+    expense_id: str,
+    expense_in: ExpenseUpdate,
+    db: Session = Depends(deps.get_db),
+    current_user: core.User = Depends(deps.get_current_user),
+) -> Any:
+    """Edita un gasto existente y registra el cambio en la bitácora del proyecto."""
+    query = db.query(core.Expense).filter(core.Expense.id == expense_id)
+    if current_user.organization_id:
+        query = query.filter(core.Expense.organization_id == current_user.organization_id)
+    expense = query.first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Gasto no encontrado o no pertenece a su organización")
+        
+    old_desc = expense.description
+    old_amount = expense.amount
+    old_category = expense.category
+    
+    # Actualizar campos opcionales
+    if expense_in.category is not None:
+        expense.category = expense_in.category
+    if expense_in.description is not None:
+        expense.description = expense_in.description
+    if expense_in.amount is not None:
+        expense.amount = expense_in.amount
+    if expense_in.expense_date is not None:
+        expense.expense_date = expense_in.expense_date
+    if expense_in.mini_budget_id is not None:
+        expense.mini_budget_id = None if expense_in.mini_budget_id == "otros" else expense_in.mini_budget_id
+    
+    db.commit()
+    db.refresh(expense)
+    
+    # 1. Recalcular el progreso del proyecto
+    from app.services.project_service import ProjectService
+    ProjectService.recalculate_project_progress(db, expense.project_id)
+    
+    # 2. Registrar en la bitácora del proyecto
+    try:
+        log_content = f"Gasto editado por {current_user.full_name}. Anterior: [{old_category}] {old_desc} (${old_amount:,.2f}) -> Nuevo: [{expense.category}] {expense.description} (${expense.amount:,.2f})."
+        ProjectService.create_project_log(
+            db=db,
+            project_id=expense.project_id,
+            content=log_content,
+            user_id=current_user.id,
+            log_type="NOTE",
+            organization_id=current_user.organization_id
+        )
+    except Exception as log_err:
+        print(f"Error al registrar bitácora de edición de gasto: {log_err}")
+        
     return expense

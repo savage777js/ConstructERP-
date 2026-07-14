@@ -796,7 +796,7 @@ const Workers = () => {
                   </td>
                   <td className="px-3 sm:px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      {req.status === 'PENDING_APPROVAL' && ['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'].includes(userRole) && (
+                      {req.status === 'PENDING_APPROVAL' && ['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER'].includes(userRole) && (
                         <button
                           onClick={() => handleApproveVacation(req.id)}
                           className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all uppercase"

@@ -58,6 +58,28 @@ const ProjectDetail = () => {
     mini_budget_id: 'otros'
   });
 
+  // States for editing expenses
+  const [showEditExpense, setShowEditExpense] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [editExpenseForm, setEditExpenseForm] = useState({
+    category: 'MATERIALES',
+    description: '',
+    amount: '',
+    expense_date: new Date().toISOString().split('T')[0],
+    is_paid: false,
+    mini_budget_id: 'otros'
+  });
+
+  // States for project documents (Carpeta de Obra)
+  const [projectDocs, setProjectDocs] = useState([]);
+  const [showUploadProjDoc, setShowUploadProjDoc] = useState(false);
+  const [uploadProjDocForm, setUploadProjDocForm] = useState({
+    category: 'Entrega de EPP',
+    title: 'Entrega de EPP - Ley 16.744 / DS 594',
+    file: null
+  });
+  const [uploadingProjDoc, setUploadingProjDoc] = useState(false);
+
   const [showAddInvoice, setShowAddInvoice] = useState(false);
   const [invoiceForm, setInvoiceForm] = useState({
     client_name: '',
@@ -112,6 +134,98 @@ const ProjectDetail = () => {
     }
   };
 
+  const handleOpenEditExpense = (exp) => {
+    setEditingExpense(exp);
+    setEditExpenseForm({
+      category: exp.category || 'MATERIALES',
+      description: exp.description || '',
+      amount: exp.amount || '',
+      expense_date: new Date(exp.expense_date || exp.created_at).toISOString().split('T')[0],
+      is_paid: exp.is_paid || false,
+      mini_budget_id: exp.mini_budget_id || 'otros'
+    });
+    setShowEditExpense(true);
+  };
+
+  const handleEditExpense = async (e) => {
+    e.preventDefault();
+    if (!editExpenseForm.amount || !editExpenseForm.description || !editingExpense) return;
+    try {
+      setLoading(true);
+      await api.put(`/finance/expenses/${editingExpense.id}`, {
+        category: editExpenseForm.category,
+        description: editExpenseForm.description,
+        amount: parseFloat(editExpenseForm.amount),
+        expense_date: new Date(editExpenseForm.expense_date).toISOString(),
+        is_paid: editExpenseForm.is_paid,
+        mini_budget_id: editExpenseForm.mini_budget_id === 'otros' ? null : editExpenseForm.mini_budget_id
+      });
+      setShowEditExpense(false);
+      fetchProjectData();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error al editar el gasto.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProjectDocs = async () => {
+    try {
+      const res = await api.get(`/documents/project/${id}`);
+      setProjectDocs(res.data);
+    } catch (err) {
+      console.error('Error fetching project documents:', err);
+    }
+  };
+
+  const handleUploadProjDoc = async (e) => {
+    e.preventDefault();
+    if (!uploadProjDocForm.file) {
+      alert('Por favor seleccione un archivo para subir.');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('file', uploadProjDocForm.file);
+    formData.append('category', uploadProjDocForm.category);
+    formData.append('title', uploadProjDocForm.title);
+    
+    setUploadingProjDoc(true);
+    try {
+      await api.post(`/documents/project/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      alert('Documento subido con éxito y registrado en la bitácora.');
+      setShowUploadProjDoc(false);
+      setUploadProjDocForm({
+        category: 'Entrega de EPP',
+        title: 'Entrega de EPP - Ley 16.744 / DS 594',
+        file: null
+      });
+      fetchProjectDocs();
+      fetchProjectData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error al subir el documento de obra.');
+    } finally {
+      setUploadingProjDoc(false);
+    }
+  };
+
+  const handleDeleteProjDoc = async (docId) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este documento de la carpeta de la obra?')) {
+      return;
+    }
+    try {
+      await api.delete(`/documents/${docId}`);
+      alert('Documento eliminado.');
+      fetchProjectDocs();
+      fetchProjectData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error al eliminar el documento.');
+    }
+  };
+
   const handleCreateInvoice = async (e) => {
     e.preventDefault();
     if (!invoiceForm.total_amount || !invoiceForm.client_name) return;
@@ -148,6 +262,7 @@ const ProjectDetail = () => {
       
       const invRes = await api.get(`/finance/invoices?project_id=${id}`);
       setInvoices(invRes.data);
+      await fetchProjectDocs();
     } catch (error) {
       console.error('Error fetching project detail:', error);
     } finally {
@@ -399,6 +514,7 @@ const ProjectDetail = () => {
           { id: 'workers', label: 'Dotación de Personal', icon: Users, count: project.assignments?.filter(a => a.is_active).length || 0 },
           { id: 'budget', label: 'Presupuesto', icon: DollarSign },
           { id: 'finance', label: 'Finanzas y Gastos', icon: Briefcase },
+          { id: 'documents', label: 'Carpeta de Obra', icon: Folder, count: projectDocs?.length || 0 },
           { id: 'history', label: 'Bitácora de Obra', icon: ClipboardList, count: project.logs?.length || 0 }
         ].map((tab) => (
           <button
@@ -718,6 +834,7 @@ const ProjectDetail = () => {
                           <th className="px-4 py-3">Descripción</th>
                           <th className="px-4 py-3 text-right">Monto</th>
                           <th className="px-4 py-3 text-center">Estado</th>
+                          {canManageFinance && <th className="px-4 py-3 text-center">Acciones</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
@@ -766,6 +883,17 @@ const ProjectDetail = () => {
                                 </span>
                               )}
                             </td>
+                            {canManageFinance && (
+                              <td className="px-4 py-3 text-center">
+                                <button
+                                  onClick={() => handleOpenEditExpense(exp)}
+                                  className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                                  title="Editar Gasto"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
@@ -805,26 +933,37 @@ const ProjectDetail = () => {
                           </div>
                           <div className="flex justify-between items-center pt-2 border-t border-white/5">
                             <span className="text-slate-500 font-bold uppercase text-[10px]">Estado</span>
-                            {['ADMIN', 'SUPER_ADMIN'].includes(userRole) ? (
-                              <button
-                                onClick={() => handleToggleExpensePaid(exp.id, exp.is_paid)}
-                                className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase transition-all border ${
+                            <div className="flex items-center gap-2">
+                              {['ADMIN', 'SUPER_ADMIN'].includes(userRole) ? (
+                                <button
+                                  onClick={() => handleToggleExpensePaid(exp.id, exp.is_paid)}
+                                  className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase transition-all border ${
+                                    exp.is_paid
+                                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                      : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                  }`}
+                                >
+                                  {exp.is_paid ? 'PAGADO' : 'IMPAGO'}
+                                </button>
+                              ) : (
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
                                   exp.is_paid
-                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                    : 'bg-red-500/10 text-red-400 border-red-500/20'
-                                }`}
-                              >
-                                {exp.is_paid ? 'PAGADO' : 'IMPAGO'}
-                              </button>
-                            ) : (
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                                exp.is_paid
-                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                              }`}>
-                                {exp.is_paid ? 'PAGADO' : 'IMPAGO'}
-                              </span>
-                            )}
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                }`}>
+                                  {exp.is_paid ? 'PAGADO' : 'IMPAGO'}
+                                </span>
+                              )}
+                              {canManageFinance && (
+                                <button
+                                  onClick={() => handleOpenEditExpense(exp)}
+                                  className="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-all"
+                                  title="Editar Gasto"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1252,6 +1391,128 @@ const ProjectDetail = () => {
           </div>
         )}
 
+        {activeTab === 'documents' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Carpeta de Obra</h3>
+                <p className="text-slate-400 text-xs">Documentos técnicos, planos y registros de seguridad (EPP) de este proyecto.</p>
+              </div>
+              {['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER', 'PROJECT_MANAGER'].includes(userRole) && (
+                <button
+                  onClick={() => setShowUploadProjDoc(true)}
+                  className="btn-primary py-2.5 px-5 font-bold shadow-lg shadow-blue-600/20 text-xs flex items-center gap-2"
+                >
+                  <Plus size={16} /> Subir Documento de Obra
+                </button>
+              )}
+            </div>
+
+            {/* Desktop documents list */}
+            <div className="hidden md:block glass-card overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-white/5 text-[10px] uppercase font-bold text-slate-400 border-b border-white/5 tracking-wider">
+                    <th className="px-6 py-4">Documento</th>
+                    <th className="px-6 py-4">Categoría</th>
+                    <th className="px-6 py-4">Subido el</th>
+                    <th className="px-6 py-4 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-sm">
+                  {projectDocs.map((doc) => (
+                    <tr key={doc.id} className="hover:bg-white/[0.01] transition-colors text-slate-300">
+                      <td className="px-6 py-4 font-medium text-white">{doc.title}</td>
+                      <td className="px-6 py-4">
+                        <span className="px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full font-bold uppercase text-[9px]">
+                          {doc.category}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-400">
+                        {new Date(doc.created_at).toLocaleDateString('es-CL')}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <a
+                            href={api.defaults.baseURL ? `${api.defaults.baseURL.replace('/api/v1', '')}${doc.file_path}` : doc.file_path}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                            title="Descargar / Ver"
+                          >
+                            <Download size={14} />
+                          </a>
+                          {['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'].includes(userRole) && (
+                            <button
+                              onClick={() => handleDeleteProjDoc(doc.id)}
+                              className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all"
+                              title="Eliminar Documento"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {projectDocs.length === 0 && (
+                    <tr>
+                      <td colSpan="4" className="text-center py-10 text-slate-500 italic text-sm">
+                        No hay documentos registrados para esta obra.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile documents list */}
+            <div className="md:hidden flex flex-col gap-4">
+              {projectDocs.map((doc) => (
+                <div key={doc.id} className="bg-slate-900/40 border border-white/5 rounded-xl p-4 space-y-2 text-xs text-slate-300">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-bold uppercase text-[10px]">Título</span>
+                    <span className="text-white font-medium">{doc.title}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-bold uppercase text-[10px]">Categoría</span>
+                    <span className="px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full font-bold uppercase text-[9px]">
+                      {doc.category}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-bold uppercase text-[10px]">Fecha</span>
+                    <span>{new Date(doc.created_at).toLocaleDateString('es-CL')}</span>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                    <a
+                      href={api.defaults.baseURL ? `${api.defaults.baseURL.replace('/api/v1', '')}${doc.file_path}` : doc.file_path}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                    >
+                      <Download size={14} />
+                    </a>
+                    {['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'].includes(userRole) && (
+                      <button
+                        onClick={() => handleDeleteProjDoc(doc.id)}
+                        className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {projectDocs.length === 0 && (
+                <div className="text-center py-10 text-slate-500 italic text-sm">
+                  No hay documentos registrados para esta obra.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'history' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Form to leave progress note */}
@@ -1665,6 +1926,191 @@ const ProjectDetail = () => {
                   className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-md transition-all font-bold"
                 >
                   Registrar Gasto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Editar Gasto Modal */}
+      {showEditExpense && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-bold text-white mb-2">Editar Gasto</h3>
+            <p className="text-slate-400 mb-6 text-sm">Modifica los detalles del egreso de esta obra.</p>
+            <form onSubmit={handleEditExpense} className="space-y-4">
+              <div>
+                <label className="label-neutral block mb-2">Categoría</label>
+                <select
+                  value={editExpenseForm.category}
+                  onChange={(e) => setEditExpenseForm({ ...editExpenseForm, category: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm cursor-pointer"
+                >
+                  <option value="MATERIALES">Materiales</option>
+                  <option value="MANO_DE_OBRA">Mano de Obra</option>
+                  <option value="MAQUINARIA">Maquinaria / Equipos</option>
+                  <option value="HERRAMIENTAS">Herramientas</option>
+                  <option value="SUBCONTRATO">Subcontratos</option>
+                  <option value="VARIOS">Varios</option>
+                  <option value="OTROS">Otros</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="label-neutral block mb-2">Presupuesto Asociado (Partida)</label>
+                <select
+                  value={editExpenseForm.mini_budget_id}
+                  onChange={(e) => setEditExpenseForm({ ...editExpenseForm, mini_budget_id: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm cursor-pointer"
+                >
+                  <option value="otros">Otros / Gasto General</option>
+                  {project.mini_budgets?.map(mini => (
+                    <option key={mini.id} value={mini.id}>{mini.description} (${parseFloat(mini.amount).toLocaleString('es-CL')})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Descripción</label>
+                <input 
+                  type="text"
+                  required
+                  placeholder="Ej: Compra de cemento, Almuerzo personal"
+                  value={editExpenseForm.description}
+                  onChange={(e) => setEditExpenseForm({ ...editExpenseForm, description: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Monto ($)</label>
+                <input 
+                  type="number"
+                  required
+                  min="1"
+                  placeholder="Monto del gasto"
+                  value={editExpenseForm.amount}
+                  onChange={(e) => setEditExpenseForm({ ...editExpenseForm, amount: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Fecha de Gasto</label>
+                <input 
+                  type="date"
+                  required
+                  value={editExpenseForm.expense_date}
+                  onChange={(e) => setEditExpenseForm({ ...editExpenseForm, expense_date: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 py-2">
+                <input 
+                  type="checkbox"
+                  id="edit_expense_is_paid"
+                  checked={editExpenseForm.is_paid}
+                  onChange={(e) => setEditExpenseForm({ ...editExpenseForm, is_paid: e.target.checked })}
+                  className="w-4 h-4 rounded border-white/10 bg-slate-800 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="edit_expense_is_paid" className="text-sm text-slate-300 cursor-pointer select-none">¿Ya está pagado?</label>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowEditExpense(false)}
+                  className="flex-1 py-3 text-slate-400 hover:text-white font-bold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-md transition-all font-bold"
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Subir Documento de Obra Modal */}
+      {showUploadProjDoc && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-bold text-white mb-2">Subir Documento de Obra</h3>
+            <p className="text-slate-400 mb-6 text-sm">Carga un documento para la carpeta digital del proyecto (por ejemplo, registros de entrega de EPP).</p>
+            <form onSubmit={handleUploadProjDoc} className="space-y-4">
+              <div>
+                <label className="label-neutral block mb-2">Categoría</label>
+                <select
+                  value={uploadProjDocForm.category}
+                  onChange={(e) => {
+                    const cat = e.target.value;
+                    let defaultTitle = uploadProjDocForm.title;
+                    if (cat === 'Entrega de EPP') {
+                      defaultTitle = 'Entrega de EPP - Ley 16.744 / DS 594';
+                    } else if (cat === 'Seguridad e Higiene') {
+                      defaultTitle = 'Plan de Seguridad e Higiene';
+                    } else if (cat === 'Contrato de Obra') {
+                      defaultTitle = 'Contrato de Obra firmado';
+                    } else if (cat === 'Planos') {
+                      defaultTitle = 'Planos Técnicos del Proyecto';
+                    }
+                    setUploadProjDocForm({ ...uploadProjDocForm, category: cat, title: defaultTitle });
+                  }}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm cursor-pointer"
+                >
+                  <option value="Entrega de EPP">Entrega de EPP (Seguridad DS 594)</option>
+                  <option value="Seguridad e Higiene">Seguridad e Higiene</option>
+                  <option value="Planos">Planos y Diseños</option>
+                  <option value="Contrato de Obra">Contrato de Obra</option>
+                  <option value="Otros">Otros Documentos</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Título del Documento</label>
+                <input 
+                  type="text"
+                  required
+                  placeholder="Ej: Certificado Entrega EPP Junio 2026"
+                  value={uploadProjDocForm.title}
+                  onChange={(e) => setUploadProjDocForm({ ...uploadProjDocForm, title: e.target.value })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="label-neutral block mb-2">Archivo (PDF, Imagen, Word)</label>
+                <input 
+                  type="file"
+                  required
+                  onChange={(e) => setUploadProjDocForm({ ...uploadProjDocForm, file: e.target.files[0] })}
+                  className="w-full bg-slate-800/80 p-3 rounded-xl border border-white/10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm cursor-pointer"
+                  accept=".pdf,.docx,.doc,.jpg,.jpeg,.png,.webp"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowUploadProjDoc(false)}
+                  className="flex-1 py-3 text-slate-400 hover:text-white font-bold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  disabled={uploadingProjDoc}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-md transition-all font-bold flex items-center justify-center gap-2"
+                >
+                  {uploadingProjDoc ? <Loader2 size={16} className="animate-spin" /> : null}
+                  {uploadingProjDoc ? 'Subiendo...' : 'Subir Archivo'}
                 </button>
               </div>
             </form>

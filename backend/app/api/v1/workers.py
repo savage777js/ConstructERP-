@@ -674,7 +674,7 @@ def approve_vacation_request(
     current_user = Depends(get_current_user)
 ):
     from app.models.core import UserRole
-    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HR_MANAGER]:
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.PROJECT_MANAGER]:
         raise HTTPException(status_code=403, detail="No tiene permisos para autorizar vacaciones.")
         
     query = db.query(VacationRequest).join(Employee).filter(VacationRequest.id == request_id)

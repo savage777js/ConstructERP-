@@ -494,3 +494,96 @@ async def process_document_ocr(
         doc.ocr_status = "FAILED"
         db.commit()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/project/{project_id}")
+async def upload_project_document(
+    project_id: int,
+    category: str = Form(...),
+    title: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(deps.get_db),
+    current_user: core.User = Depends(deps.get_current_user),
+):
+    """Sube un documento para un proyecto/obra."""
+    from app.models.core import Project
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Proyecto no encontrado")
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".pdf", ".docx", ".doc", ".webp", ".jfif", ".heic", ".heif"]:
+        raise HTTPException(status_code=400, detail="Formato de archivo no soportado.")
+
+    contents = await file.read()
+    unique_filename = f"project_{project_id}_{uuid.uuid4()}{ext}"
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    
+    with open(file_path, "wb") as f:
+        f.write(contents)
+
+    org_id = current_user.organization_id if current_user.organization_id else project.organization_id
+
+    db_doc = core.Document(
+        organization_id=org_id,
+        title=title,
+        file_path=f"/uploads/documents/{unique_filename}",
+        file_type=file.content_type,
+        file_size=len(contents),
+        category=category,
+        project_id=project_id,
+        created_by=current_user.id,
+        ocr_status="PENDING"
+    )
+    db.add(db_doc)
+    
+    # Agregar nota a la bitácora del proyecto
+    try:
+        from app.services.project_service import ProjectService
+        log_content = f"Documento subido a la carpeta de la obra: '{title}' (Categoría: {category}) por {current_user.full_name}."
+        ProjectService.create_project_log(
+            db=db,
+            project_id=project_id,
+            content=log_content,
+            user_id=current_user.id,
+            log_type="SYSTEM",
+            organization_id=org_id
+        )
+    except Exception as log_err:
+        print(f"Error logueando subida de documento: {log_err}")
+
+    db.commit()
+    db.refresh(db_doc)
+
+    return {
+        "id": str(db_doc.id),
+        "title": db_doc.title,
+        "file_path": db_doc.file_path,
+        "category": db_doc.category,
+        "created_at": db_doc.created_at
+    }
+
+
+@router.get("/project/{project_id}")
+def list_project_documents(
+    project_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: core.User = Depends(deps.get_current_user),
+):
+    """Lista todos los documentos cargados para un proyecto específico."""
+    from app.models.core import Project
+    query_proj = db.query(Project).filter(Project.id == project_id)
+    if current_user.organization_id:
+        query_proj = query_proj.filter(Project.organization_id == current_user.organization_id)
+    project = query_proj.first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Proyecto no encontrado")
+
+    docs = db.query(core.Document).filter(core.Document.project_id == project_id).all()
+    return [{
+        "id": str(d.id),
+        "title": d.title,
+        "file_path": d.file_path,
+        "category": d.category,
+        "created_at": d.created_at
+    } for d in docs]
