@@ -13,7 +13,7 @@ router = APIRouter()
 
 # Dependencias de rol — MANAGEMENT (Gerente General) es solo lectura
 allow_manage_proj = RoleChecker([UserRole.PROJECT_MANAGER])
-allow_read_proj = RoleChecker([UserRole.PROJECT_MANAGER, UserRole.MANAGEMENT])
+allow_read_proj = RoleChecker([UserRole.PROJECT_MANAGER, UserRole.MANAGEMENT, UserRole.HR_MANAGER])
 allow_assign_worker = RoleChecker([UserRole.PROJECT_MANAGER])
 
 @router.get("/", response_model=List[ProjectOut], dependencies=[Depends(allow_read_proj)])

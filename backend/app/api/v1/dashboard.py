@@ -10,7 +10,8 @@ router = APIRouter()
 allow_read_dashboard = RoleChecker([
     UserRole.ADMIN, 
     UserRole.PROJECT_MANAGER, 
-    UserRole.MANAGEMENT
+    UserRole.MANAGEMENT,
+    UserRole.HR_MANAGER
 ])
 
 @router.get("/summary", dependencies=[Depends(allow_read_dashboard)])
