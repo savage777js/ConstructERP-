@@ -64,6 +64,7 @@ const Notifications = () => {
       case 'VACATION_REQUEST': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
       case 'VACATION_APPROVED': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
       case 'PROFITABILITY_ALERT': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+      case 'EPP_ALERT': return 'bg-red-500/10 text-red-400 border-red-500/20';
       default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
     }
   };
@@ -77,6 +78,7 @@ const Notifications = () => {
       case 'VACATION_REQUEST': return <Calendar size={12} />;
       case 'VACATION_APPROVED': return <CheckCircle2 size={12} />;
       case 'PROFITABILITY_ALERT': return <DollarSign size={12} />;
+      case 'EPP_ALERT': return <AlertTriangle size={12} />;
       default: return <Bell size={12} />;
     }
   };
@@ -154,6 +156,7 @@ const Notifications = () => {
                       notif.type === 'VACATION_REQUEST' ? 'SOLICITUD VACACIONES' :
                       notif.type === 'VACATION_APPROVED' ? 'VACACIONES APROBADAS' :
                       notif.type === 'PROFITABILITY_ALERT' ? 'MARGEN CRÍTICO' :
+                      notif.type === 'EPP_ALERT' ? 'ALERTA EPP' :
                       notif.type.replace('_', ' ')
                     }
                   </span>

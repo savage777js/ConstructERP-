@@ -431,6 +431,10 @@ class ProjectService:
         db.add(log)
         db.commit()
         db.refresh(mini)
+        
+        # Recalculate progress after budget change
+        ProjectService.recalculate_project_progress(db, project_id)
+        
         return mini
 
     @staticmethod
@@ -452,6 +456,10 @@ class ProjectService:
         db.add(log)
         db.delete(mini)
         db.commit()
+        
+        # Recalculate progress after budget change
+        ProjectService.recalculate_project_progress(db, project_id)
+        
         return {"message": "Sub-presupuesto eliminado"}
 
     @staticmethod
@@ -546,14 +554,20 @@ class ProjectService:
         if not project:
             return
         
-        # If budget is 0 or undefined, progress is 0
-        if not project.budget or project.budget <= 0:
+        from app.models.core import MiniBudget
+        from sqlalchemy import func
+        
+        # Calculate sum of mini_budgets (partidas)
+        mini_budget_sum = db.query(func.sum(MiniBudget.amount)).filter(MiniBudget.project_id == project_id).scalar() or 0
+        ref_budget = float(mini_budget_sum) if mini_budget_sum > 0 else float(project.budget or 0)
+        
+        # If both are 0 or undefined, progress is 0
+        if ref_budget <= 0:
             project.progress = 0
             db.commit()
             return
             
         # Sum of paid expenses
-        from sqlalchemy import func
         paid_sum = db.query(
             func.sum(Expense.amount)
         ).filter(
@@ -562,7 +576,7 @@ class ProjectService:
         ).scalar() or 0
         
         # Calculate percentage
-        percentage = int((float(paid_sum) / float(project.budget)) * 100)
+        percentage = int((float(paid_sum) / ref_budget) * 100)
         percentage = max(0, min(100, percentage))
         
         project.progress = percentage

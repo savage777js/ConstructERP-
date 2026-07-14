@@ -19,7 +19,8 @@ class NotificationService:
                     NotificationType.CONTRACT_EXPIRING,
                     NotificationType.SYSTEM_INFO,
                     NotificationType.VACATION_ALERT,
-                    NotificationType.VACATION_APPROVED
+                    NotificationType.VACATION_APPROVED,
+                    NotificationType.EPP_ALERT
                 ]))
             elif role == "PROJECT_MANAGER":
                 query = query.filter(Notification.type.in_([
@@ -64,6 +65,7 @@ class NotificationService:
         NotificationService._check_project_profitability(db)
         NotificationService._check_addendum_expirations(db)
         NotificationService._check_accumulated_vacations(db)
+        NotificationService._check_project_epp_documents(db)
 
     @staticmethod
     def _create_notification_if_not_exists(db: Session, n_type: NotificationType, ref_id: int, title: str, message: str, priority: NotificationPriority, link: str = None):
@@ -212,3 +214,26 @@ class NotificationService:
                 priority=NotificationPriority.WARNING,
                 link="/workers"
             )
+
+    @staticmethod
+    def _check_project_epp_documents(db: Session):
+        active_projects = db.query(Project).filter(Project.status == "ACTIVE").all()
+        for proj in active_projects:
+            has_epp = False
+            for doc in proj.documents:
+                cat = (doc.category or "").lower()
+                title = (doc.title or "").lower()
+                if "epp" in title or "epp" in cat or any(x in title for x in ["epp", "entrega", "proteccion", "protección", "casco", "zapatos", "chaleco"]):
+                    has_epp = True
+                    break
+            
+            if not has_epp:
+                NotificationService._create_notification_if_not_exists(
+                    db,
+                    NotificationType.EPP_ALERT,
+                    proj.id,
+                    title=f"Falta Documento EPP - Obra: {proj.name}",
+                    message=f"No se ha subido ningún documento de EPP obligatorio en la carpeta de la obra '{proj.name}'. Por favor, suba el documento correspondiente para cumplir con la normativa chilena.",
+                    priority=NotificationPriority.WARNING,
+                    link=f"/projects/{proj.id}"
+                )

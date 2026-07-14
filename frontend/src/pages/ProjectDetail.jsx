@@ -861,7 +861,7 @@ const ProjectDetail = () => {
                             </td>
                             <td className="px-4 py-3 text-right font-bold text-white">${parseFloat(exp.amount).toLocaleString('es-CL')}</td>
                             <td className="px-4 py-3 text-center">
-                              {['ADMIN', 'SUPER_ADMIN'].includes(userRole) ? (
+                              {canManageFinance ? (
                                 <button
                                   onClick={() => handleToggleExpensePaid(exp.id, exp.is_paid)}
                                   className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase transition-all border ${
@@ -934,7 +934,7 @@ const ProjectDetail = () => {
                           <div className="flex justify-between items-center pt-2 border-t border-white/5">
                             <span className="text-slate-500 font-bold uppercase text-[10px]">Estado</span>
                             <div className="flex items-center gap-2">
-                              {['ADMIN', 'SUPER_ADMIN'].includes(userRole) ? (
+                              {canManageFinance ? (
                                 <button
                                   onClick={() => handleToggleExpensePaid(exp.id, exp.is_paid)}
                                   className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase transition-all border ${

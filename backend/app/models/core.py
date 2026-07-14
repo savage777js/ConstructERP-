@@ -67,6 +67,7 @@ class NotificationType(str, enum.Enum):
     VACATION_REQUEST = "VACATION_REQUEST"
     VACATION_APPROVED = "VACATION_APPROVED"
     PROFITABILITY_ALERT = "PROFITABILITY_ALERT"
+    EPP_ALERT = "EPP_ALERT"
 
 class NotificationPriority(str, enum.Enum):
     INFO = "INFO"
@@ -277,6 +278,15 @@ class ProjectAssignment(Base):
         has_permits = False
         has_epp = False
         
+        # Check if project has an EPP document uploaded
+        if self.project:
+            for doc in self.project.documents:
+                cat = (doc.category or "").lower()
+                title = (doc.title or "").lower()
+                if "epp" in title or "epp" in cat or any(x in title for x in ["epp", "entrega", "proteccion", "protección", "casco", "zapatos", "chaleco"]):
+                    has_epp = True
+                    break
+
         for doc in docs:
             cat = (doc.category or "").lower()
             title = (doc.title or "").lower()
@@ -290,8 +300,9 @@ class ProjectAssignment(Base):
                 has_permits = True
                 
             # 3. EPP
-            if "epp" in title or "epp" in cat or any(x in title for x in ["epp", "entrega", "proteccion", "protección", "casco", "zapatos", "chaleco"]):
-                has_epp = True
+            if not has_epp:
+                if "epp" in title or "epp" in cat or any(x in title for x in ["epp", "entrega", "proteccion", "protección", "casco", "zapatos", "chaleco"]):
+                    has_epp = True
                 
         # Overall status severity
         if has_contract and has_permits and has_epp:
