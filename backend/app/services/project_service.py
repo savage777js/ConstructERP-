@@ -567,16 +567,26 @@ class ProjectService:
             db.commit()
             return
             
-        # Sum of paid expenses
-        paid_sum = db.query(
+        # Sum of paid expenses and paid invoices
+        from app.models.core import Invoice
+        paid_expenses = db.query(
             func.sum(Expense.amount)
         ).filter(
             Expense.project_id == project_id,
             Expense.is_paid == True
         ).scalar() or 0
         
+        paid_invoices = db.query(
+            func.sum(Invoice.total_amount)
+        ).filter(
+            Invoice.project_id == project_id,
+            Invoice.status == "PAID"
+        ).scalar() or 0
+        
+        total_paid = float(paid_expenses) + float(paid_invoices)
+        
         # Calculate percentage
-        percentage = int((float(paid_sum) / ref_budget) * 100)
+        percentage = int((total_paid / ref_budget) * 100)
         percentage = max(0, min(100, percentage))
         
         project.progress = percentage

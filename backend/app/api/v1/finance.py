@@ -76,6 +76,12 @@ def create_invoice(
     db.add(invoice)
     db.commit()
     db.refresh(invoice)
+    
+    # Recalculate project progress
+    if invoice.project_id:
+        from app.services.project_service import ProjectService
+        ProjectService.recalculate_project_progress(db, invoice.project_id)
+        
     return invoice
 
 @router.patch("/invoices/{invoice_id}/status", response_model=InvoiceOut, dependencies=[Depends(allow_write_finance)])
@@ -94,6 +100,12 @@ def update_invoice_status(
     invoice.status = status_in
     db.commit()
     db.refresh(invoice)
+    
+    # Recalculate project progress
+    if invoice.project_id:
+        from app.services.project_service import ProjectService
+        ProjectService.recalculate_project_progress(db, invoice.project_id)
+        
     return invoice
 
 @router.patch("/expenses/{expense_id}/status", response_model=ExpenseOut, dependencies=[Depends(allow_write_finance)])
