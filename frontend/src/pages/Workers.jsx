@@ -491,6 +491,30 @@ const Workers = () => {
                         <p className="text-white text-sm font-semibold">{worker.role}</p>
                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block leading-tight mt-0.5">
                           {worker.contract_type?.replace('_', ' ') || 'INDEFINIDO'}
+                          {worker.contract_type === 'PLAZO_FIJO' && worker.contract_end_date && (
+                            ` (Vence: ${new Date(worker.contract_end_date).toLocaleDateString('es-CL')})`
+                          )}
+                          {(() => {
+                            if (worker.status !== 'ACTIVE' || worker.contract_type !== 'PLAZO_FIJO' || !worker.contract_end_date) return null;
+                            const end = new Date(worker.contract_end_date);
+                            const now = new Date();
+                            const diff = end - now;
+                            const diffDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                            if (diffDays < 0) {
+                              return (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-[9px] text-rose-400 font-bold ml-1.5 animate-pulse" title="¡Este contrato ya venció y debería pasar a ser Indefinido si sigue trabajando!">
+                                  Vencido (Pasar a Indefinido)
+                                </span>
+                              );
+                            } else if (diffDays <= 30) {
+                              return (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[9px] text-amber-400 font-bold ml-1.5" title={`Vence en ${diffDays} días (Próximo a pasar a Indefinido)`}>
+                                  Vence en {diffDays}d
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                           {(worker.afp || worker.health_system) && (
                             ` · AFP: ${worker.afp || 'MODELO'} (${AFP_RATES[worker.afp?.toUpperCase()] || AFP_RATES.MODELO}%) · SALUD: ${worker.health_system || 'FONASA'}`
                           )}
@@ -612,6 +636,30 @@ const Workers = () => {
                       <span className="text-[10px] text-slate-500 block uppercase font-bold">Tipo Contrato / Cotizaciones</span>
                       <span className="text-slate-300 font-medium uppercase text-[11px] block leading-tight mt-0.5">
                         {worker.contract_type?.replace('_', ' ') || 'INDEFINIDO'}
+                        {worker.contract_type === 'PLAZO_FIJO' && worker.contract_end_date && (
+                          ` (Vence: ${new Date(worker.contract_end_date).toLocaleDateString('es-CL')})`
+                        )}
+                        {(() => {
+                          if (worker.status !== 'ACTIVE' || worker.contract_type !== 'PLAZO_FIJO' || !worker.contract_end_date) return null;
+                          const end = new Date(worker.contract_end_date);
+                          const now = new Date();
+                          const diff = end - now;
+                          const diffDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                          if (diffDays < 0) {
+                            return (
+                              <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-[8px] text-rose-400 font-bold ml-1 animate-pulse">
+                                Vencido
+                              </span>
+                            );
+                          } else if (diffDays <= 30) {
+                            return (
+                              <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[8px] text-amber-400 font-bold ml-1">
+                                Vence pronto
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
                         {(worker.afp || worker.health_system) && (
                           ` (${worker.afp || 'MODELO'} ${AFP_RATES[worker.afp?.toUpperCase()] || AFP_RATES.MODELO}% / ${worker.health_system || 'FONASA'})`
                         )}

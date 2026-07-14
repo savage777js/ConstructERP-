@@ -192,9 +192,22 @@ async def import_workers_excel(
                                 errors.append(f"Fila {idx}: Formato de Fecha Término Contrato inválido.")
                                 continue
                 
-                if contract_type_raw not in ["INDEFINIDO", "PLAZO_FIJO"]:
-                    contract_type_raw = "INDEFINIDO"
-                
+                if contract_type_raw == "PLAZO_FIJO":
+                    if not contract_end_date:
+                        errors.append(f"Fila {idx}: La fecha de término es obligatoria para contratos a plazo fijo.")
+                        continue
+                    delta_days = (contract_end_date.date() - hire_date.date()).days
+                    if delta_days < 0:
+                        errors.append(f"Fila {idx}: La fecha de término del contrato debe ser posterior a la fecha de ingreso.")
+                        continue
+                    if delta_days > 730:
+                        errors.append(f"Fila {idx}: El contrato a plazo fijo no puede exceder los 2 años (730 días).")
+                        continue
+                    manual_roles = ["JORNALERO", "ALBAÑIL", "CARPINTERO", "ELECTRICISTA", "PLOMERO", "SOLDADOR", "BODEGUERO", "GUARDIA"]
+                    if role and role.upper() in manual_roles and delta_days > 365:
+                        errors.append(f"Fila {idx}: El contrato a plazo fijo para el cargo {role} no puede exceder de 1 año (365 días).")
+                        continue
+
                 new_worker = Employee(
                     organization_id=current_user.organization_id,
                     first_name=first_name,
@@ -327,6 +340,31 @@ def read_workers(
     workers = query.offset(skip).limit(limit).all()
     return workers
 
+def validate_contract_duration(contract_type: str, hire_date, contract_end_date, role: str):
+    if contract_type == "PLAZO_FIJO":
+        if not contract_end_date:
+            raise HTTPException(status_code=400, detail="La fecha de término es obligatoria para contratos a plazo fijo")
+        if not hire_date:
+            raise HTTPException(status_code=400, detail="La fecha de ingreso es obligatoria")
+            
+        from datetime import datetime, date
+        h_date = hire_date.date() if isinstance(hire_date, datetime) else hire_date
+        e_date = contract_end_date.date() if isinstance(contract_end_date, datetime) else contract_end_date
+        
+        if e_date < h_date:
+            raise HTTPException(status_code=400, detail="La fecha de término del contrato debe ser posterior a la fecha de ingreso")
+            
+        delta_days = (e_date - h_date).days
+        if delta_days > 730:
+            raise HTTPException(status_code=400, detail="El contrato a plazo fijo no puede exceder los 2 años (730 días) en ningún caso.")
+            
+        manual_roles = ["JORNALERO", "ALBAÑIL", "CARPINTERO", "ELECTRICISTA", "PLOMERO", "SOLDADOR", "BODEGUERO", "GUARDIA"]
+        if role and role.upper() in manual_roles and delta_days > 365:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"El contrato a plazo fijo para el cargo {role} no puede exceder de 1 año (365 días) según la legislación chilena."
+            )
+
 def generate_and_save_unsigned_contract(db: Session, worker: Employee, created_by_id: int = None):
     worker_data = {
         "first_name": worker.first_name,
@@ -368,6 +406,13 @@ def create_worker(
 ):
     if not validate_rut(worker_in.rut):
         raise HTTPException(status_code=400, detail="RUT inválido")
+    
+    validate_contract_duration(
+        worker_in.contract_type,
+        worker_in.hire_date,
+        worker_in.contract_end_date,
+        worker_in.role
+    )
     
     worker_in.rut = format_rut(worker_in.rut)
     
@@ -429,6 +474,18 @@ def update_worker(
         raise HTTPException(status_code=404, detail="Trabajador no encontrado o no pertenece a su organización")
     
     update_data = worker_in.model_dump(exclude_unset=True)
+    
+    new_contract_type = update_data.get("contract_type", db_worker.contract_type)
+    new_hire_date = update_data.get("hire_date", db_worker.hire_date)
+    new_contract_end_date = update_data.get("contract_end_date", db_worker.contract_end_date)
+    new_role = update_data.get("role", db_worker.role)
+    
+    validate_contract_duration(
+        new_contract_type,
+        new_hire_date,
+        new_contract_end_date,
+        new_role
+    )
     
     if "rut" in update_data:
         if not validate_rut(update_data["rut"]):

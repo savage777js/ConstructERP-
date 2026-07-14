@@ -78,6 +78,30 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
     if (formData.salary === undefined || formData.salary === '' || formData.salary < 553553) {
       newErrors.salary = 'El sueldo mínimo es $553.553';
     }
+
+    if (formData.contract_type === 'PLAZO_FIJO') {
+      if (!formData.contract_end_date) {
+        newErrors.contract_end_date = 'La fecha de término es obligatoria para plazo fijo';
+      } else {
+        const hire = new Date(formData.hire_date);
+        const end = new Date(formData.contract_end_date);
+        if (end < hire) {
+          newErrors.contract_end_date = 'La fecha de término debe ser posterior a la de ingreso';
+        } else {
+          const diffTime = end - hire;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays > 730) {
+            newErrors.contract_end_date = 'El contrato a plazo fijo no puede exceder de 2 años (730 días)';
+          } else {
+            const manualRoles = ['JORNALERO', 'ALBAÑIL', 'CARPINTERO', 'ELECTRICISTA', 'PLOMERO', 'SOLDADOR', 'BODEGUERO', 'GUARDIA'];
+            if (manualRoles.includes(finalRole?.toUpperCase()) && diffDays > 365) {
+              newErrors.contract_end_date = `Para el cargo ${finalRole}, el plazo fijo no puede exceder de 1 año (365 días)`;
+            }
+          }
+        }
+      }
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -321,9 +345,13 @@ const WorkerForm = ({ onClose, onSuccess, workerData = null }) => {
                   name="contract_end_date"
                   value={formData.contract_end_date}
                   onChange={handleChange}
-                  className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                  className={`w-full bg-slate-800/50 border ${errors.contract_end_date ? 'border-red-500' : 'border-white/10'} rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-amber-500 outline-none transition-all`}
                 />
-                <p className="text-[10px] text-slate-500 mt-1 italic">Habilita alertas automáticas de RRHH.</p>
+                {errors.contract_end_date ? (
+                  <p className="text-red-400 text-xs mt-1">{errors.contract_end_date}</p>
+                ) : (
+                  <p className="text-[10px] text-slate-500 mt-1 italic">Habilita alertas automáticas de RRHH.</p>
+                )}
               </div>
             )}
 
