@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.api import deps
+from datetime import datetime
 from app.ai.service import ai_service
 from app.models import core
 import base64
@@ -397,8 +398,36 @@ def delete_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Documento no encontrado o no pertenece a su organización")
         
+    # Delete associated DocumentData first to avoid NOT NULL constraint violations
+    db.query(core.DocumentData).filter(core.DocumentData.document_id == document_id).delete()
+    
+    # Log in project history if it's a project document
+    if doc.project_id:
+        try:
+            from app.services.project_service import ProjectService
+            log_content = f"Documento de obra eliminado: '{doc.title}' (Categoría: {doc.category}) por {current_user.full_name}."
+            ProjectService.create_project_log(
+                db=db,
+                project_id=doc.project_id,
+                content=log_content,
+                user_id=current_user.id,
+                log_type="SYSTEM",
+                organization_id=current_user.organization_id
+            )
+        except Exception as log_err:
+            print(f"Error logging document deletion: {log_err}")
+            
     db.delete(doc)
     db.commit()
+    
+    # Recalculate epp status if it's an EPP doc
+    if doc.project_id:
+        try:
+            from app.services.project_service import ProjectService
+            ProjectService.recalculate_project_progress(db, doc.project_id)
+        except Exception as err:
+            print(f"Error updating EPP status on delete: {err}")
+            
     return {"message": "Documento eliminado correctamente"}
 
 @router.post("/{document_id}/ocr", dependencies=[Depends(allow_ocr)])
@@ -587,3 +616,80 @@ def list_project_documents(
         "category": d.category,
         "created_at": d.created_at
     } for d in docs]
+
+
+@router.put("/{document_id}/replace")
+async def replace_document_file(
+    document_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(deps.get_db),
+    current_user: core.User = Depends(deps.get_current_user),
+):
+    """Reemplaza el archivo físico de un documento existente."""
+    doc = db.query(core.Document).filter(core.Document.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+        
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".pdf", ".docx", ".doc", ".webp", ".jfif", ".heic", ".heif"]:
+        raise HTTPException(status_code=400, detail="Formato de archivo no soportado.")
+        
+    contents = await file.read()
+    
+    # Save new file
+    unique_filename = f"replaced_{document_id}_{uuid.uuid4().hex[:8]}{ext}"
+    new_file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    with open(new_file_path, "wb") as f:
+        f.write(contents)
+        
+    doc.file_path = f"/uploads/documents/{unique_filename}"
+    doc.file_type = file.content_type
+    doc.file_size = len(contents)
+    doc.updated_at = datetime.utcnow()
+    
+    # Also update DocumentData binary content if it exists
+    doc_data = db.query(core.DocumentData).filter(core.DocumentData.document_id == doc.id).first()
+    if doc_data:
+        doc_data.content = contents
+        doc_data.updated_at = datetime.utcnow()
+    else:
+        new_data = core.DocumentData(
+            document_id=doc.id,
+            content=contents
+        )
+        db.add(new_data)
+        
+    # Log in project history if it's a project document
+    if doc.project_id:
+        try:
+            from app.services.project_service import ProjectService
+            log_content = f"Documento de obra reemplazado: '{doc.title}' (Categoría: {doc.category}) por {current_user.full_name}."
+            ProjectService.create_project_log(
+                db=db,
+                project_id=doc.project_id,
+                content=log_content,
+                user_id=current_user.id,
+                log_type="SYSTEM",
+                organization_id=current_user.organization_id
+            )
+        except Exception as log_err:
+            print(f"Error logging document replacement: {log_err}")
+            
+    db.commit()
+    db.refresh(doc)
+    
+    # Recalculate epp status if it's an EPP doc
+    if doc.project_id:
+        try:
+            from app.services.project_service import ProjectService
+            ProjectService.recalculate_project_progress(db, doc.project_id)
+        except Exception as err:
+            print(f"Error updating EPP status on replace: {err}")
+            
+    return {
+        "id": str(doc.id),
+        "title": doc.title,
+        "file_path": doc.file_path,
+        "category": doc.category,
+        "updated_at": doc.updated_at
+    }

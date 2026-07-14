@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { 
@@ -6,7 +6,7 @@ import {
   Plus, UserPlus, Info, Loader2, CheckCircle2, AlertCircle,
   Clock, ShieldCheck, HardHat, MoreVertical, Archive, AlertTriangle,
   Edit2, Settings, ClipboardList, Folder, Eye, X, Check, MessageSquare,
-  DollarSign, Download
+  DollarSign, Download, RefreshCw
 } from 'lucide-react';
 import ProjectForm from '../components/ProjectForm';
 
@@ -79,6 +79,8 @@ const ProjectDetail = () => {
     file: null
   });
   const [uploadingProjDoc, setUploadingProjDoc] = useState(false);
+  const fileInputRef = useRef(null);
+  const [activeReplaceDocId, setActiveReplaceDocId] = useState(null);
 
   const [showAddInvoice, setShowAddInvoice] = useState(false);
   const [invoiceForm, setInvoiceForm] = useState({
@@ -224,6 +226,39 @@ const ProjectDetail = () => {
     } catch (err) {
       alert(err.response?.data?.detail || 'Error al eliminar el documento.');
     }
+  };
+
+  const handleReplaceProjDoc = async (docId, file) => {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      await api.put(`/documents/${docId}/replace`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      alert('Documento reemplazado con éxito.');
+      fetchProjectDocs();
+      fetchProjectData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error al reemplazar el documento.');
+    }
+  };
+
+  const triggerReplaceDoc = (docId) => {
+    setActiveReplaceDocId(docId);
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const onReplaceFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && activeReplaceDocId) {
+      handleReplaceProjDoc(activeReplaceDocId, file);
+    }
+    e.target.value = null;
   };
 
   const handleCreateInvoice = async (e) => {
@@ -1450,6 +1485,15 @@ const ProjectDetail = () => {
                           </a>
                           {['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'].includes(userRole) && (
                             <button
+                              onClick={() => triggerReplaceDoc(doc.id)}
+                              className="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-all"
+                              title="Reemplazar Documento"
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                          )}
+                          {['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'].includes(userRole) && (
+                            <button
                               onClick={() => handleDeleteProjDoc(doc.id)}
                               className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all"
                               title="Eliminar Documento"
@@ -1501,6 +1545,14 @@ const ProjectDetail = () => {
                     </a>
                     {['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'].includes(userRole) && (
                       <button
+                        onClick={() => triggerReplaceDoc(doc.id)}
+                        className="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-all"
+                      >
+                        <RefreshCw size={14} />
+                      </button>
+                    )}
+                    {['ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'].includes(userRole) && (
+                      <button
                         onClick={() => handleDeleteProjDoc(doc.id)}
                         className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all"
                       >
@@ -1510,6 +1562,12 @@ const ProjectDetail = () => {
                   </div>
                 </div>
               ))}
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={onReplaceFileChange} 
+                className="hidden" 
+              />
               {projectDocs.length === 0 && (
                 <div className="text-center py-10 text-slate-500 italic text-sm">
                   No hay documentos registrados para esta obra.

@@ -287,9 +287,46 @@ class ProjectService:
                 created_by=user_id
             )
             db.add(db_doc)
-            print(f"✅ Anexo de contrato generado automáticamente para {worker.first_name} en {project.name}.")
+            print(f"[OK] Anexo de contrato generado automáticamente para {worker.first_name} en {project.name}.")
         except Exception as pdf_err:
-            print(f"❌ Error generando anexo de contrato PDF: {pdf_err}")
+            print(f"[ERROR] Error generando anexo de contrato PDF: {pdf_err}")
+
+        # Copy worker's existing documents to the project folder/records
+        try:
+            worker_docs = db.query(Document).filter(
+                Document.employee_id == worker.id,
+                Document.project_id == None
+            ).all()
+            
+            import shutil
+            for w_doc in worker_docs:
+                w_doc.ensure_local_file(db)
+                local_path = w_doc.file_path.lstrip('/')
+                if os.path.exists(local_path):
+                    ext = os.path.splitext(local_path)[1].lower()
+                    unique_name = f"project_copied_{project_id}_{uuid.uuid4().hex[:8]}{ext}"
+                    new_path = f"uploads/documents/{unique_name}"
+                    
+                    shutil.copy2(local_path, new_path)
+                    
+                    new_doc = Document(
+                        organization_id=project.organization_id or worker.organization_id,
+                        title=f"[{worker.first_name} {worker.last_name}] {w_doc.title}",
+                        file_path=f"/uploads/documents/{unique_name}",
+                        file_type=w_doc.file_type,
+                        file_size=w_doc.file_size,
+                        category=w_doc.category,
+                        project_id=project_id,
+                        created_by=user_id,
+                        ocr_status=w_doc.ocr_status,
+                        ocr_content=w_doc.ocr_content,
+                        extracted_data=w_doc.extracted_data
+                    )
+                    db.add(new_doc)
+                    db.flush()
+                    print(f"[OK] Copied worker doc {w_doc.title} to project {project_id}")
+        except Exception as copy_err:
+            print(f"[ERROR] Error copying worker documents to project folder: {copy_err}")
 
         # Log assignment
         log = ProjectLog(
