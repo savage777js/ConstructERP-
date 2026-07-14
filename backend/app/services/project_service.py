@@ -591,21 +591,17 @@ class ProjectService:
         if not project:
             return
         
-        from app.models.core import MiniBudget
         from sqlalchemy import func
         
-        # Calculate sum of mini_budgets (partidas)
-        mini_budget_sum = db.query(func.sum(MiniBudget.amount)).filter(MiniBudget.project_id == project_id).scalar() or 0
-        ref_budget = float(mini_budget_sum) if mini_budget_sum > 0 else float(project.budget or 0)
+        # Denominator is ALWAYS the initial/total budget of the project
+        ref_budget = float(project.budget or 0)
         
-        # If both are 0 or undefined, progress is 0
         if ref_budget <= 0:
             project.progress = 0
             db.commit()
             return
             
-        # Sum of paid expenses and paid invoices
-        from app.models.core import Invoice
+        # Sum ONLY paid expenses (excluding unpaid expenses and invoices)
         paid_expenses = db.query(
             func.sum(Expense.amount)
         ).filter(
@@ -613,17 +609,8 @@ class ProjectService:
             Expense.is_paid == True
         ).scalar() or 0
         
-        paid_invoices = db.query(
-            func.sum(Invoice.total_amount)
-        ).filter(
-            Invoice.project_id == project_id,
-            Invoice.status == "PAID"
-        ).scalar() or 0
-        
-        total_paid = float(paid_expenses) + float(paid_invoices)
-        
         # Calculate percentage
-        percentage = int((total_paid / ref_budget) * 100)
+        percentage = int((float(paid_expenses) / ref_budget) * 100)
         percentage = max(0, min(100, percentage))
         
         project.progress = percentage
