@@ -999,13 +999,19 @@ const ProjectDetail = () => {
                     <div className="bg-slate-950 p-4 rounded-xl border border-white/5">
                       <p className="text-[10px] text-slate-500 uppercase font-black">Facturado Total</p>
                       <p className="text-base font-extrabold text-white">
-                        ${invoices.reduce((acc, curr) => acc + parseFloat(curr.total_amount || 0), 0).toLocaleString('es-CL')}
+                        ${(
+                          invoices.reduce((acc, curr) => acc + parseFloat(curr.total_amount || 0), 0) +
+                          expenses.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0)
+                        ).toLocaleString('es-CL')}
                       </p>
                     </div>
                     <div className="bg-emerald-950/30 p-4 rounded-xl border border-emerald-500/10">
                       <p className="text-[10px] text-emerald-500 uppercase font-black">Pagado Recibido</p>
                       <p className="text-base font-extrabold text-emerald-400">
-                        ${invoices.filter(i => i.status === 'PAID').reduce((acc, curr) => acc + parseFloat(curr.total_amount || 0), 0).toLocaleString('es-CL')}
+                        ${(
+                          invoices.filter(i => i.status === 'PAID').reduce((acc, curr) => acc + parseFloat(curr.total_amount || 0), 0) +
+                          expenses.filter(e => e.is_paid).reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0)
+                        ).toLocaleString('es-CL')}
                       </p>
                     </div>
                   </div>
