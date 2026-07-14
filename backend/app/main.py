@@ -170,6 +170,52 @@ def init_db():
 
     db = SessionLocal()
     try:
+        # Columna ai_quota en users
+        try:
+            db.execute(text("ALTER TABLE users ADD COLUMN ai_quota INTEGER DEFAULT 50"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        # Columna rut en users
+        try:
+            db.execute(text("ALTER TABLE users ADD COLUMN rut VARCHAR(50)"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        # Asegurar organización base en la tabla 'organizations' si esta existe, para evitar fallos de clave foránea
+        try:
+            db.execute(text("INSERT INTO organizations (id, name) VALUES ('78c26f29-cdee-4e91-9b05-25321065ba97', 'ConstructERP') ON CONFLICT (id) DO NOTHING"))
+            db.execute(text("INSERT INTO organizations (id, name) VALUES ('a71e9ecf-b833-4e99-b32b-2a02a4e9fa18', 'ConstructERP') ON CONFLICT (id) DO NOTHING"))
+            db.commit()
+        except Exception:
+            db.rollback()
+            try:
+                db.execute(text("INSERT OR IGNORE INTO organizations (id, name) VALUES ('78c26f29-cdee-4e91-9b05-25321065ba97', 'ConstructERP')"))
+                db.execute(text("INSERT OR IGNORE INTO organizations (id, name) VALUES ('a71e9ecf-b833-4e99-b32b-2a02a4e9fa18', 'ConstructERP')"))
+                db.commit()
+            except Exception:
+                db.rollback()
+
+        # Sincronizar secuencias de ID en PostgreSQL para evitar UniqueViolation en inserts
+        if engine.url.drivername.startswith("postgresql"):
+            print("[INFO] Ajustando secuencias de ID en PostgreSQL...")
+            for table_name in ["users", "employees", "projects", "notifications"]:
+                try:
+                    db.execute(text(f"""
+                        SELECT setval(
+                            pg_get_serial_sequence('{table_name}', 'id'),
+                            COALESCE(MAX(id), 0) + 1,
+                            false
+                        ) FROM {table_name};
+                    """))
+                    db.commit()
+                    print(f"[OK] Secuencia ajustada para tabla '{table_name}'.")
+                except Exception as seq_err:
+                    db.rollback()
+                    print(f"[WARN] No se pudo ajustar secuencia para '{table_name}': {seq_err}")
+
         # Columna budget en projects
         try:
             db.execute(text("ALTER TABLE projects ADD COLUMN budget NUMERIC(15, 2) DEFAULT 0"))
