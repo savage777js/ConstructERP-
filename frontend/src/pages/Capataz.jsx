@@ -3,7 +3,7 @@ import api from '../api';
 import { 
   Send, ShieldCheck, Zap, Paperclip, FileText, 
   Loader2, AlertCircle, X, Save, Copy, Download,
-  BarChart2, FileSpreadsheet, Sparkles
+  BarChart2, FileSpreadsheet, Sparkles, ChevronUp
 } from 'lucide-react';
 import './Capataz.css';
 import { useAuth } from '../context/AuthContext';
@@ -70,6 +70,7 @@ const Capataz = () => {
 
   const [exportingReportId, setExportingReportId] = useState(null);
   const [activeMobileTab, setActiveMobileTab] = useState('chat'); // 'chat' | 'reports'
+  const [showMobileActions, setShowMobileActions] = useState(false);
 
   const biReports = [
     { id: 'workers', title: 'Nómina de Trabajadores', desc: 'Personal contratado, RUT, cargos y salarios.' },
@@ -626,8 +627,8 @@ const Capataz = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Barra de Atajos Rápidos (Pills Horizontales) */}
-        <div className="quick-actions-bar flex-shrink-0 px-4 py-2 border-t border-white/5 bg-slate-950/20 flex gap-2 overflow-x-auto scrollbar-none select-none">
+        {/* Barra de Atajos Rápidos (Escritorio) */}
+        <div className="quick-actions-bar hidden lg:flex flex-shrink-0 px-4 py-2 border-t border-white/5 bg-slate-950/20 gap-2 overflow-x-auto scrollbar-none select-none">
           {quickActions.map((action, idx) => (
             <button 
               key={idx}
@@ -638,6 +639,41 @@ const Capataz = () => {
               {action.label}
             </button>
           ))}
+        </div>
+
+        {/* Barra de Atajos Rápidos (Móvil) */}
+        <div className="lg:hidden flex-shrink-0 px-3 py-2 border-t border-white/5 bg-slate-950/20 relative select-none">
+           <button 
+             onClick={() => setShowMobileActions(!showMobileActions)}
+             className="w-full flex items-center justify-between px-4 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs font-bold text-slate-300 hover:text-amber-400 hover:border-amber-500/30 transition-all"
+           >
+             <div className="flex items-center gap-2">
+               <Zap size={14} className="text-amber-500" />
+               <span>Acciones Rápidas</span>
+             </div>
+             <ChevronUp size={16} className={`transition-transform ${showMobileActions ? 'rotate-180' : ''}`} />
+           </button>
+           
+           {/* Dropdown Menu (opens upwards) */}
+           {showMobileActions && (
+             <div className="absolute bottom-full left-0 right-0 px-3 pb-2 z-20">
+               <div className="bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-xl p-2 shadow-2xl flex flex-col gap-1 max-h-[40vh] overflow-y-auto">
+                 {quickActions.map((action, idx) => (
+                   <button 
+                     key={idx}
+                     onClick={() => {
+                       setShowMobileActions(false);
+                       action.action === 'report' ? handleGenerateReport() : handleSend(action.query);
+                     }}
+                     disabled={isTyping || isUploading}
+                     className="w-full text-left px-3 py-2.5 rounded-lg text-xs font-bold text-slate-300 hover:bg-amber-500/10 hover:text-amber-400 transition-colors"
+                   >
+                     {action.label}
+                   </button>
+                 ))}
+               </div>
+             </div>
+           )}
         </div>
 
         {/* Consola de Entrada del Chat */}
