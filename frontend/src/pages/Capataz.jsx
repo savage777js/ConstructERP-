@@ -69,6 +69,7 @@ const Capataz = () => {
   const { user } = useAuth();
 
   const [exportingReportId, setExportingReportId] = useState(null);
+  const [activeMobileTab, setActiveMobileTab] = useState('chat'); // 'chat' | 'reports'
 
   const biReports = [
     { id: 'workers', title: 'Nómina de Trabajadores', desc: 'Personal contratado, RUT, cargos y salarios.' },
@@ -518,8 +519,34 @@ const Capataz = () => {
 
   return (
     <div className="capataz-container flex flex-col lg:flex-row">
+      {/* Selector de pestañas móvil */}
+      <div className="lg:hidden flex border-b border-white/10 bg-slate-950/60 p-2 shrink-0 gap-2">
+        <button
+          onClick={() => setActiveMobileTab('chat')}
+          className={`flex-1 py-2 text-center text-[11px] font-black uppercase tracking-wider rounded-xl transition-all ${
+            activeMobileTab === 'chat'
+              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+              : 'text-slate-400 border border-transparent hover:text-white'
+          }`}
+        >
+          Chat Capataz
+        </button>
+        <button
+          onClick={() => setActiveMobileTab('reports')}
+          className={`flex-1 py-2 text-center text-[11px] font-black uppercase tracking-wider rounded-xl transition-all ${
+            activeMobileTab === 'reports'
+              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+              : 'text-slate-400 border border-transparent hover:text-white'
+          }`}
+        >
+          Reportes & BI
+        </button>
+      </div>
+
       {/* SECCIÓN PRINCIPAL DE CHAT */}
-      <main className="chat-workspace flex-1 flex flex-col overflow-hidden">
+      <main className={`chat-workspace flex-1 flex flex-col overflow-hidden ${
+        activeMobileTab === 'chat' ? 'flex' : 'hidden lg:flex'
+      }`}>
         
         {/* Listado Deslizable de Conversaciones de Chat */}
         <div className="capataz-messages flex-1 overflow-y-auto">
@@ -654,7 +681,9 @@ const Capataz = () => {
       </main>
 
       {/* PANEL DERECHO: CENTRO DE REPORTES & BI */}
-      <aside className="reports-bi-panel w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 bg-slate-950/40 p-5 flex flex-col overflow-y-auto shrink-0 select-none">
+      <aside className={`reports-bi-panel w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 bg-slate-950/40 p-5 flex flex-col overflow-y-auto shrink-0 select-none ${
+        activeMobileTab === 'reports' ? 'flex' : 'hidden lg:flex'
+      }`}>
         <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/5">
           <BarChart2 className="text-amber-500" size={18} />
           <h3 className="text-sm font-black text-white uppercase tracking-wider">Centro de Reportes & BI</h3>

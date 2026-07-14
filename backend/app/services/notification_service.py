@@ -11,13 +11,12 @@ class NotificationService:
         # Triggers the smart check before returning
         NotificationService.run_smart_checks(db)
         
-        query = db.query(Notification)
+        query = db.query(Notification).filter(Notification.type != NotificationType.UNPAID_SALARY)
         
         if role and role not in ["ADMIN", "MANAGEMENT"]:
             if role == "HR_MANAGER":
                 query = query.filter(Notification.type.in_([
                     NotificationType.CONTRACT_EXPIRING,
-                    NotificationType.UNPAID_SALARY,
                     NotificationType.SYSTEM_INFO,
                     NotificationType.VACATION_ALERT,
                     NotificationType.VACATION_APPROVED

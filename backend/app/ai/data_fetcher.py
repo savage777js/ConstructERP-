@@ -129,15 +129,7 @@ class AIDataFetcher:
         expiring_contracts = query_expiring.scalar() or 0
 
         # Alerta de sueldos pendientes
-        unpaid_salaries_alert = self.db.query(func.count(Notification.id)).filter(
-            Notification.is_read == False,
-            or_(
-                Notification.title.ilike("%sueldo%"),
-                Notification.title.ilike("%remuneracion%"),
-                Notification.title.ilike("%pago%"),
-                Notification.message.ilike("%sueldo%")
-            )
-        ).scalar() > 0
+        unpaid_salaries_alert = False
 
         return {
             "trabajadores_activos": active_workers,
@@ -301,23 +293,6 @@ class AIDataFetcher:
         avg_salary = total_payroll / len(active_employees) if active_employees else 0
 
         unpaid_salaries = []
-        salary_notifications = self.db.query(Notification).filter(
-            Notification.is_read == False,
-            or_(
-                Notification.title.ilike("%sueldo%"),
-                Notification.message.ilike("%sueldo%"),
-                Notification.title.ilike("%remuneracion%"),
-                Notification.message.ilike("%remuneracion%")
-            )
-        ).all()
-
-        for n in salary_notifications:
-            unpaid_salaries.append({
-                "id": n.id,
-                "titulo": n.title,
-                "mensaje": n.message,
-                "fecha": n.created_at.isoformat()
-            })
 
         return {
             "planilla_mensual_total": float(total_payroll),

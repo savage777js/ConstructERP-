@@ -16,22 +16,17 @@ const Dashboard = () => {
   const [summary, setSummary] = useState(null);
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [hasUnpaidSalaries, setHasUnpaidSalaries] = useState(false);
   const navigate = useNavigate();
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [summaryRes, chartRes, notifRes] = await Promise.all([
+      const [summaryRes, chartRes] = await Promise.all([
         api.get('/dashboard/summary'),
-        api.get('/dashboard/charts'),
-        api.get('/notifications/')
+        api.get('/dashboard/charts')
       ]);
       setSummary(summaryRes.data);
       setChartData(chartRes.data);
-      // Omitir alertas de stock en notificaciones del dashboard si existieran
-      const unpaid = notifRes.data.some(n => n.type === 'UNPAID_SALARY' && !n.is_read);
-      setHasUnpaidSalaries(unpaid);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -98,21 +93,6 @@ const Dashboard = () => {
         </button>
       </header>
       
-      {/* Unpaid Salaries Alert Banner */}
-      {hasUnpaidSalaries && (
-        <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-400 animate-pulse">
-          <AlertTriangle size={20} />
-          <div className="flex-1 text-sm font-semibold">
-            ¡Alerta de Gestión! Se han detectado alertas vigentes de sueldos no pagados en el sistema.
-          </div>
-          <button 
-            onClick={() => navigate('/notifications')} 
-            className="text-xs bg-red-500/20 hover:bg-red-500/30 px-3.5 py-2 rounded-xl font-bold text-red-300 transition-all uppercase"
-          >
-            Revisar
-          </button>
-        </div>
-      )}
 
       {/* KPI Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8 mb-6 sm:mb-12">
@@ -246,7 +226,7 @@ const Dashboard = () => {
             { name: 'Capataz AI', icon: HardHat, path: '/capataz', color: 'bg-amber-500/10 text-amber-400' },
             { name: 'Reportes Generales', icon: FileText, path: '/reports', color: 'bg-indigo-500/10 text-indigo-400' },
             { name: 'Expedientes & OCR', icon: Folder, path: '/documents', color: 'bg-emerald-500/10 text-emerald-400' },
-            { name: 'Alertas & Sueldos', icon: Bell, path: '/notifications', color: 'bg-red-500/10 text-red-400' }
+            { name: 'Centro de Alertas', icon: Bell, path: '/notifications', color: 'bg-red-500/10 text-red-400' }
           ] : [
             { name: 'Gestión RRHH', icon: Users, path: '/workers', color: 'bg-blue-500/10 text-blue-400', roles: ['ADMIN', 'HR_MANAGER', 'MANAGEMENT', 'PROJECT_MANAGER'] },
             { name: 'Control de Obras', icon: Briefcase, path: '/projects', color: 'bg-purple-500/10 text-purple-400', roles: ['ADMIN', 'PROJECT_MANAGER', 'MANAGEMENT', 'HR_MANAGER', 'INVENTORY_MANAGER'] },

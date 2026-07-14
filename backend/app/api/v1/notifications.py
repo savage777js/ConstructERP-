@@ -36,14 +36,13 @@ def get_unread_count(
     # Ejecutar chequeos primero
     NotificationService.run_smart_checks(db)
     
-    query = db.query(Notification).filter(Notification.is_read == False)
+    query = db.query(Notification).filter(Notification.is_read == False, Notification.type != NotificationType.UNPAID_SALARY)
     
     role = current_user.role
     if role and role not in ["ADMIN", "MANAGEMENT"]:
         if role == "HR_MANAGER":
             query = query.filter(Notification.type.in_([
                 NotificationType.CONTRACT_EXPIRING,
-                NotificationType.UNPAID_SALARY,
                 NotificationType.SYSTEM_INFO,
                 NotificationType.VACATION_ALERT,
                 NotificationType.VACATION_APPROVED,

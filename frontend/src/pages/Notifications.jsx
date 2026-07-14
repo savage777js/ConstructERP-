@@ -19,8 +19,8 @@ const Notifications = () => {
     setLoading(true);
     try {
       const response = await api.get('/notifications/');
-      // Filtrar y omitir alertas de stock / inventario
-      const filtered = response.data.filter(n => n.type !== 'STOCK_ALERT');
+      // Filtrar y omitir alertas de stock / inventario y sueldos impagos
+      const filtered = response.data.filter(n => n.type !== 'STOCK_ALERT' && n.type !== 'UNPAID_SALARY');
       setNotifications(filtered);
     } catch (error) {
       console.error('Error fetching notifications:', error);

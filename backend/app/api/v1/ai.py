@@ -73,12 +73,7 @@ def get_ai_dashboard(
                 "mensaje": f"{resumen['contratos_por_vencer']} contrato(s) próximo(s) a vencer en los siguientes 30 días.",
                 "accion": "Iniciar proceso de renovación de contratos."
             })
-        if resumen.get("alerta_sueldos_pendientes", False):
-            situaciones.append({
-                "prioridad": "ALTA",
-                "mensaje": "Se detectó una alerta de remuneraciones o sueldos pendientes en el sistema.",
-                "accion": "Revisar facturación o nómina del personal."
-            })
+
         if dotacion.get("ocr_pendiente", 0) > 0:
             situaciones.append({
                 "prioridad": "BAJA",
@@ -90,7 +85,6 @@ def get_ai_dashboard(
         penalties = 0
         penalties += resumen.get("alertas_pendientes", 0) * 1
         penalties += resumen.get("contratos_por_vencer", 0) * 4
-        penalties += 10 if resumen.get("alerta_sueldos_pendientes", False) else 0
         penalties += dotacion.get("ocr_pendiente", 0) * 2
         penalties += dotacion.get("sin_proyecto", {}).get("cantidad", 0) * 3
         penalties += dotacion.get("sin_contrato", {}).get("cantidad", 0) * 5
@@ -125,12 +119,7 @@ def get_ai_dashboard(
                 "mensaje": "Validar documentos OCR",
                 "query": "Analiza las facturas y boletas pendientes de OCR y muéstrame el listado de documentos por procesar."
             })
-        if resumen.get("alerta_sueldos_pendientes"):
-            acciones_sugeridas.append({
-                "id": "revisar_sueldos",
-                "mensaje": "Revisar sueldos pendientes",
-                "query": "Muéstrame las alertas y notificaciones sobre sueldos o remuneraciones pendientes en el sistema."
-            })
+
         acciones_sugeridas.append({
             "id": "generar_informe_semanal",
             "mensaje": "Generar informe semanal",
@@ -163,8 +152,7 @@ def get_ai_dashboard(
             f"• ⚠ **{resumen['alertas_pendientes']}** alertas pendientes\n"
             f"• 📄 **{resumen['contratos_por_vencer']}** contratos próximos a vencer\n"
         )
-        if resumen.get("alerta_sueldos_pendientes"):
-            welcome_msg += "• 💰 Existe una remuneración pendiente\n"
+
         if dotacion.get("ocr_pendiente", 0) > 0:
             welcome_msg += f"• 📑 **{dotacion['ocr_pendiente']}** documentos OCR pendientes de validación\n"
             
